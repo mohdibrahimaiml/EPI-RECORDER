@@ -4,35 +4,30 @@ Welcome! This repository contains example `.epi` recordings that demonstrate the
 
 ## What is EPI?
 
-EPI is a standardized format for recording, replaying, and analyzing AI API interactions. Think of it as "video recording for AI conversations" — capturing the full context, timing, and behavior of LLM interactions in a shareable, auditable format.
+EPI (Extended Prompt Interaction) is an **experimental format** for recording, replaying, and analyzing AI API interactions. Think of it as "video recording for AI conversations" — capturing the full context, timing, and behavior of LLM interactions in a shareable, auditable format.
+
+**Status:** Prototype/proof-of-concept. Not yet a standardized format.
 
 ## Quick Start
 
-### View Online
-Drag any `.epi` file to the [EPI Viewer](https://epi-viewer.example.com)
-
-### View Locally
+### Try the Demo
 ```bash
-pip install epi-recorder
-epi view basic-usage/basic-usage.epi
+# Clone this repo
+git clone https://github.com/mohdibrahimaiml/epi-demo-Evidence-Packaged-Infrastructure-Demo-Repository.git
+cd epi-demo-Evidence-Packaged-Infrastructure-Demo-Repository
+
+# Run the demo (no dependencies needed)
+python demo/api_demo.py
+
+# Inspect output
+cat demo_output_basic/steps.jsonl
+cat demo_output_basic/environment.json
 ```
 
-### Record Your Own
-```bash
-# Install
-pip install epi-recorder
-
-# Record in Python
-from epi_recorder import Recorder
-import openai
-
-with Recorder("my-interaction.epi"):
-    client = openai.OpenAI()
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": "Hello!"}]
-    )
-```
+### Full Implementation
+For the complete recorder with OpenAI integration, signing, and packaging:
+- See [README_DEMO.md](./README_DEMO.md)
+- Contact afridiibrahim41@gmail.com for NDA access
 
 ## Demo Files
 
@@ -88,10 +83,10 @@ epi diff file1.epi file2.epi
 
 ## Learn More
 
-- [EPI Format Specification](https://github.com/EPI-spec/spec)
-- [EPI Recorder (Python)](https://github.com/yourusername/epi-recorder)
-- [EPI Viewer](https://epi-viewer.example.com)
-- [Integration Guides](https://docs.epi-format.org)
+This is a proof-of-concept demo. For the full implementation (available under NDA):
+- Contact: afridiibrahim41@gmail.com
+- See: [PRIVATE_COMPONENTS.md](./PRIVATE_COMPONENTS.md)
+- Architecture: [ARCHITECTURE.md](./ARCHITECTURE.md)
 
 ## Contributing
 
