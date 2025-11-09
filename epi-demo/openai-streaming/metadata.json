@@ -1,0 +1,8 @@
+{
+  "name": "OpenAI Streaming",
+  "description": "Streaming chat completion showing real-time token delivery",
+  "tags": ["streaming", "openai", "sse", "realtime"],
+  "created": "2025-01-24",
+  "model": "gpt-4",
+  "provider": "openai"
+}
