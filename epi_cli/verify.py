@@ -46,7 +46,7 @@ def verify(
     """
     # Ensure file exists
     if not epi_file.exists():
-        console.print(f"[red]❌ Error:[/red] File not found: {epi_file}")
+        console.print(f"[red][FAIL] Error:[/red] File not found: {epi_file}")
         raise typer.Exit(1)
     
     # Initialize verification state
@@ -65,11 +65,11 @@ def verify(
         try:
             manifest = EPIContainer.read_manifest(epi_file)
             if verbose:
-                console.print("  [green]✅[/green] Valid ZIP format")
-                console.print("  [green]✅[/green] Valid mimetype")
-                console.print("  [green]✅[/green] Valid manifest schema")
+                console.print("  [green][OK][/green] Valid ZIP format")
+                console.print("  [green][OK][/green] Valid mimetype")
+                console.print("  [green][OK][/green] Valid manifest schema")
         except Exception as e:
-            console.print(f"[red]❌ Structural validation failed:[/red] {e}")
+            console.print(f"[red][FAIL] Structural validation failed:[/red] {e}")
             raise typer.Exit(1)
         
         # ========== STEP 2: INTEGRITY CHECKS ==========
@@ -80,9 +80,9 @@ def verify(
         
         if verbose:
             if integrity_ok:
-                console.print(f"  [green]✅[/green] All {len(manifest.file_manifest)} files verified")
+                console.print(f"  [green][OK][/green] All {len(manifest.file_manifest)} files verified")
             else:
-                console.print(f"  [red]❌[/red] {len(mismatches)} file(s) failed verification")
+                console.print(f"  [red][FAIL][/red] {len(mismatches)} file(s) failed verification")
                 for filename, reason in mismatches.items():
                     console.print(f"    [red]•[/red] {filename}: {reason}")
         
@@ -101,19 +101,19 @@ def verify(
                 
                 if verbose:
                     if signature_valid:
-                        console.print(f"  [green]✅[/green] {sig_message}")
+                        console.print(f"  [green][OK][/green] {sig_message}")
                     else:
-                        console.print(f"  [red]❌[/red] {sig_message}")
+                        console.print(f"  [red][FAIL][/red] {sig_message}")
             
             except FileNotFoundError:
                 signature_valid = False
                 if verbose:
-                    console.print(f"  [yellow]⚠️[/yellow]  Public key not found: {signer_name}")
+                    console.print(f"  [yellow][WARN][/yellow]  Public key not found: {signer_name}")
                     console.print("  [dim]Cannot verify signature without public key[/dim]")
         else:
             signature_valid = None
             if verbose:
-                console.print("  [yellow]⚠️[/yellow]  No signature present (unsigned)")
+                console.print("  [yellow][WARN][/yellow]  No signature present (unsigned)")
         
         # ========== CREATE REPORT ==========
         report = create_verification_report(
@@ -143,7 +143,7 @@ def verify(
         if verbose:
             console.print_exception()
         else:
-            console.print(f"[red]❌ Verification failed:[/red] {e}")
+            console.print(f"[red][FAIL] Verification failed:[/red] {e}")
         raise typer.Exit(1)
 
 
@@ -158,15 +158,15 @@ def print_trust_report(report: dict, epi_file: Path, verbose: bool = False):
     """
     # Determine overall status symbol and color
     if report["trust_level"] == "HIGH":
-        status_symbol = "✅"
+        status_symbol = "[OK]"
         status_color = "green"
         panel_style = "green"
     elif report["trust_level"] == "MEDIUM":
-        status_symbol = "⚠️"
+        status_symbol = "[WARN]"
         status_color = "yellow"
         panel_style = "yellow"
     else:
-        status_symbol = "❌"
+        status_symbol = "[FAIL]"
         status_color = "red"
         panel_style = "red"
     
@@ -179,17 +179,17 @@ def print_trust_report(report: dict, epi_file: Path, verbose: bool = False):
     
     # Integrity status
     if report["integrity_ok"]:
-        content_lines.append(f"[green]✅ Integrity:[/green] Verified ({report['files_checked']} files)")
+        content_lines.append(f"[green][OK] Integrity:[/green] Verified ({report['files_checked']} files)")
     else:
-        content_lines.append(f"[red]❌ Integrity:[/red] Failed ({report['mismatches_count']} mismatches)")
+        content_lines.append(f"[red][FAIL] Integrity:[/red] Failed ({report['mismatches_count']} mismatches)")
     
     # Signature status
     if report["signature_valid"]:
-        content_lines.append(f"[green]✅ Signature:[/green] Valid (key: {report['signer']})")
+        content_lines.append(f"[green][OK] Signature:[/green] Valid (key: {report['signer']})")
     elif report["signature_valid"] is None:
-        content_lines.append("[yellow]⚠️  Signature:[/yellow] Not signed")
+        content_lines.append("[yellow][WARN]  Signature:[/yellow] Not signed")
     else:
-        content_lines.append(f"[red]❌ Signature:[/red] Invalid")
+        content_lines.append(f"[red][FAIL] Signature:[/red] Invalid")
     
     # Show metadata if verbose
     if verbose:

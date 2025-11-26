@@ -5,6 +5,21 @@ All notable changes to the EPI Recorder project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-11-23
+
+### Added
+- **Human decision metadata** to recordings: goal, notes, metrics, approved_by, tags
+- **CLI flags**: --goal, --notes, --metric, --approved-by, --tag
+- **Python API**: @record(...) and with record(... ) accept metadata parameters
+- **Enhanced listing**: epi ls displays metadata summary
+- **Viewer improvements**: Shows metadata header when present
+
+### Technical
+- Extended ManifestModel schema with new optional metadata fields
+- Updated CLI run command to parse and store metadata
+- Enhanced viewer.html to display metadata section
+- Improved epi ls output formatting for metadata
+
 ## [1.0.0] - 2024-10-30
 
 ### Added
@@ -77,4 +92,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.1.0]: https://github.com/epi-project/epi-recorder/releases/tag/v1.1.0
 [1.0.0]: https://github.com/epi-project/epi-recorder/releases/tag/v1.0.0

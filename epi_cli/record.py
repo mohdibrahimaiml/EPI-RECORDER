@@ -94,10 +94,17 @@ def record(
 ):
     """
     Record a command and package the run into a .epi file.
+    
+    [NOTICE] For simpler usage, try: epi run script.py
+    This command (epi record --out) is for advanced/CI use cases.
     """
     if not command:
-        console.print("[red]❌ No command provided[/red]")
+        console.print("[red][FAIL] No command provided[/red]")
         raise typer.Exit(1)
+    
+    # Show deprecation notice
+    console.print("[dim][NOTICE] For simpler usage, try: epi run script.py[/dim]")
+    console.print("[dim]This advanced command is for CI/exact-control use cases.[/dim]\n")
 
     # Normalize command
     cmd = _ensure_python_command(command)
@@ -171,11 +178,11 @@ def record(
             temp_zip.replace(out)
             signed = True
         except Exception as e:
-            console.print(f"[yellow]⚠️  Signing failed:[/yellow] {e}")
+            console.print(f"[yellow][WARN]  Signing failed:[/yellow] {e}")
 
     # Final output panel
     size_mb = out.stat().st_size / (1024 * 1024)
-    title = "✅ Recording complete" if rc == 0 else "⚠️ Recording finished with errors"
+    title = "[OK] Recording complete" if rc == 0 else "[WARN] Recording finished with errors"
     panel = Panel(
         f"[bold]File:[/bold] {out}\n"
         f"[bold]Size:[/bold] {size_mb:.1f} MB\n"

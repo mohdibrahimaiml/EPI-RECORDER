@@ -34,8 +34,9 @@ class TestRecordingContext:
         assert ctx.output_dir == temp_dir
         assert ctx.enable_redaction == True
         assert ctx.step_index == 0
-        assert len(ctx.steps) == 0
+        # self.steps was removed, so we check that the file exists and is empty
         assert ctx.steps_file.exists()
+        assert ctx.steps_file.stat().st_size == 0
     
     def test_initialization_without_redaction(self):
         """Test initialization with redaction disabled."""
@@ -68,16 +69,22 @@ class TestRecordingContext:
         ctx.add_step("step2", {})
         assert ctx.step_index == 2
     
-    def test_add_step_stores_in_memory(self):
-        """Test that steps are stored in memory."""
+    def test_add_step_stores_on_disk(self):
+        """Test that steps are stored on disk (not in memory)."""
         temp_dir = Path(tempfile.mkdtemp())
         ctx = RecordingContext(temp_dir, enable_redaction=False)
         
         ctx.add_step("step1", {"data": "test"})
         
-        assert len(ctx.steps) == 1
-        assert ctx.steps[0].kind == "step1"
-        assert ctx.steps[0].content["data"] == "test"
+        # Verify file content
+        lines = ctx.steps_file.read_text().strip().split('\n')
+        assert len(lines) == 1
+        step = json.loads(lines[0])
+        assert step["kind"] == "step1"
+        assert step["content"]["data"] == "test"
+        
+        # Verify NO in-memory storage
+        assert not hasattr(ctx, 'steps')
     
     def test_add_step_with_redaction(self):
         """Test that secrets are redacted in steps."""
@@ -91,8 +98,6 @@ class TestRecordingContext:
         })
         
         # Secret should be redacted in stored step
-        assert len(ctx.steps) >= 1
-        # Should have either redacted the secret or added a redaction step
         content = ctx.steps_file.read_text()
         assert "[REDACTED" in content or "security.redaction" in content
     
@@ -238,15 +243,22 @@ class TestPatcherEdgeCases:
         assert non_existent.exists()
         assert ctx.steps_file.exists()
     
-    def test_step_timestamp_is_datetime(self):
-        """Test that step timestamps are datetime objects."""
+    def test_step_timestamp_is_iso_string(self):
+        """Test that step timestamps are ISO strings."""
         temp_dir = Path(tempfile.mkdtemp())
         ctx = RecordingContext(temp_dir, enable_redaction=False)
         
         ctx.add_step("test", {})
         
-        assert len(ctx.steps) > 0
-        assert isinstance(ctx.steps[0].timestamp, datetime)
+        lines = ctx.steps_file.read_text().strip().split('\n')
+        assert len(lines) > 0
+        step = json.loads(lines[0])
+        
+        # Should be a string in ISO format
+        assert isinstance(step["timestamp"], str)
+        # Should be parseable as datetime
+        dt = datetime.fromisoformat(step["timestamp"])
+        assert isinstance(dt, datetime)
     
     def test_step_index_is_sequential(self):
         """Test that step indices are sequential."""
@@ -257,9 +269,12 @@ class TestPatcherEdgeCases:
         ctx.add_step("step2", {})
         ctx.add_step("step3", {})
         
-        assert ctx.steps[0].index == 0
-        assert ctx.steps[1].index == 1
-        assert ctx.steps[2].index == 2
+        lines = ctx.steps_file.read_text().strip().split('\n')
+        steps = [json.loads(line) for line in lines]
+        
+        assert steps[0]["index"] == 0
+        assert steps[1]["index"] == 1
+        assert steps[2]["index"] == 2
     
     def test_empty_content_is_valid(self):
         """Test that empty content is valid."""
@@ -268,8 +283,10 @@ class TestPatcherEdgeCases:
         
         ctx.add_step("empty", {})
         
-        assert len(ctx.steps) == 1
-        assert ctx.steps[0].content == {}
+        lines = ctx.steps_file.read_text().strip().split('\n')
+        assert len(lines) == 1
+        step = json.loads(lines[0])
+        assert step["content"] == {}
     
     def test_nested_content_is_preserved(self):
         """Test that nested dictionaries are preserved."""
@@ -286,4 +303,7 @@ class TestPatcherEdgeCases:
         
         ctx.add_step("nested", nested)
         
-        assert ctx.steps[0].content["level1"]["level2"]["level3"] == "value"
+        lines = ctx.steps_file.read_text().strip().split('\n')
+        step = json.loads(lines[0])
+        
+        assert step["content"]["level1"]["level2"]["level3"] == "value"

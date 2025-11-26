@@ -51,6 +51,81 @@ function renderTrustBadge(manifest) {
     badge.innerHTML = badgeHTML;
 }
 
+// Render metadata section
+function renderMetadata(manifest) {
+    // Create metadata section container
+    const metadataSection = document.createElement('div');
+    metadataSection.className = 'bg-blue-50 rounded-lg p-4 mb-6';
+    metadataSection.innerHTML = '<h3 class="text-lg font-semibold text-gray-900 mb-3">Recording Metadata</h3>';
+    
+    const metadataContent = document.createElement('div');
+    metadataContent.className = 'space-y-3';
+    
+    // Goal
+    if (manifest.goal) {
+        const goalDiv = document.createElement('div');
+        goalDiv.innerHTML = `
+            <div class="text-gray-500 text-xs uppercase tracking-wide">Goal</div>
+            <div class="mt-1">${escapeHTML(manifest.goal)}</div>
+        `;
+        metadataContent.appendChild(goalDiv);
+    }
+    
+    // Notes
+    if (manifest.notes) {
+        const notesDiv = document.createElement('div');
+        notesDiv.innerHTML = `
+            <div class="text-gray-500 text-xs uppercase tracking-wide">Notes</div>
+            <div class="mt-1">${escapeHTML(manifest.notes)}</div>
+        `;
+        metadataContent.appendChild(notesDiv);
+    }
+    
+    // Metrics
+    if (manifest.metrics && Object.keys(manifest.metrics).length > 0) {
+        const metricsDiv = document.createElement('div');
+        let metricsHtml = '<div class="text-gray-500 text-xs uppercase tracking-wide">Metrics</div><div class="mt-1 flex flex-wrap gap-2">';
+        for (const [key, value] of Object.entries(manifest.metrics)) {
+            metricsHtml += `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">${escapeHTML(key)}=${escapeHTML(String(value))}</span>`;
+        }
+        metricsHtml += '</div>';
+        metricsDiv.innerHTML = metricsHtml;
+        metadataContent.appendChild(metricsDiv);
+    }
+    
+    // Approved by
+    if (manifest.approved_by) {
+        const approvedDiv = document.createElement('div');
+        approvedDiv.innerHTML = `
+            <div class="text-gray-500 text-xs uppercase tracking-wide">Approved By</div>
+            <div class="mt-1">${escapeHTML(manifest.approved_by)}</div>
+        `;
+        metadataContent.appendChild(approvedDiv);
+    }
+    
+    // Tags
+    if (manifest.tags && manifest.tags.length > 0) {
+        const tagsDiv = document.createElement('div');
+        let tagsHtml = '<div class="text-gray-500 text-xs uppercase tracking-wide">Tags</div><div class="mt-1 flex flex-wrap gap-2">';
+        for (const tag of manifest.tags) {
+            tagsHtml += `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">${escapeHTML(tag)}</span>`;
+        }
+        tagsHtml += '</div>';
+        tagsDiv.innerHTML = tagsHtml;
+        metadataContent.appendChild(tagsDiv);
+    }
+    
+    // Only add metadata section if there's content to show
+    if (metadataContent.children.length > 0) {
+        metadataSection.appendChild(metadataContent);
+        // Insert at the top of main content
+        const mainContent = document.querySelector('main');
+        if (mainContent && mainContent.firstChild) {
+            mainContent.insertBefore(metadataSection, mainContent.firstChild);
+        }
+    }
+}
+
 // Render manifest summary
 function renderManifest(manifest) {
     const summary = document.getElementById('manifest-summary');
@@ -255,6 +330,7 @@ function init() {
     }
 
     renderTrustBadge(data.manifest);
+    renderMetadata(data.manifest);  // New metadata section
     renderManifest(data.manifest);
     renderTimeline(data.steps);
 }

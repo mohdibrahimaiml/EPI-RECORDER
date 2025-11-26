@@ -3,7 +3,7 @@ EPI Core Schemas - Pydantic models for manifest and steps.
 """
 
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List, Union
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -52,6 +52,32 @@ class ManifestModel(BaseModel):
         description="Ed25519 signature of the canonical CBOR hash of this manifest (excluding signature field)"
     )
     
+    # New metadata fields for decision tracking
+    goal: Optional[str] = Field(
+        default=None,
+        description="Goal or objective of this workflow execution"
+    )
+    
+    notes: Optional[str] = Field(
+        default=None,
+        description="Additional notes or context about this workflow"
+    )
+    
+    metrics: Optional[Dict[str, Union[float, str]]] = Field(
+        default=None,
+        description="Key-value metrics for this workflow (accuracy, latency, etc.)"
+    )
+    
+    approved_by: Optional[str] = Field(
+        default=None,
+        description="Person or entity who approved this workflow execution"
+    )
+    
+    tags: Optional[List[str]] = Field(
+        default=None,
+        description="Tags for categorizing this workflow"
+    )
+    
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -65,7 +91,12 @@ class ManifestModel(BaseModel):
                     "env.json": "a3c5f...",
                     "artifacts/output.txt": "c7f8a..."
                 },
-                "signature": "ed25519:3a4b5c6d..."
+                "signature": "ed25519:3a4b5c6d...",
+                "goal": "Improve model accuracy",
+                "notes": "Switched to GPT-4 for better reasoning",
+                "metrics": {"accuracy": 0.92, "latency": 210},
+                "approved_by": "alice@company.com",
+                "tags": ["prod-candidate", "v1.0"]
             }
         }
     )

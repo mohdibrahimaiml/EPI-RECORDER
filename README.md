@@ -1,16 +1,19 @@
-# EPI - Executable Package for AI
+# EPI - Evidence Packaged Infrastructure
 
-**The "PDF for AI Workflows"** — Self-contained, cryptographically verified evidence packages for AI systems.
+**Evidence Packaged Infrastructure (EPI)** - The "PDF for AI Workflows"
+
+Self-contained, cryptographically verified evidence packages for AI systems.
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Status](https://img.shields.io/badge/status-MVP-green.svg)]()
+[![Status](https://img.shields.io/badge/status-production--ready-green.svg)](https://pypi.org/project/epi-recorder/)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://pypi.org/project/epi-recorder/)
 
 ---
 
 ## 🚀 Quick Start
 
-### **Python API** (Recommended for Developers)
+### Python API (Recommended for Developers)
 
 ```python
 from epi_recorder import record
@@ -24,70 +27,86 @@ with record("my_workflow.epi", workflow_name="Demo"):
     )
     
     # Optionally log custom events
-    epi.log_step("calculation", {"result": 42})
+    session.log_step("calculation", {"result": 42})
 
 # .epi file is automatically created, signed, and ready to verify!
 ```
 
-### **CLI** (For Shell Scripts & CI/CD)
+### CLI (For Shell Scripts & CI/CD)
 
 ```bash
 # Install
 pip install epi-recorder
 
 # Record a workflow
-epi record --out demo.epi -- python my_ai_script.py
+epi run my_ai_script.py
 
 # Verify integrity and authenticity
-epi verify demo.epi
+epi verify recording.epi
 
 # View in browser
-epi view demo.epi
+epi view recording.epi
 ```
 
-**That's it!** Your AI workflow is now captured, signed, and viewable.
+That's it! Your AI workflow is now captured, signed, and viewable.
+
+---
+
+## 🆕 What's New in v1.1.0
+
+✅ **Windows Compatibility** - Full support for Windows CMD and PowerShell  
+✅ **Unicode Fixes** - Clean ASCII output, no encoding errors  
+✅ **Enhanced CLI** - All 11 commands work perfectly on Windows  
+✅ **Improved Metadata** - Better support for goal, notes, metrics, tags  
+✅ **Bug Fixes** - Resolved redaction edge cases and error handling  
+
+**Note:** File format remains backward compatible (spec version 1.0-keystone)
 
 ---
 
 ## 🎯 What is EPI?
 
-EPI captures **everything** that happens during an AI workflow:
-- 🤖 **LLM API calls** (prompts, responses, tokens, latency)
-- 🔒 **Secrets redacted** automatically (15+ patterns)
-- 📦 **Files and artifacts** (content-addressed)
-- 🖥️ **Environment snapshot** (OS, Python, packages)
-- ✅ **Cryptographically signed** (Ed25519)
-- 📊 **Beautiful timeline viewer** (static HTML)
+**EPI (Evidence Packaged Infrastructure)** captures **everything** that happens during an AI workflow:
 
-All packaged into a **single `.epi` file** that anyone can verify and replay.
+
+- 🤖 **LLM API calls** - Prompts, responses, tokens, latency
+- 🔒 **Secrets redacted** - Automatically (15+ patterns)
+- 📦 **Files and artifacts** - Content-addressed storage
+- 🖥️ **Environment snapshot** - OS, Python version, packages
+- ✅ **Cryptographically signed** - Ed25519 signatures
+- 📊 **Beautiful timeline viewer** - Interactive HTML interface
+
+All packaged into a **single .epi file** that anyone can verify and replay.
 
 ---
 
 ## 🌟 Why EPI?
 
-### **The Problem**
+### The Problem
 
-❌ 70% of AI research cannot be reproduced  
-❌ AI models fail mysteriously in production  
-❌ Cannot prove how AI decisions were made  
-❌ "It worked on my machine" debugging nightmare  
+❌ **70% of AI research cannot be reproduced**  
+❌ **AI models fail mysteriously in production**  
+❌ **Cannot prove how AI decisions were made**  
+❌ **"It worked on my machine" debugging nightmare**
 
-### **The Solution**
+### The Solution
 
-✅ **Record**: Capture complete AI workflows with one command  
-✅ **Verify**: Cryptographic proof of authenticity  
-✅ **Share**: Single file contains everything  
-✅ **Replay**: Deterministic reproduction (offline mode)  
-✅ **Audit**: Full transparency for compliance  
+✅ **Record** - Capture complete AI workflows with one command  
+✅ **Verify** - Cryptographic proof of authenticity  
+✅ **Share** - Single file contains everything  
+✅ **Replay** - Deterministic reproduction (offline mode)  
+✅ **Audit** - Full transparency for compliance
 
 ---
 
 ## 📖 Core Features
 
-### 🎬 **Recording**
+### 🎬 Recording
+
 ```bash
-epi record --out experiment.epi -- python train.py
+epi run train.py
 ```
+
 Automatically captures:
 - OpenAI API calls (GPT-4, GPT-3.5, etc.)
 - Shell commands and outputs
@@ -95,113 +114,150 @@ Automatically captures:
 - Generated files and artifacts
 - Environment variables (redacted)
 
-### 🔐 **Security by Default**
-- **Auto-redacts secrets**: API keys, tokens, credentials
-- **Ed25519 signatures**: Cryptographic proof of authenticity
-- **Frictionless**: Auto-generates keypair on first run
-- **No secret leakage**: 15+ regex patterns protect sensitive data
+### 🔐 Security by Default
 
-### ✅ **Verification**
+- **Auto-redacts secrets:** API keys, tokens, credentials
+- **Ed25519 signatures:** Cryptographic proof of authenticity
+- **Frictionless:** Auto-generates keypair on first run
+- **No secret leakage:** 15+ regex patterns protect sensitive data
+
+### ✅ Verification
+
 ```bash
 epi verify experiment.epi
 ```
-Three-level verification:
-1. **Structural**: Valid ZIP format and schema
-2. **Integrity**: SHA-256 file hashes match
-3. **Authenticity**: Ed25519 signature valid
 
-### 👁️ **Beautiful Viewer**
+Three-level verification:
+1. **Structural** - Valid ZIP format and schema
+2. **Integrity** - SHA-256 file hashes match
+3. **Authenticity** - Ed25519 signature valid
+
+### 👁️ Beautiful Viewer
+
 ```bash
 epi view experiment.epi
 ```
+
 Opens in your browser with:
 - Interactive timeline of all steps
 - LLM chat bubbles (prompts & responses)
 - Trust badges (signed/unsigned)
 - Artifact previews
-- **Zero code execution** (pure JSON rendering)
+- Zero code execution (pure JSON rendering)
 
 ---
 
 ## 🎓 Use Cases
 
-### **AI Researchers**
+### AI Researchers
+
 ```bash
 # Submit verifiable research
-epi record --out paper_experiment.epi -- python reproduce.py
+epi run reproduce.py
 ```
+
 ✅ 100% reproducible methodology  
 ✅ Eliminates "it worked on my machine"  
-✅ Speeds up peer review  
+✅ Speeds up peer review
 
-### **Enterprise AI Teams**
+### Enterprise AI Teams
+
 ```bash
 # Capture production AI runs
-epi record --out prod_run.epi -- python deploy_model.py
+epi run deploy_model.py
 ```
+
 ✅ Audit trails for compliance (EU AI Act, SOC 2)  
 ✅ Debug production failures instantly  
-✅ Version control for AI systems  
+✅ Version control for AI systems
 
-### **Software Engineers**
+### Software Engineers
+
 ```bash
 # Perfect bug reproduction
-epi record --out bug_report.epi -- python flaky_test.py
+epi run flaky_test.py
 ```
+
 ✅ Share exact failing conditions  
 ✅ Debug AI features faster  
-✅ Stable CI/CD for AI features  
+✅ Stable CI/CD for AI features
 
 ---
 
 ## 🛠️ Installation
 
-### **From Source** (Development)
+### From PyPI (Recommended)
+
 ```bash
+pip install epi-recorder
+```
+
+### From Source
+
+```bash
+git clone https://github.com/your-repo/epi-recorder
 cd epi-recorder
 pip install -e .
 ```
 
-### **Requirements**
-- Python 3.11+
-- Windows, macOS, or Linux
+### Requirements
+
+- **Python:** 3.11 or higher
+- **OS:** Windows, macOS, Linux
+- **Dependencies:** Automatically installed
 
 ---
 
 ## 📚 Commands
 
-### **`epi record`**
-Record a workflow into a `.epi` file.
+### `epi run` - Record and Auto-Verify
+
+Record a Python script (easiest way):
 
 ```bash
-epi record --out run.epi -- python script.py [args...]
+epi run script.py
+```
 
 Options:
-  --out PATH              Output .epi file (required)
-  --no-sign              Don't sign the manifest
-  --no-redact            Disable secret redaction
-```
+- `--no-verify` - Skip verification step
+- `--no-open` - Don't open browser
+- `--goal "text"` - Set workflow goal
+- `--metrics '{"key": value}'` - Add metrics (JSON)
 
-### **`epi verify`**
-Verify `.epi` file integrity and authenticity.
+### `epi verify` - Check Integrity
 
-```bash
-epi verify run.epi
-
-Options:
-  --json        Output as JSON
-  --verbose     Verbose output
-```
-
-### **`epi view`**
-Open `.epi` file in browser.
+Verify .epi file integrity and authenticity:
 
 ```bash
-epi view run.epi
+epi verify recording.epi
 ```
 
-### **`epi keys`**
-Manage Ed25519 key pairs.
+Output:
+```
++-------------- [OK] EPI Verification Report --------------+
+| File: recording.epi                                      |
+| Trust Level: HIGH                                        |
+| Message: Cryptographically verified and integrity intact |
++----------------------------------------------------------+
+```
+
+### `epi view` - Open in Browser
+
+View recording in interactive HTML viewer:
+
+```bash
+epi view recording.epi
+```
+
+### `epi ls` - List Recordings
+
+Show all recordings in `./epi-recordings/`:
+
+```bash
+epi ls
+```
+
+### `epi keys` - Manage Keys
 
 ```bash
 epi keys generate --name mykey
@@ -213,16 +269,17 @@ epi keys export --name mykey
 
 ## 🐍 Python API
 
-### **Why Use the Python API?**
+### Why Use the Python API?
 
 The Python API is the **recommended way** to integrate EPI into your AI applications:
-- ✅ **Zero CLI overhead** - no shell commands needed
-- ✅ **Seamless integration** - just wrap your code with `with record()`
-- ✅ **Auto-captures OpenAI** - automatically records all LLM calls
-- ✅ **Custom logging** - manually log steps and artifacts
-- ✅ **Auto-signed** - cryptographic signatures by default
 
-### **Basic Usage**
+✅ **Zero CLI overhead** - No shell commands needed  
+✅ **Seamless integration** - Just wrap your code with `with record()`  
+✅ **Auto-captures OpenAI** - Automatically records all LLM calls  
+✅ **Custom logging** - Manually log steps and artifacts  
+✅ **Auto-signed** - Cryptographic signatures by default
+
+### Basic Usage
 
 ```python
 from epi_recorder import record
@@ -233,18 +290,20 @@ with record("experiment.epi", workflow_name="My Experiment"):
     print(f"Result: {result}")
 ```
 
-### **With Custom Logging**
+### With Custom Logging
 
 ```python
 from epi_recorder import record
 from pathlib import Path
 
-with record("workflow.epi", workflow_name="Data Processing", tags=["v1.0", "prod"]) as epi:
+with record("workflow.epi", 
+            workflow_name="Data Processing",
+            tags=["v1.0", "prod"]) as session:
     # Process data
     data = load_data("input.csv")
     
     # Log custom steps
-    epi.log_step("data.loaded", {
+    session.log_step("data.loaded", {
         "rows": len(data),
         "columns": list(data.columns)
     })
@@ -256,16 +315,16 @@ with record("workflow.epi", workflow_name="Data Processing", tags=["v1.0", "prod
     results.to_csv("output.csv")
     
     # Capture the output file
-    epi.log_artifact(Path("output.csv"))
+    session.log_artifact(Path("output.csv"))
     
     # Log summary
-    epi.log_step("processing.complete", {
+    session.log_step("processing.complete", {
         "status": "success",
         "output_rows": len(results)
     })
 ```
 
-### **With OpenAI (Auto-Recorded)**
+### With OpenAI (Auto-Recorded)
 
 ```python
 from epi_recorder import record
@@ -286,81 +345,31 @@ with record("chat_session.epi", workflow_name="Customer Support"):
     # API keys are automatically redacted in the recording!
 ```
 
-### **Advanced Options**
+### Advanced Options
 
 ```python
-from epi_recorder import EpiRecorderSession
+from epi_recorder import record
 
-with EpiRecorderSession(
+with record(
     "advanced.epi",
-    workflow_name="Advanced Workflow",
-    tags=["experiment", "2024-10-29"],
-    auto_sign=True,        # Sign with default key (default: True)
-    redact=True,          # Redact secrets (default: True)
-    default_key_name="my-key"  # Custom signing key
-) as epi:
+    goal="Train ML model",
+    notes="Testing with new hyperparameters",
+    metrics={"accuracy": 0.96, "latency_ms": 150},
+    approved_by="lead_scientist@company.com",
+    metadata_tags=["production", "v2.1"],
+    auto_sign=True,        # Sign with default key
+    redact=True           # Redact secrets
+) as session:
     # Your workflow
     pass
-```
-
-### **Manual LLM Logging** (For Custom Integrations)
-
-```python
-from epi_recorder import record
-
-with record("custom_llm.epi") as epi:
-    # For custom/proprietary LLM APIs
-    epi.log_llm_request("claude-3-opus", {
-        "messages": [{"role": "user", "content": "Hello"}],
-        "temperature": 0.7
-    })
-    
-    # ... make actual API call ...
-    
-    epi.log_llm_response({
-        "model": "claude-3-opus",
-        "content": "Hello! How can I help?",
-        "tokens": 25
-    })
-```
-
-### **Error Handling**
-
-Recordings are saved even if errors occur:
-
-```python
-from epi_recorder import record
-
-try:
-    with record("debug_session.epi", workflow_name="Debug") as epi:
-        epi.log_step("process.start", {"status": "ok"})
-        
-        # Code that might fail
-        result = risky_operation()
-        
-except Exception as e:
-    print(f"Error: {e}")
-    # .epi file is still created with error logs!
-```
-
-### **Running the Examples**
-
-```bash
-# See examples directory
-python examples/api_example.py
-
-# Verify the generated .epi files
-epi verify example_basic.epi
-
-# View in browser
-epi view example_basic.epi
 ```
 
 ---
 
 ## 🔒 Security
 
-### **Automatic Redaction**
+### Automatic Redaction
+
 EPI automatically removes:
 - OpenAI API keys (`sk-...`)
 - Anthropic API keys (`sk-ant-...`)
@@ -370,11 +379,12 @@ EPI automatically removes:
 - Database connection strings
 - Private keys (PEM format)
 
-### **Cryptographic Signing**
-- **Algorithm**: Ed25519 (RFC 8032)
-- **Key Size**: 256 bits
-- **Hash**: SHA-256 with canonical CBOR
-- **Storage**: `~/.epi/keys/` (secure permissions)
+### Cryptographic Signing
+
+- **Algorithm:** Ed25519 (RFC 8032)
+- **Key Size:** 256 bits
+- **Hash:** SHA-256 with canonical CBOR
+- **Storage:** `~/.epi/keys/` (secure permissions)
 
 ---
 
@@ -398,14 +408,14 @@ print(response.choices[0].message.content)
 
 ```bash
 # Record it
-epi record --out chat.epi -- python chat_example.py
+epi run chat_example.py
 
 # Verify it
-epi verify chat.epi
+epi verify chat_example_*.epi
 # ✅ Trust Level: HIGH
 
 # View it
-epi view chat.epi
+epi view chat_example_*.epi
 # Opens timeline in browser
 ```
 
@@ -413,33 +423,49 @@ epi view chat.epi
 
 ## 🧑‍💻 Development
 
-### **Running Tests**
+### Running Tests
+
 ```bash
 pytest tests/ -v --cov=epi_core --cov=epi_cli
 ```
 
-### **Project Structure**
+### Project Structure
+
 ```
 epi-recorder/
 ├── epi_core/           # Core logic
 ├── epi_cli/            # CLI commands
 ├── epi_recorder/       # Runtime capture
-├── epi_viewer_static/  # Static viewer
 ├── tests/              # Test suite
 └── docs/               # Specification
 ```
 
 ---
 
-## 📊 Status
+## 📊 Project Status
 
-✅ **Phase 0**: Foundation (complete)  
-✅ **Phase 1**: Trust Layer (complete)  
-✅ **Phase 2**: Recorder MVP (complete)  
-✅ **Phase 3**: Viewer MVP (complete)  
-🔄 **Phase 4**: Polish & docs (in progress)  
+✅ **Phase 0:** Foundation (complete)  
+✅ **Phase 1:** Trust Layer (complete)  
+✅ **Phase 2:** Recorder MVP (complete)  
+✅ **Phase 3:** Viewer MVP (complete)  
+✅ **Phase 4:** Polish & Production (complete)
 
-**Current**: Keystone MVP - Production Ready
+**Current Release:** v1.1.0 - Production Ready
+
+---
+
+## 📞 Contact & Support
+
+**Project:** Evidence Packaged Infrastructure (EPI)  
+**Founder:** Mohd Ibrahim Afridi  
+**Project Email:** epitechforworld@outlook.com  
+**Personal Email:** mohdibrahimaiml@outlook.com
+
+**Links:**
+- Documentation: [Coming Soon]
+- Repository: [GitHub URL]
+- Issues: [GitHub Issues URL]
+- PyPI: https://pypi.org/project/epi-recorder/
 
 ---
 
@@ -447,18 +473,57 @@ epi-recorder/
 
 Apache License 2.0
 
+Copyright (c) 2024 Mohd Ibrahim Afridi
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
 ---
 
 ## 🙏 Acknowledgments
 
 Built with:
-- [Pydantic](https://pydantic.dev/)
-- [Typer](https://typer.tiangolo.com/)
-- [Rich](https://rich.readthedocs.io/)
-- [cryptography](https://cryptography.io/)
+- [Pydantic](https://pydantic.dev/) - Data validation
+- [Typer](https://typer.tiangolo.com/) - CLI framework
+- [Rich](https://rich.readthedocs.io/) - Terminal formatting
+- [cryptography](https://cryptography.io/) - Ed25519 signatures
 
 ---
 
-**Made with ❤️ for the AI community**
+## 🌟 Made with ❤️ for the AI community
 
-*Turning opaque AI runs into transparent, portable digital proofs.*
+**Turning opaque AI runs into transparent, portable digital proofs.**
+
+EPI makes AI workflows reproducible, verifiable, and auditable.
+
+---
+
+**Get started today:**
+
+```bash
+pip install epi-recorder
+```
+
+**Record your first AI workflow:**
+
+```python
+from epi_recorder import record
+
+@record
+def hello_epi():
+    print("Hello, EPI!")
+    return "success"
+
+hello_epi()
+```
+
+**Welcome to the future of AI transparency!** 🚀

@@ -78,17 +78,19 @@ class Redactor:
     from captured workflow data.
     """
     
-    def __init__(self, config_path: Path | None = None, enabled: bool = True):
+    def __init__(self, config_path: Path | None = None, enabled: bool = True, allowlist: List[str] = None):
         """
         Initialize redactor with optional custom configuration.
         
         Args:
             config_path: Optional path to config.toml with custom patterns
             enabled: Whether redaction is enabled (default: True)
+            allowlist: Optional list of strings to NEVER redact
         """
         self.enabled = enabled
         self.patterns: List[Tuple[re.Pattern, str]] = []
         self.env_vars_to_redact = REDACT_ENV_VARS.copy()
+        self.allowlist = set(allowlist) if allowlist else set()
         
         # Compile default patterns
         for pattern_str, description in DEFAULT_REDACTION_PATTERNS:
@@ -132,6 +134,10 @@ class Redactor:
             # Load custom env vars
             if 'redaction' in config and 'env_vars' in config['redaction']:
                 self.env_vars_to_redact.update(config['redaction']['env_vars'])
+                
+            # Load allowlist
+            if 'redaction' in config and 'allowlist' in config['redaction']:
+                self.allowlist.update(config['redaction']['allowlist'])
         
         except Exception as e:
             print(f"Warning: Could not load config from {config_path}: {e}")
@@ -176,6 +182,10 @@ class Redactor:
             return redacted_list, redaction_count
         
         elif isinstance(data, str):
+            # Check allowlist first
+            if data in self.allowlist:
+                return data, 0
+                
             redacted_str = data
             for pattern, description in self.patterns:
                 matches = pattern.findall(redacted_str)
@@ -239,6 +249,9 @@ enabled = true
 
 # Additional environment variable names to redact
 # env_vars = ["MY_SECRET_VAR", "CUSTOM_TOKEN"]
+
+# Allowlist: Strings that should NEVER be redacted (exact match)
+# allowlist = ["sk-not-actually-a-key", "my-public-token"]
 """
     
     config_path.parent.mkdir(parents=True, exist_ok=True)

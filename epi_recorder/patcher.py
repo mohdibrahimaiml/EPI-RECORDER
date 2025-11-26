@@ -32,7 +32,7 @@ class RecordingContext:
             enable_redaction: Whether to redact secrets (default: True)
         """
         self.output_dir = output_dir
-        self.steps: List[StepModel] = []
+        # self.steps: List[StepModel] = []  # Removed for scalability
         self.step_index = 0
         self.enable_redaction = enable_redaction
         self.redactor = get_default_redactor() if enable_redaction else None
@@ -83,8 +83,8 @@ class RecordingContext:
         # Write to file
         self._write_step(step)
         
-        # Store in memory
-        self.steps.append(step)
+        # Store in memory - REMOVED for scalability
+        # self.steps.append(step)
         self.step_index += 1
     
     def _write_step(self, step: StepModel) -> None:
@@ -325,9 +325,91 @@ def _patch_openai_legacy() -> bool:
         return False
 
 
+    return results
+
+
+def patch_requests() -> bool:
+    """
+    Patch the requests library to intercept all HTTP calls.
+    
+    Returns:
+        bool: True if patching succeeded, False otherwise
+    """
+    try:
+        import requests
+        from requests.sessions import Session
+        
+        # Store original method
+        original_request = Session.request
+        
+        @wraps(original_request)
+        def wrapped_request(self, method, url, *args, **kwargs):
+            """Wrapped requests.Session.request with recording."""
+            
+            # Only record if context is active
+            if not is_recording():
+                return original_request(self, method, url, *args, **kwargs)
+            
+            context = get_recording_context()
+            start_time = time.time()
+            
+            # Capture request
+            # We don't capture full body by default to avoid massive logs, 
+            # but we capture metadata
+            request_data = {
+                "provider": "http",
+                "method": method,
+                "url": url,
+                "headers": dict(kwargs.get("headers", {})),
+            }
+            
+            # Log request step
+            context.add_step("http.request", request_data)
+            
+            # Execute original call
+            try:
+                response = original_request(self, method, url, *args, **kwargs)
+                elapsed = time.time() - start_time
+                
+                # Capture response
+                response_data = {
+                    "provider": "http",
+                    "status_code": response.status_code,
+                    "reason": response.reason,
+                    "url": response.url,
+                    "headers": dict(response.headers),
+                    "latency_seconds": round(elapsed, 3)
+                }
+                
+                # Log response step
+                context.add_step("http.response", response_data)
+                
+                return response
+            
+            except Exception as e:
+                # Log error step
+                context.add_step("http.error", {
+                    "provider": "http",
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "url": url
+                })
+                raise
+        
+        # Apply patch
+        Session.request = wrapped_request
+        return True
+        
+    except ImportError:
+        return False
+    except Exception as e:
+        print(f"Warning: Failed to patch requests: {e}")
+        return False
+
+
 def patch_all() -> Dict[str, bool]:
     """
-    Patch all supported LLM providers.
+    Patch all supported LLM providers and HTTP libraries.
     
     Returns:
         dict: Provider name -> success status
@@ -337,9 +419,8 @@ def patch_all() -> Dict[str, bool]:
     # Patch OpenAI
     results["openai"] = patch_openai()
     
-    # Future: Add Anthropic, Gemini, etc.
-    # results["anthropic"] = patch_anthropic()
-    # results["gemini"] = patch_gemini()
+    # Patch generic requests (covers LangChain, Anthropic, etc.)
+    results["requests"] = patch_requests()
     
     return results
 

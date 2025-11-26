@@ -5,13 +5,15 @@ Provides a context manager for recording EPI packages programmatically
 with minimal code changes.
 """
 
+import functools
 import json
+import os
 import shutil
 import tempfile
 import threading
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from epi_core.container import EPIContainer
 from epi_core.schemas import ManifestModel
@@ -45,7 +47,13 @@ class EpiRecorderSession:
         tags: Optional[List[str]] = None,
         auto_sign: bool = True,
         redact: bool = True,
-        default_key_name: str = "default"
+        default_key_name: str = "default",
+        # New metadata fields
+        goal: Optional[str] = None,
+        notes: Optional[str] = None,
+        metrics: Optional[Dict[str, Union[float, str]]] = None,
+        approved_by: Optional[str] = None,
+        metadata_tags: Optional[List[str]] = None,  # Renamed to avoid conflict with tags parameter
     ):
         """
         Initialize EPI recording session.
@@ -57,6 +65,11 @@ class EpiRecorderSession:
             auto_sign: Whether to automatically sign on exit (default: True)
             redact: Whether to redact secrets (default: True)
             default_key_name: Name of key to use for signing (default: "default")
+            goal: Goal or objective of this workflow execution
+            notes: Additional notes or context about this workflow
+            metrics: Key-value metrics for this workflow (accuracy, latency, etc.)
+            approved_by: Person or entity who approved this workflow execution
+            metadata_tags: Tags for categorizing this workflow (renamed from tags to avoid conflict)
         """
         self.output_path = Path(output_path)
         self.workflow_name = workflow_name or "untitled"
@@ -64,6 +77,13 @@ class EpiRecorderSession:
         self.auto_sign = auto_sign
         self.redact = redact
         self.default_key_name = default_key_name
+        
+        # New metadata fields
+        self.goal = goal
+        self.notes = notes
+        self.metrics = metrics
+        self.approved_by = approved_by
+        self.metadata_tags = metadata_tags
         
         # Runtime state
         self.temp_dir: Optional[Path] = None
@@ -97,9 +117,9 @@ class EpiRecorderSession:
         set_recording_context(self.recording_context)
         _thread_local.active_session = self
         
-        # Patch LLM libraries
-        patch_openai()  # Patches OpenAI if available
-        # TODO: Add more patchers (Anthropic, etc.)
+        # Patch LLM libraries and HTTP
+        from epi_recorder.patcher import patch_all
+        patch_all()
         
         # Log session start
         self.log_step("session.start", {
@@ -134,16 +154,19 @@ class EpiRecorderSession:
             duration = (end_time - self.start_time).total_seconds()
             
             self.log_step("session.end", {
-                "workflow_name": self.workflow_name,
                 "timestamp": end_time.isoformat(),
                 "duration_seconds": duration,
                 "success": exc_type is None
             })
             
-            # Create manifest  
-            # Note: workflow_name and tags are logged in steps, not manifest
+            # Create manifest with metadata
             manifest = ManifestModel(
-                created_at=self.start_time
+                created_at=self.start_time,
+                goal=self.goal,
+                notes=self.notes,
+                metrics=self.metrics,
+                approved_by=self.approved_by,
+                tags=self.metadata_tags
             )
             
             # Pack into .epi file
@@ -351,31 +374,206 @@ class EpiRecorderSession:
             print(f"Warning: Failed to sign .epi file: {e}")
 
 
-# Convenience function for users
+def _auto_generate_output_path(name_hint: Optional[str] = None) -> Path:
+    """
+    Auto-generate output path in ./epi-recordings/ directory.
+    
+    Args:
+        name_hint: Optional base name hint (script name, function name, etc.)
+        
+    Returns:
+        Path object for the .epi file
+    """
+    # Get recordings directory from env or default
+    recordings_dir = Path(os.getenv("EPI_RECORDINGS_DIR", "epi-recordings"))
+    recordings_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Generate base name
+    if name_hint:
+        base = Path(name_hint).stem if "." in name_hint else name_hint
+    else:
+        base = "recording"
+    
+    # Generate timestamp
+    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    
+    # Ensure .epi extension
+    filename = f"{base}_{timestamp}.epi"
+    
+    return recordings_dir / filename
+
+
+def _resolve_output_path(output_path: Optional[Path | str]) -> Path:
+    """
+    Resolve output path, adding .epi extension and default directory if needed.
+    
+    Args:
+        output_path: User-provided path or None for auto-generation
+        
+    Returns:
+        Resolved Path object
+    """
+    if output_path is None:
+        return _auto_generate_output_path()
+    
+    path = Path(output_path)
+    
+    # If path has no directory component (just a filename), put it in epi-recordings/
+    if len(path.parts) == 1:
+        recordings_dir = Path(os.getenv("EPI_RECORDINGS_DIR", "epi-recordings"))
+        recordings_dir.mkdir(parents=True, exist_ok=True)
+        path = recordings_dir / path
+    
+    # Add .epi extension if missing
+    if path.suffix != ".epi":
+        path = path.with_suffix(".epi")
+    
+    return path
+
+
+# Convenience function for users (supports zero-config)
 def record(
-    output_path: Path | str,
+    output_path: Optional[Path | str] = None,
     workflow_name: Optional[str] = None,
+    tags: Optional[List[str]] = None,
+    auto_sign: bool = True,
+    redact: bool = True,
+    default_key_name: str = "default",
+    # New metadata fields
+    goal: Optional[str] = None,
+    notes: Optional[str] = None,
+    metrics: Optional[Dict[str, Union[float, str]]] = None,
+    approved_by: Optional[str] = None,
+    metadata_tags: Optional[List[str]] = None,  # Renamed to avoid conflict
     **kwargs
-) -> EpiRecorderSession:
+) -> Union[EpiRecorderSession, Callable]:
     """
     Create an EPI recording session (context manager).
     
     Args:
-        output_path: Path for output .epi file
+        output_path: Path for output .epi file (optional - auto-generates if None)
         workflow_name: Descriptive name for workflow
-        **kwargs: Additional arguments (tags, auto_sign, redact, default_key_name)
+        tags: Tags for categorization
+        auto_sign: Whether to automatically sign on exit (default: True)
+        redact: Whether to redact secrets (default: True)
+        default_key_name: Name of key to use for signing (default: "default")
+        goal: Goal or objective of this workflow execution
+        notes: Additional notes or context about this workflow
+        metrics: Key-value metrics for this workflow (accuracy, latency, etc.)
+        approved_by: Person or entity who approved this workflow execution
+        metadata_tags: Tags for categorizing this workflow (renamed from tags to avoid conflict)
+        **kwargs: Additional arguments (backward compatibility)
         
     Returns:
-        EpiRecorderSession context manager
+        EpiRecorderSession context manager or decorated function
         
     Example:
         from epi_recorder import record
         
-        with record("my_workflow.epi", workflow_name="Demo"):
+        # Zero-config (auto-generates filename in ./epi-recordings/)
+        with record():
+            # Your code here
+            pass
+        
+        # With custom name
+        with record("my_workflow"):
+            # Your code here
+            pass
+        
+        # With metadata
+        with record(
+            goal="reduce hallucinations",
+            notes="switched to GPT-4",
+            metrics={"accuracy": 0.89},
+            approved_by="alice@company.com",
+            metadata_tags=["prod-candidate"]
+        ):
+            # Your code here
+            pass
+        
+        # Decorator usage
+        @record
+        def main():
+            # Your code here
+            pass
+            
+        # Decorator with metadata
+        @record(goal="decorator test", metrics={"test_score": 0.95})
+        def main():
             # Your code here
             pass
     """
-    return EpiRecorderSession(output_path, workflow_name, **kwargs)
+    # Check if this is being used as a decorator with arguments
+    # If the first argument is not a path but keyword arguments are provided,
+    # we need to return a decorator function
+    if output_path is None and (goal is not None or notes is not None or metrics is not None or 
+                               approved_by is not None or metadata_tags is not None):
+        # This is a decorator with arguments, return a decorator function
+        def decorator(func):
+            @functools.wraps(func)
+            def wrapper(*args, **kwargs):
+                # Auto-generate path based on function name
+                auto_path = _auto_generate_output_path(func.__name__)
+                with EpiRecorderSession(
+                    auto_path, 
+                    workflow_name or func.__name__,
+                    tags=tags,
+                    auto_sign=auto_sign,
+                    redact=redact,
+                    default_key_name=default_key_name,
+                    goal=goal,
+                    notes=notes,
+                    metrics=metrics,
+                    approved_by=approved_by,
+                    metadata_tags=metadata_tags,
+                    **kwargs
+                ):
+                    return func(*args, **kwargs)
+            return wrapper
+        return decorator
+    
+    # Handle decorator usage: record is called without parentheses
+    if callable(output_path):
+        func = output_path
+        
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # Auto-generate path based on function name
+            auto_path = _auto_generate_output_path(func.__name__)
+            with EpiRecorderSession(
+                auto_path, 
+                workflow_name or func.__name__,
+                tags=tags,
+                auto_sign=auto_sign,
+                redact=redact,
+                default_key_name=default_key_name,
+                goal=goal,
+                notes=notes,
+                metrics=metrics,
+                approved_by=approved_by,
+                metadata_tags=metadata_tags,
+                **kwargs
+            ):
+                return func(*args, **kwargs)
+        
+        return wrapper
+    
+    # Normal context manager usage
+    resolved_path = _resolve_output_path(output_path)
+    return EpiRecorderSession(
+        resolved_path,
+        workflow_name,
+        tags=tags,
+        auto_sign=auto_sign,
+        redact=redact,
+        default_key_name=default_key_name,
+        goal=goal,
+        notes=notes,
+        metrics=metrics,
+        approved_by=approved_by,
+        metadata_tags=metadata_tags,
+        **kwargs
+    )
 
 
 # Make it easy to get current session

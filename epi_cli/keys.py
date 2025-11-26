@@ -234,7 +234,7 @@ def generate_default_keypair_if_missing(console_output: bool = True) -> bool:
     private_path, public_path = key_manager.generate_keypair("default")
     
     if console_output:
-        console.print("\n[bold green]🔐 Welcome to EPI![/bold green]")
+        console.print("\n[bold green]Welcome to EPI![/bold green]")
         console.print("\n[dim]Generated default Ed25519 key pair for signing:[/dim]")
         console.print(f"  [cyan]Private:[/cyan] {private_path}")
         console.print(f"  [cyan]Public:[/cyan]  {public_path}")
@@ -260,8 +260,8 @@ def print_keys_table(keys: list[dict[str, str]]) -> None:
     table.add_column("Public Key", style="blue")
     
     for key in keys:
-        private_status = "✅" if key["has_private"] else "❌"
-        public_status = "✅" if key["has_public"] else "❌"
+        private_status = "[Y]" if key["has_private"] else "[N]"
+        public_status = "[Y]" if key["has_public"] else "[N]"
         
         table.add_row(
             key["name"],
