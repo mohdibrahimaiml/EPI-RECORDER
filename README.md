@@ -1,6 +1,6 @@
 # EPI - Evidence Packaged Infrastructure
 
-**Evidence Packaged Infrastructure (EPI)** - The "PDF for AI Workflows"
+**Evidence Packaged Infrastructure (EPI)** - The "PDF for AI Evidence/Workflows"
 
 Self-contained, cryptographically verified evidence packages for AI systems.
 
