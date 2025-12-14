@@ -1,5 +1,0 @@
-Model Training Results
-====================
-Accuracy: 92%
-Precision: 89%
-Recall: 91%

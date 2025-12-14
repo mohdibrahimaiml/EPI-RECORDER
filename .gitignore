@@ -57,8 +57,15 @@ demo_comprehensive.epi
 test_metadata_*.epi
 test_steps_*.epi
 test_recording_*.epi
-demo_output.txt
-system_test_recording.epi
+# Artifacts & Outputs (Strict)
+*.json
+*.txt
+*.html
+*.epi
+demo_output_basic/
+ai_workflow_results.json
+cli_workflow_output.json
+model_results.txt
 
 # Acceptance Tests & Debugging
 Final_Acceptance_Test*

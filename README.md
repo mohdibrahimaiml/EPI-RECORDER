@@ -9,8 +9,11 @@
 ---
 
 ## 💡 The Concept
-
 **EPI files are self-contained evidence packages.**
+
+<p align="center">
+  <img src="https://placehold.co/600x400/1a1a1a/ffffff?text=Insert+Demo+GIF+Here+User" alt="EPI Demo">
+</p>
 
 Just as a **PDF** captures a document's layout, fonts, and images so it looks the same everywhere, an **EPI** file captures an AI workflow's code, inputs, model calls, and environment so it **runs the same everywhere**.
 
