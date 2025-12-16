@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/mohdibrahimaiml/EPI-V2.0.0/main/docs/assets/epi-logo.png" alt="EPI Logo" width="120"/>
+<img src="https://i.postimg.cc/DzKrGyrm/logo.png" alt="EPI Logo" width="120"/>
 
 # EPI Recorder
 
@@ -11,6 +11,7 @@
 [![PyPI](https://img.shields.io/pypi/v/epi-recorder?color=blue&label=PyPI&logo=pypi&logoColor=white)](https://pypi.org/project/epi-recorder/)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://www.python.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/Status-MVP-orange.svg)](https://github.com/mohdibrahimaiml/EPI-V2.0.0)
 [![Downloads](https://img.shields.io/pypi/dm/epi-recorder?color=blue&label=Downloads)](https://pypi.org/project/epi-recorder/)
 [![Stars](https://img.shields.io/github/stars/mohdibrahimaiml/EPI-V2.0.0?style=social)](https://github.com/mohdibrahimaiml/EPI-V2.0.0)
 
