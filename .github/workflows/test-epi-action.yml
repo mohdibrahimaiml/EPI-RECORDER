@@ -1,0 +1,29 @@
+name: Test EPI Action
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-action:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run Evidence Recording
+        uses: ./epi-action
+        with:
+          command: 'python -c "print(\"Hello from AI Compliance\")"'
+          output: 'test-evidence.epi'
+          install-python: 'true'
+          
+      - name: Verify Evidence Exists
+        run: |
+          if [ -f test-evidence.epi ]; then
+            echo "✅ Evidence file created successfully."
+          else
+            echo "❌ Failed to create evidence file."
+            exit 1
+          fi
