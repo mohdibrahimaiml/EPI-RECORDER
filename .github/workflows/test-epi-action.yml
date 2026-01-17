@@ -12,12 +12,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Create Test Script
+        run: echo 'print("EPI Compliance Check Passed")' > test_work.py
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Local EPI Recorder
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+
       - name: Run Evidence Recording
         uses: ./epi-action
         with:
-          command: 'python -c "print(\"Hello from AI Compliance\")"'
+          command: 'python test_work.py'
           output: 'test-evidence.epi'
-          install-python: 'true'
+          install-python: 'false'
           
       - name: Verify Evidence Exists
         run: |
