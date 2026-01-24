@@ -81,7 +81,7 @@ If verification fails, **nothing is rendered**. User sees clear error message.
 ```
 ┌─────────────────────────────────────────┐
 │ ✓ VERIFIED                              │
-│ Ed25519 • 2026-01-14 • EPI 2.1.1        │
+│ Ed25519 • 2026-01-24 • EPI 2.1.3        │
 ├─────────────────────────────────────────┤
 │                                         │
 │  [Evidence content displays here]       │

@@ -1,6 +1,6 @@
 # EPI-Recorder Complete Codebase Analysis
 
-**Project:** EPI-Recorder v2.1.1  
+**Project:** EPI-Recorder v2.1.3  
 **Analysis Date:** December 24, 2025  
 **Repository:** `c:\Users\dell\epi-recorder`
 
@@ -624,7 +624,7 @@ epi = "epi_cli.main:app"
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
-| 2.1.1 | 2025-12-16 | PATH auto-fix, `epi doctor`, Windows Unicode fixes |
+| 2.1.3 | 2026-01-24 | Gemini Native Support + Chat |
 | 2.1.0 | 2025-12-XX | Zero-config `epi run`, offline viewer, init wizard |
 | 2.0.0 | 2025-12-01 | Production MVP release |
 | 1.0.0 | 2025-01-29 | "Keystone" draft spec |

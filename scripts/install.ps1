@@ -133,7 +133,7 @@ if ($EpiWorks) {
 }
 
 Write-Host "Documentation: " -NoNewline
-Write-Host "https://github.com/mohdibrahimaiml/EPI-V2.0.0" -ForegroundColor Cyan
+Write-Host "https://github.com/mohdibrahimaiml/EPI-V2.1.3" -ForegroundColor Cyan
 Write-Host "Issues: " -NoNewline
-Write-Host "https://github.com/mohdibrahimaiml/EPI-V2.0.0/issues" -ForegroundColor Cyan
+Write-Host "https://github.com/mohdibrahimaiml/EPI-V2.1.3/issues" -ForegroundColor Cyan
 Write-Host ""
