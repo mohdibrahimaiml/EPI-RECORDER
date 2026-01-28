@@ -1,537 +1,224 @@
 <div align="center">
 
-<img src="https://i.postimg.cc/DzKrGyrm/logo.png" alt="EPI Logo" width="120"/>
+<img src="https://i.postimg.cc/DzKrGyrm/logo.png" alt="EPI Labs Logo" width="120"/>
 
 # EPI Recorder
 
-### The PDF for AI Evidence
+### Cryptographic Proof for AI Workflows
 
-**Cryptographic proof of what Autonomous AI Systems actually did.**
+**Production-grade evidence infrastructure for autonomous AI systems**
 
-[![PyPI](https://img.shields.io/badge/PyPI-v2.1.3-blue?style=flat&logo=pypi&logoColor=white)](https://pypi.org/project/epi-recorder/)
-[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org)
-[![License](https://img.shields.io/badge/License-Apache%202.0-green.svg?style=flat)](LICENSE)
-[![Status](https://img.shields.io/badge/Status-v2.1.3-blue?style=flat)](https://github.com/mohdibrahimaiml/EPI-V2.1.3)
-[![Downloads](https://img.shields.io/badge/Downloads-3.8k-blue?style=flat)](https://pypi.org/project/epi-recorder/)
-[![Stars](https://img.shields.io/badge/Stars-16-ea4aaa?style=social&logo=github)](https://github.com/mohdibrahimaiml/EPI-V2.1.3)
+[![PyPI Version](https://img.shields.io/pypi/v/epi-recorder)](https://pypi.org/project/epi-recorder/)
+[![Python Support](https://img.shields.io/pypi/pyversions/epi-recorder)](https://pypi.org/project/epi-recorder/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Tests](https://github.com/epilabs/epi-recorder/workflows/Tests/badge.svg)](https://github.com/epilabs/epi-recorder/actions)
 
-[**🚀 Quick Start**](#-quick-start-30-seconds) • [**📖 Docs**](https://epilabs.org/docs) • [**💬 Community**](https://github.com/mohdibrahimaiml/EPI-V2.1.3/discussions) • [**🎥 Demo**](https://colab.research.google.com/github/mohdibrahimaiml/EPI-V2.1.3/blob/main/colab_demo.ipynb)
+[Quick Start](#quick-start) • [Documentation](https://epilabs.org/docs) • [Examples](#examples) • [Community](https://github.com/epilabs/epi-recorder/discussions)
 
 </div>
 
 ---
 
-> [!NOTE]
-> **What is EPI?** A `.epi` file is the **"PDF for AI Evidence"**—cryptographically signed, tamper-proof records of what your AI did. One command. Complete proof. Forever.
+## Overview
+
+**EPI Recorder** creates tamper-proof, cryptographically signed records of AI system behavior. Think of it as the "PDF for AI evidence"—standardized, verifiable, and portable proof of what your AI actually did.
+
+### Key Features
+
+- **🔐 Cryptographic Signatures** - Ed25519 signatures ensure mathematical proof of integrity
+- **🔍 Complete Transparency** - Captures full execution context, API calls, and decisions
+- **🛡️ Automatic Redaction** - Sensitive data masked before recording
+- **📦 Self-Contained** - Single `.epi` file contains everything needed for verification
+- **🌐 Offline Verification** - Client-side verification works air-gapped
+- **⚡ Zero-Config Setup** - Works with OpenAI, Gemini, and any Python code
 
 ---
 
-## ⚡ Quick Start (30 Seconds)
+## Quick Start
 
 ### Installation
 
-**One command. Works everywhere. 99% success rate.**
-
-**Unix/Mac:**
-```bash
-curl -sSL https://raw.githubusercontent.com/mohdibrahimaiml/EPI-V2.1.3/main/scripts/install.sh | sh
-```
-
-**Windows:**
-```powershell
-iwr https://raw.githubusercontent.com/mohdibrahimaiml/EPI-V2.1.3/main/scripts/install.ps1 -useb | iex
-```
-
-**Manual (pip):**
 ```bash
 pip install epi-recorder
 ```
 
-> [!TIP]
-> If you see `epi: command not found`, use `python -m epi_cli` instead (always works!)
+### Basic Usage
 
-### Your First Recording
-
-```bash
-# 1. Create a simple script
-echo 'print("Hello, EPI!")' > hello.py
-
-# 2. Record it
-epi run hello.py
-
-# 3. View the cryptographically signed evidence
-#    (Opens in browser automatically)
-```
-
-**That's it!** You just created verifiable AI evidence. 🎉
-
----
-
-## 💡 What is EPI?
-
-**EPI creates cryptographically signed "receipts" for AI workflows.**
-
-Just like PDF standardized documents, **EPI standardizes AI execution evidence**.
-
-### Without EPI ❌
-
-```python
-# Traditional logging
-logger.info("AI decided: APPROVE loan $50K")
-# ⚠️ Can be edited
-# ⚠️ No proof
-# ⚠️ No audit trail
-```
-
-### With EPI ✅
-
-```python
-epi run loan_agent.py
-# Creates: loan_agent_2024_12_16.epi
-
-# ✓ Cryptographically signed
-# ✓ Complete execution snapshot
-# ✓ Tamper-proof evidence
-# ✓ Regulator-ready
-# ✓ Interactive viewer
-```
-
-**Result:** One `.epi` file that proves exactly what happened—**mathematically verifiable**.
-
----
-
-## 🎯 Why EPI?
-
-> [!IMPORTANT]
-> **The Problem:** AI agents make critical decisions (trading, diagnostics, contracts). You need **cryptographic proof**, not just logs that can be edited.
-
-### Traditional Approach ❌
-
-```
-[2024-12-16 14:30:22] INFO: Processing transaction
-[2024-12-16 14:30:23] INFO: Decision: APPROVE
-```
-
-**Problems:**
-- ❌ Logs can be edited after the fact
-- ❌ No cryptographic verification
-- ❌ Missing execution context
-- ❌ Can't reproduce
-- ❌ Regulators won't accept it
-
-### EPI Approach ✅
+**CLI - Record any Python script:**
 
 ```bash
-epi run trading_bot.py
+epi run your_script.py
 ```
 
-**Creates immutable package with:**
-
-| Component | Details | Purpose |
-|-----------|---------|---------|
-| **Code snapshot** | Exact source that executed | Reproducibility |
-| **API calls** | Every request/response | Auditability |
-| **File I/O** | All reads/writes captured | Data lineage |
-| **Environment** | Python version, OS, dependencies | Context |
-| **Signatures** | Ed25519 cryptographic proof | Integrity |
-| **Timeline** | Interactive browser viewer | Understanding |
-
-> [!NOTE]
-> **If it's in the .epi file, it happened. If it's not, it didn't.** Period.
-
----
-
-## 🔍 How EPI Compares
-
-### vs Traditional Tools
-
-| Feature | Logs | Screenshots | Video | **EPI** |
-|---------|------|-------------|-------|---------|
-| **Tamper-proof** | ❌ | ❌ | ❌ | ✅ |
-| **Cryptographic proof** | ❌ | ❌ | ❌ | ✅ |
-| **Captures code** | ⚠️ Partial | ❌ | ❌ | ✅ |
-| **Interactive viewer** | Custom | Manual | Manual | **Built-in** |
-| **Reproducible** | ❌ | ❌ | ❌ | ✅ |
-| **Regulatory compliant** | ⚠️ | ❌ | ❌ | ✅ |
-| **File size** | Large | Medium | Very large | **Small** |
-
-### vs PDF
-
-| Aspect | PDF | EPI |
-|--------|-----|-----|
-| **Purpose** | Document consistency | **Execution integrity** |
-| **Trust** | "Looks right" | **"Mathematically proven"** |
-| **Security** | ⚠️ Can run JavaScript | ✅ **Static HTML (safe)** |
-| **Use case** | Reports, contracts | **AI workflows, executions** |
-| **Standard** | ISO 32000 | **Emerging** |
-
----
-
-## 🎨 Real-World Examples
-
-### Example 1: Financial Trading Agent
+**Python API - Decorate your functions:**
 
 ```python
-# trading_bot.py
+from epi_recorder import record
+
+@record
+def trading_decision(market_data):
+    # Your AI logic here
+    return decision
+
+# Automatically creates cryptographically signed evidence
+```
+
+**View Evidence:**
+
+```bash
+epi view evidence.epi  # Opens interactive viewer
+```
+
+---
+
+## Use Cases
+
+### Financial Services
+Regulatory compliance for algorithmic trading, loan decisions, and risk assessments. Create audit trails that satisfy regulatory requirements.
+
+### Healthcare
+Document AI-assisted diagnostics and treatment recommendations with cryptographic proof for medical records and liability protection.
+
+### Legal & Compliance
+Verifiable evidence for AI-driven legal research, contract analysis, and compliance decisions.
+
+### Research & Development
+Reproducible AI experiments with complete execution snapshots for peer review and verification.
+
+---
+
+## How It Works
+
+```mermaid
+graph LR
+    A[Your AI Code] --> B[EPI Recorder]
+    B --> C[Capture Execution]
+    C --> D[Sign with Ed25519]
+    D --> E[.epi File]
+    E --> F[Verify Anywhere]
+```
+
+1. **Capture** - Records API calls, responses, and execution context
+2. **Redact** - Automatically masks sensitive data (API keys, PII)
+3. **Sign** - Cryptographically signs with Ed25519
+4. **Package** - Creates self-contained `.epi` file
+5. **Verify** - Offline verification in browser or CLI
+
+---
+
+## Examples
+
+### Record LLM API Calls
+
+```python
+from epi_recorder import EpiRecorderSession
 import openai
 
-def analyze_stock(symbol):
-    # AI analyzes market
+with EpiRecorderSession("financial_analysis"):
     response = openai.ChatCompletion.create(
         model="gpt-4",
-        messages=[{"role": "user", "content": f"Analyze {symbol}"}]
+        messages=[{"role": "user", "content": "Analyze this portfolio"}]
     )
-    
-    decision = response.choices[0].message.content
-    execute_trade(symbol, decision)
-    return decision
+    # Automatically recorded and signed
 ```
 
-**Record it:**
-```bash
-epi run trading_bot.py
-```
-
-**You get:**
-- ✅ Proof of AI decision logic
-- ✅ Complete API call history (keys redacted)
-- ✅ Execution timestamp
-- ✅ Regulatory-compliant audit trail
-- ✅ Shareable evidence package
-
----
-
-### Example 2: Healthcare Diagnostic Agent
+### Verify Evidence
 
 ```python
-# diagnostic_agent.py
-def diagnose_patient(patient_data):
-    # AI analysis
-    diagnosis = ai_model.predict(patient_data)
-    
-    # Generate FDA-compliant report
-    report = create_medical_report(diagnosis)
-    
-    return diagnosis, report
+from epi_core import verify_integrity
+
+result = verify_integrity("evidence.epi", public_key_path="key.pub")
+print(f"Valid: {result.valid}")
+print(f"Signer: {result.signer}")
 ```
 
-**Record for FDA submission:**
-```bash
-epi run diagnostic_agent.py
-```
-
-**Evidence includes:**
-- ✅ Model version used
-- ✅ Input data processing (HIPAA-compliant)
-- ✅ Decision logic captured
-- ✅ Cryptographic proof for regulators
+More examples in [`examples/`](./examples) directory.
 
 ---
 
-### Example 3: Python API
+## Architecture
 
-**Zero-config decorator:**
+EPI Recorder consists of three main components:
 
-```python
-from epi_recorder import record
+- **`epi_core`** - Cryptographic signing, verification, and serialization
+- **`epi_recorder`** - API interception and workflow capture
+- **`epi_cli`** - Command-line interface and tooling
 
-@record(out="workflow.epi")
-def my_ai_workflow():
-    result = llm.generate_response(prompt)
-    save_to_database(result)
-    return result
-
-# Automatically creates workflow.epi
-my_ai_workflow()
-```
-
-**Context manager:**
-
-```python
-from epi_recorder import record
-
-with record("analysis.epi"):
-    # Everything here is captured
-    data = fetch_data()
-    insights = analyze_with_ai(data)
-    send_report(insights)
-```
+See [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for details.
 
 ---
 
-## 🎮 Commands Reference
+## Security
 
-### Core Commands
+### Cryptographic Details
 
-```bash
-# Interactive setup (first time)
-epi init
+- **Signature Algorithm**: Ed25519 (RFC 8032)
+- **Hash Function**: SHA-256
+- **Serialization**: Canonical CBOR (RFC 8949)
+- **Library**: Python `cryptography` (industry standard)
 
-# Record any script
-epi run script.py
+### Security Considerations
 
-# View evidence package
-epi view recording.epi
+- Private keys stored with 600 permissions in `~/.epi/keys/`
+- Automatic secret redaction with configurable patterns
+- Client-side verification eliminates trust requirements
+- No external API calls for verification
 
-# Verify cryptographic integrity
-epi verify recording.epi
+See [SECURITY.md](./SECURITY.md) for vulnerability reporting.
 
-# List all recordings
-epi ls
+---
 
-# Self-healing diagnostics
-epi doctor
-```
+## Documentation
 
-### Advanced
+- **[Installation Guide](https://epilabs.org/docs/installation)** - Detailed setup instructions
+- **[API Reference](https://epilabs.org/docs/api)** - Complete API documentation
+- **[CLI Reference](https://epilabs.org/docs/cli)** - Command-line usage
+- **[Architecture](./docs/ARCHITECTURE.md)** - System design and internals
+- **[FAQ](https://epilabs.org/docs/faq)** - Frequently asked questions
+
+---
+
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+
+### Development Setup
 
 ```bash
-# Custom output name
-epi record --out experiment.epi -- python train.py
-
-# Record any command (not just Python)
-epi record --out build.epi -- npm run build
-
-# Manage cryptographic keys
-epi keys generate --name production
-epi keys list
-epi keys export --name production
+git clone https://github.com/epilabs/epi-recorder
+cd epi-recorder
+pip install -e ".[dev]"
+pytest
 ```
 
-> [!TIP]
-> **All commands also work as:** `python -m epi_cli <command>` (100% reliable, bypasses PATH)
+---
+
+## Community
+
+- **[GitHub Discussions](https://github.com/epilabs/epi-recorder/discussions)** - Ask questions, share ideas
+- **[Issue Tracker](https://github.com/epilabs/epi-recorder/issues)** - Report bugs, request features
+- **[Changelog](./CHANGELOG.md)** - Release history
+- **Email**: mohdibrahim@epilabs.org
 
 ---
 
-## 🔒 Security & Privacy
+## License
 
-### Automatic Redaction
-
-**Sensitive data is automatically masked:**
-
-```python
-# Your code
-openai.api_key = "sk-abc123xyz"
-db_password = "secret123"
-
-# In .epi file (automatic)
-openai.api_key = "sk-***REDACTED***"
-db_password = "***REDACTED***"
-```
-
-**Protected:**
-- ✅ API keys (OpenAI, Anthropic, AWS, etc.)
-- ✅ Passwords and tokens
-- ✅ Environment variables with secrets
-- ✅ Database credentials
-
-### Cryptographic Integrity
-
-**Every .epi file:**
-- 🔐 Signed with Ed25519 (same as Signal, SSH)
-- ✅ Tamper-proof (any modification breaks signature)
-- 🔍 Publicly verifiable (anyone can check)
-- 🔑 Private key stays on your machine
-
-### Offline Viewing
-
-**The viewer is 100% safe:**
-- ✅ Static HTML (no server needed)
-- ✅ No external requests
-- ✅ No analytics or tracking
-- ✅ Works in air-gapped environments
-- ✅ Safe to share with auditors
+Apache 2.0 - See [LICENSE](./LICENSE) for details.
 
 ---
 
-## 🏢 Use Cases
+## About EPI Labs
 
-<table>
-<tr>
-<td width="50%">
+EPI Labs builds verification infrastructure for AI systems. Our mission is to make AI trustworthy through cryptographic proof, not promises.
 
-### 💼 Financial Services
-- Regulatory compliance (MiFID II, Dodd-Frank)
-- Trading algorithm audit trails
-- AI-driven loan decisions
-- Risk assessment transparency
-
-</td>
-<td width="50%">
-
-### 🏥 Healthcare
-- FDA AI/ML submissions
-- Clinical trial reproducibility
-- HIPAA-compliant audit logs
-- Diagnostic algorithm evidence
-
-</td>
-</tr>
-<tr>
-<td width="50%">
-
-### ⚖️ Legal
-- E-discovery for AI systems
-- Contract analysis evidence
-- Litigation documentation
-- Chain of custody
-
-</td>
-<td width="50%">
-
-### 🔬 Research
-- ML experiment reproducibility
-- Peer review verification
-- Grant compliance
-- Published results validation
-
-</td>
-</tr>
-</table>
-
----
-
-## ❓ FAQ
-
-<details>
-<summary><b>How is EPI different from logging?</b></summary>
-
-Logs can be edited after the fact. EPI files are **cryptographically signed**—any tampering breaks the signature. Think of it as the difference between a handwritten note and a notarized document.
-
-</details>
-
-<details>
-<summary><b>Does this slow down my code?</b></summary>
-
-Minimal overhead (~5%). EPI records in the background, so your code runs at near-native speed.
-
-</details>
-
-<details>
-<summary><b>Can I use this in production?</b></summary>
-
-**Yes!** EPI is designed for production AI systems. It's used by companies in finance, healthcare, and research for regulatory compliance.
-
-</details>
-
-<details>
-<summary><b>Is my data safe?</b></summary>
-
-EPI automatically redacts API keys and secrets. The viewer is 100% offline (static HTML). You control what gets shared.
-
-</details>
-
-<details>
-<summary><b>What about large datasets?</b></summary>
-
-EPI captures **code + metadata**, not raw data. Typical `.epi` file: <10MB. Large datasets are referenced, not embedded.
-
-</details>
-
-<details>
-<summary><b>What if `epi` command doesn't work?</b></summary>
-
-Use `python -m epi_cli` instead (always works). Or run `python -m epi_cli doctor` to auto-fix PATH issues.
-
-</details>
-
----
-
-## 🆕 What's New in v2.1.3
-
-> [!IMPORTANT]
-> **Gemini Native:** EPI now natively supports Google Gemini. Just run your script, and Gemini calls are captured automatically. Plus, talk to your evidence with `epi chat`.
-
-### 🤖 Gemini Integration
-- **Automatic Patcher:** Intercepts `google.generativeai` calls without code changes. Logs prompts, responses, and token usage.
-- **Evidence Chat:** New command `epi chat` allows you to query your `.epi` files using Gemini AI. "What happened in this run?"
-- **Error Capture:** Automatically records API errors like Quota Exceeded (429) or Blocked Content.
-
-### 🛡️ Security & Integrity (v2.1.2)
-- **Client-Side Verification:** The HTML viewer now includes a bundled crypto library to verify signatures offline.
-- **Trust Badges:** UI now explicitly shows "Verified" (Green), "Unsigned" (Yellow), or "Tampered" (Red).
-
-### ✨ Enhanced CLI Reliability
-- **Windows Compatibility:** Fixed Unicode issues in CLI for legacy terminals.
-- **Python Module Fallback:** `python -m epi_cli` works reliably everywhere.
-
-**2. Automatic PATH Configuration**
-- Post-install script auto-fixes PATH on Windows
-- `epi doctor` command detects and repairs issues
-- Success rate improved from 85% → 99%
-
-**3. Universal Installation Scripts**
-- One-command installers for all platforms
-- Auto-configure shell PATH
-- Works on Unix/Mac/Windows
-
-**4. Windows Compatibility**
-- Fixed Unicode errors in terminal output
-- Better error messages
-- More reliable auto-fix
-
-### 🐛 Bug Fixes
-- Fixed `pyproject.toml` syntax warnings
-- Improved terminal output compatibility
-- Better error handling
-
----
-
-## 📚 Documentation
-
-- [**📘 CLI Reference**](docs/CLI.md) - All commands explained
-- [**📖 Quick Start Guide**](QUICKSTART.md) - Get started in 30 seconds
-- [**🏗️ Architecture**](docs/EPI-SPEC.md) - Technical specification
-- [**📝 Product Description**](EPI_Product_Description.md) - Detailed overview
-- [**📋 Examples**](examples/) - Real-world code examples
-
----
-
-## 🤝 Community & Support
-
-- [**💬 Discussions**](https://github.com/mohdibrahimaiml/EPI-V2.1.0/discussions) - Ask questions, share use cases
-- [**🐛 Issues**](https://github.com/mohdibrahimaiml/EPI-V2.1.0/issues) - Bug reports, feature requests
-- [**📧 Email**](mailto:epitechforworld@outlook.com) - Direct support
-- [**🌐 Website**](https://epilabs.org) - Latest news
-
----
-
-## 🙌 Contributing
-
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-**Areas we'd love help:**
-- 🌍 Internationalization
-- 🔌 Language integrations (JavaScript, Go, Rust)
-- ☁️ Cloud storage adapters
-- 📊 Viewer enhancements
-- 📝 Documentation improvements
-
-[**Good First Issues →**](https://github.com/mohdibrahimaiml/EPI-V2.0.0/labels/good%20first%20issue)
-
----
-
-## 📄 License
-
-**Apache 2.0** - See [LICENSE](LICENSE)
-
----
-
-## 🙏 Built With
-
-- [Typer](https://typer.tiangolo.com/) - Beautiful CLIs
-- [Rich](https://rich.readthedocs.io/) - Terminal formatting
-- [Pydantic](https://pydantic-docs.helpmanual.io/) - Data validation
-- [Cryptography](https://cryptography.io/) - Ed25519 signatures
+**Website**: [epilabs.org](https://epilabs.org)  
+**GitHub**: [@epilabs](https://github.com/epilabs)
 
 ---
 
 <div align="center">
 
-### **Trust Your AI. Verify Everything.** 🔐
-
-**Made with ❤️ by [Mohd Ibrahim Afridi](https://github.com/mohdibrahimaiml)**
-
-[**⭐ Star this repo**](https://github.com/mohdibrahimaiml/EPI-V2.0.0) • [**🐦 Follow updates**](https://twitter.com/epilabs) • [**🌐 Visit epilabs.org**](https://epilabs.org)
+**Trust through verification, not promises.**
 
 </div>
