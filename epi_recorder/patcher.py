@@ -14,6 +14,7 @@ from functools import wraps
 
 from epi_core.schemas import StepModel
 from epi_core.redactor import get_default_redactor
+from epi_core.storage import EpiStorage
 
 
 class RecordingContext:
@@ -32,7 +33,6 @@ class RecordingContext:
             enable_redaction: Whether to redact secrets (default: True)
         """
         self.output_dir = output_dir
-        # self.steps: List[StepModel] = []  # Removed for scalability
         self.step_index = 0
         self.enable_redaction = enable_redaction
         self.redactor = get_default_redactor() if enable_redaction else None
@@ -40,9 +40,13 @@ class RecordingContext:
         # Ensure output directory exists
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Create steps file
+        # Initialize SQLite storage (crash-safe, atomic)
+        import uuid
+        session_id = str(uuid.uuid4())[:8]
+        self.storage = EpiStorage(session_id, self.output_dir)
+        
+        # Keep JSONL path for backwards compatibility
         self.steps_file = self.output_dir / "steps.jsonl"
-        self.steps_file.touch()
     
     def add_step(self, kind: str, content: Dict[str, Any]) -> None:
         """
@@ -93,24 +97,36 @@ class RecordingContext:
             f.write(step.model_dump_json() + '\n')
 
 
-# Global recording context (set by epi record command)
-_recording_context: Optional[RecordingContext] = None
+import contextvars
+
+# Thread-safe and async-safe recording context storage
+_recording_context: contextvars.ContextVar[Optional[RecordingContext]] = contextvars.ContextVar(
+    'epi_recording_context',
+    default=None
+)
 
 
-def set_recording_context(context: RecordingContext) -> None:
-    """Set global recording context."""
-    global _recording_context
-    _recording_context = context
+def set_recording_context(context: Optional[RecordingContext]) -> contextvars.Token:
+    """
+    Set recording context for current execution context (thread or async task).
+    
+    Args:
+        context: RecordingContext instance or None to clear
+        
+    Returns:
+        Token for resetting context later
+    """
+    return _recording_context.set(context)
 
 
 def get_recording_context() -> Optional[RecordingContext]:
-    """Get global recording context."""
-    return _recording_context
+    """Get recording context for current execution context."""
+    return _recording_context.get()
 
 
 def is_recording() -> bool:
-    """Check if recording is active."""
-    return _recording_context is not None
+    """Check if recording is active in current execution context."""
+    return _recording_context.get() is not None
 
 
 # ==================== OpenAI Patcher ====================

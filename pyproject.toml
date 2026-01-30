@@ -4,30 +4,29 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "epi-recorder"
-version = "2.1.3"
-description = "The PDF for AI Evidence - Cryptographic proof of what Autonomous AI Systems actually did."
+version = "2.2.0"
+description = "Debug AI agents with execution tracing. Black box recorder for LangChain, CrewAI, and autonomous agents."
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.11"
-license = {text = "Apache-2.0"}
+license = {text = "MIT"}
 authors = [
     {name = "EPI Labs", email = "mohdibrahim@epilabs.org"}
 ]
 maintainers = [
     {name = "Mohd Ibrahim Afridi", email = "mohdibrahim@epilabs.org"}
 ]
-keywords = ["ai", "reproducibility", "verification", "llm", "evidence", "openai", "gemini", "cryptography", "workflow", "audit"]
+keywords = ["ai", "debugging", "agents", "langchain", "crewai", "observability", "llm", "openai", "gemini", "tracing"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Debuggers",
+    "Topic :: Software Development :: Testing",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "Topic :: Security :: Cryptography",
-    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
 dependencies = [

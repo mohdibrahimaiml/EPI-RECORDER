@@ -5,6 +5,25 @@ All notable changes to EPI Recorder will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-01-30
+
+### Changed
+- **Repositioned as AI Agent Debugger**: EPI is now positioned as a debugging tool for LangChain, CrewAI, and autonomous agents
+- **License changed to MIT**: More permissive licensing for wider adoption
+- **Updated README**: Clean "Debug AI agents like a black box" pitch
+- **Updated PyPI metadata**: Keywords now focus on debugging, observability, and agent tracing
+
+### Added
+- **Thread-safe recording**: Using `contextvars` for concurrent agent support
+- **SQLite storage**: Atomic, crash-safe storage replacing JSONL
+- **`epi debug` command**: Automatic mistake detection (loops, hallucinations, inefficiencies)
+- **Async API support**: `record_async()` context manager for async workflows
+
+### Technical
+- Migrated from global context to `contextvars.ContextVar` for thread isolation
+- SQLite-based `EpiStorage` class with atomic operations
+- `MistakeDetector` analyzes execution traces for common agent bugs
+
 ## [2.1.3] - 2026-01-24
 
 ### Added
@@ -21,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Error Handling**: Improved API error reporting (e.g., Quota Exceeded) with user-friendly UI panels
 - **Deprecation Warnings**: Suppressed `FutureWarning` spam from google-generativeai SDK
 
-## [2.1.2] - 2025-01-17
+## [2.1.2] - 2026-01-17
 
 ### Security
 - **Client-Side Verification**: Embedded HTML viewer now verifies Ed25519 signatures offline using JS
@@ -73,6 +92,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## Migration Guide
+
+### From 2.1.x to 2.2.0
+
+**No breaking changes** - all existing commands work identically.
+
+**New features:**
+```bash
+# Debug your agent recordings
+epi debug agent_session.epi
+
+# Thread-safe recording for concurrent agents
+# Just works - no code changes needed
+```
+
+**License change:**
+- Migrated from Apache 2.0 to MIT license
+- More permissive for commercial use
 
 ### From 2.1.0 to 2.1.1
 
