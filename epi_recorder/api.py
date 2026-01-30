@@ -176,6 +176,11 @@ class EpiRecorderSession:
                 output_path=self.output_path
             )
             
+            # CRITICAL: Windows file system flush
+            # Allow OS to finalize file before signing
+            import time
+            time.sleep(0.1)
+            
             # Sign if requested
             if self.auto_sign:
                 self._sign_epi_file()

@@ -11,6 +11,7 @@ Implements the EPI file format specification:
 import hashlib
 import json
 import tempfile
+import threading
 import zipfile
 from pathlib import Path
 from typing import Optional
@@ -20,6 +21,9 @@ from epi_core.schemas import ManifestModel
 
 # EPI mimetype constant (vendor-specific MIME type per RFC 6838)
 EPI_MIMETYPE = "application/vnd.epi+zip"
+
+# Thread-safe lock for ZIP packing operations (prevents concurrent corruption)
+_zip_pack_lock = threading.Lock()
 
 
 class EPIContainer:
@@ -157,6 +161,8 @@ class EPIContainer:
         """
         Create a .epi file from a source directory.
         
+        Thread-safe: Uses a module-level lock to prevent concurrent ZIP corruption.
+        
         The packing process:
         1. Write mimetype first (uncompressed) per ZIP spec
         2. Hash all files in source_dir
@@ -173,64 +179,67 @@ class EPIContainer:
             FileNotFoundError: If source_dir doesn't exist
             ValueError: If source_dir is not a directory
         """
-        if not source_dir.exists():
-            raise FileNotFoundError(f"Source directory not found: {source_dir}")
-        
-        if not source_dir.is_dir():
-            raise ValueError(f"Source must be a directory: {source_dir}")
-        
-        # Ensure output directory exists
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # Collect all files and compute hashes
-        file_manifest = {}
-        files_to_pack = []
-        
-        for file_path in source_dir.rglob("*"):
-            if file_path.is_file():
-                # Get relative path for archive
-                rel_path = file_path.relative_to(source_dir)
-                arc_name = str(rel_path).replace("\\", "/")  # Use forward slashes in ZIP
+        # CRITICAL: Acquire lock to prevent concurrent ZIP corruption
+        # Multiple threads writing to ZIP simultaneously causes file header mismatches
+        with _zip_pack_lock:
+            if not source_dir.exists():
+                raise FileNotFoundError(f"Source directory not found: {source_dir}")
+            
+            if not source_dir.is_dir():
+                raise ValueError(f"Source must be a directory: {source_dir}")
+            
+            # Ensure output directory exists
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Collect all files and compute hashes
+            file_manifest = {}
+            files_to_pack = []
+            
+            for file_path in source_dir.rglob("*"):
+                if file_path.is_file():
+                    # Get relative path for archive
+                    rel_path = file_path.relative_to(source_dir)
+                    arc_name = str(rel_path).replace("\\", "/")  # Use forward slashes in ZIP
+                    
+                    # Compute hash
+                    file_hash = EPIContainer._compute_file_hash(file_path)
+                    file_manifest[arc_name] = file_hash
+                    
+                    files_to_pack.append((file_path, arc_name))
+            
+            # Update manifest with file hashes
+            manifest.file_manifest = file_manifest
+            
+            # Create embedded viewer with data injection
+            viewer_html = EPIContainer._create_embedded_viewer(source_dir, manifest)
+            
+            # Create ZIP file
+            with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zf:
+                # 1. Write mimetype FIRST and UNCOMPRESSED (per EPI spec)
+                zf.writestr(
+                    "mimetype",
+                    EPI_MIMETYPE,
+                    compress_type=zipfile.ZIP_STORED  # No compression
+                )
                 
-                # Compute hash
-                file_hash = EPIContainer._compute_file_hash(file_path)
-                file_manifest[arc_name] = file_hash
+                # 2. Write all other files
+                for file_path, arc_name in files_to_pack:
+                    zf.write(file_path, arc_name, compress_type=zipfile.ZIP_DEFLATED)
                 
-                files_to_pack.append((file_path, arc_name))
-        
-        # Update manifest with file hashes
-        manifest.file_manifest = file_manifest
-        
-        # Create embedded viewer with data injection
-        viewer_html = EPIContainer._create_embedded_viewer(source_dir, manifest)
-        
-        # Create ZIP file
-        with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zf:
-            # 1. Write mimetype FIRST and UNCOMPRESSED (per EPI spec)
-            zf.writestr(
-                "mimetype",
-                EPI_MIMETYPE,
-                compress_type=zipfile.ZIP_STORED  # No compression
-            )
-            
-            # 2. Write all other files
-            for file_path, arc_name in files_to_pack:
-                zf.write(file_path, arc_name, compress_type=zipfile.ZIP_DEFLATED)
-            
-            # 3. Write embedded viewer
-            zf.writestr(
-                "viewer.html",
-                viewer_html,
-                compress_type=zipfile.ZIP_DEFLATED
-            )
-            
-            # 4. Write manifest.json LAST (after all files are hashed)
-            manifest_json = manifest.model_dump_json(indent=2)
-            zf.writestr(
-                "manifest.json",
-                manifest_json,
-                compress_type=zipfile.ZIP_DEFLATED
-            )
+                # 3. Write embedded viewer
+                zf.writestr(
+                    "viewer.html",
+                    viewer_html,
+                    compress_type=zipfile.ZIP_DEFLATED
+                )
+                
+                # 4. Write manifest.json LAST (after all files are hashed)
+                manifest_json = manifest.model_dump_json(indent=2)
+                zf.writestr(
+                    "manifest.json",
+                    manifest_json,
+                    compress_type=zipfile.ZIP_DEFLATED
+                )
     
     @staticmethod
     def unpack(epi_path: Path, dest_dir: Optional[Path] = None) -> Path:

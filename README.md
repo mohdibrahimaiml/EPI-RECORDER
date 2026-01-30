@@ -6,7 +6,7 @@ When your LangChain/CrewAI agent hallucinates, loops, or crashes—EPI shows you
 
 [![PyPI Version](https://img.shields.io/pypi/v/epi-recorder)](https://pypi.org/project/epi-recorder/)
 [![Python Support](https://img.shields.io/pypi/pyversions/epi-recorder)](https://pypi.org/project/epi-recorder/)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## One Command
 
@@ -18,9 +18,9 @@ epi run your_agent.py
 ## Why
 
 - **Zero config:** No code changes required
-- **Thread-safe:** Handles concurrent agents
-- **Mistake detection:** Finds infinite loops & hallucinations automatically
+- **Mistake detection:** Finds infinite loops & hallucinations automatically  
 - **Portable:** `.epi` files work offline
+- **Thread-safe:** Single-agent workflows (multi-agent via separate processes)
 
 ## Quick Start
 

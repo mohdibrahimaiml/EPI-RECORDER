@@ -42,7 +42,7 @@ def debug(
         epi debug recording_dir/ --json
         epi debug agent.epi --export report.txt
     """
-    console.print(f"🔍 Analyzing [cyan]{epi_file}[/cyan]...")
+    console.print(f"Analyzing [cyan]{epi_file}[/cyan]...")
     
     try:
         # Run analysis
@@ -57,7 +57,7 @@ def debug(
             
             if verbose and mistakes:
                 # Add detailed metrics for each mistake
-                details = ["\n📊 Detailed Analysis:"]
+                details = ["\nDetailed Analysis:"]
                 for i, m in enumerate(mistakes, 1):
                     details.append(f"\n{i}. {m.get('type')} (Step {m.get('step')})")
                     for key, value in m.items():
@@ -68,7 +68,7 @@ def debug(
         # Display or export
         if export:
             export.write_text(output, encoding='utf-8')
-            console.print(f"\n💾 Report saved to [green]{export}[/green]")
+            console.print(f"\nReport saved to [green]{export}[/green]")
         else:
             console.print(f"\n{output}")
         
@@ -78,7 +78,7 @@ def debug(
             if critical_count > 0:
                 console.print(
                     Panel(
-                        f"[bold red]⚠️  {critical_count} CRITICAL issue(s) detected![/bold red]\n\n"
+                        f"[bold red]WARNING: {critical_count} CRITICAL issue(s) detected![/bold red]\n\n"
                         "These issues can cause your agent to fail or waste resources.\n"
                         "Review the suggestions above to fix them.",
                         title="Action Required",
@@ -90,13 +90,13 @@ def debug(
         if any(m.get('severity') == 'CRITICAL' for m in mistakes):
             raise typer.Exit(code=1)
         
-        console.print("\n✅ Analysis complete")
+        console.print("\nAnalysis complete")
         
     except FileNotFoundError as e:
-        console.print(f"[red]❌ File not found:[/red] {e}", err=True)
+        console.print(f"[red]ERROR: File not found:[/red] {e}", err=True)
         raise typer.Exit(code=2)
     except Exception as e:
-        console.print(f"[red]❌ Error analyzing file:[/red] {e}", err=True)
+        console.print(f"[red]ERROR analyzing file:[/red] {e}", err=True)
         if verbose:
             import traceback
             console.print(traceback.format_exc())
