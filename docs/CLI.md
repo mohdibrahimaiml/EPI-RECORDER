@@ -1,8 +1,8 @@
-# EPI CLI Reference (v2.1.3)
+# EPI CLI Reference (v2.2.0)
 
 The **Evidence Packaged Infrastructure (EPI)** CLI is the primary tool for recording, verifying, and viewing AI evidence.
 
-**Version:** 2.1.3  
+**Version:** 2.2.0  
 **Install:** `pip install epi-recorder`
 
 ---
@@ -13,6 +13,7 @@ The **Evidence Packaged Infrastructure (EPI)** CLI is the primary tool for recor
 |:---|:---|
 | `epi init` | **Interactive Setup Wizard.** Creates keys, runs a demo, and explains the concepts. |
 | `epi run <script.py>` | **Zero-Config Record.** Records, verifies, and views in one go. |
+| `epi debug <file.epi>` | **AI Bug Detection.** Finds infinite loops, hallucinations, and inefficiencies automatically. |
 | `epi view <file.epi>` | **Open Viewer.** Opens the browser timeline for a recording. |
 | `epi verify <file.epi>` | **Check Integrity.** Validates signatures and hashes. |
 | `epi chat <file.epi>` | **AI Chat.** Query your evidence using Google Gemini (Natural Language). |
@@ -101,6 +102,42 @@ $ epi doctor
 ✅ Path verified
 ✅ ASCII encoding fixed
 ```
+
+```
+
+### `epi debug <file.epi>`
+**AI-Powered Mistake Detection (v2.2.0).**  
+Analyzes your recording to identify common agent bugs automatically.
+
+**Detected Issues:**
+- **Infinite Loops**: Repeated tool calls with same parameters
+- **Hallucinations**: LLM responses that lead to immediate errors
+- **Inefficiencies**: Excessive token usage for simple tasks
+- **Repetitive Patterns**: Redundant work (same query multiple times)
+
+**Usage:**
+```bash
+$ epi debug agent_session.epi
+
+🔍 Analyzing 47 steps...
+
+⚠️  INFINITE LOOP detected (steps 15-22)
+    → Calling tool: search_web("fix error X") 
+    → Same query repeated 7 times
+    → Suggestion: Add error handling or retry limit
+
+⚠️  HALLUCINATION detected (step 34)
+    → LLM suggested file path that doesn't exist
+    → Led to FileNotFoundError on next step
+
+✅  No inefficiencies detected
+✅  No repetitive patterns detected
+
+Summary: 2 issues found
+```
+
+**Options:**
+- `--json`: Output to JSON for automated CI checks
 
 ```
 

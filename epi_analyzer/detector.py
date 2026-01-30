@@ -39,6 +39,11 @@ class MistakeDetector:
             jsonl_path = self.epi_path / "steps.jsonl"
             if jsonl_path.exists():
                 return self._load_from_jsonl(jsonl_path)
+            
+            # Check for temp databases
+            temp_dbs = list(self.epi_path.glob("*_temp.db"))
+            if temp_dbs:
+                return self._load_from_sqlite(temp_dbs[0])
         
         # Try as JSONL file directly
         if self.epi_path.suffix == '.jsonl':
