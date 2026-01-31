@@ -86,3 +86,5 @@ if __name__ == "__main__":
     print("👁️  Use 'epi view <filename>' to see metadata in the viewer")
 
 
+
+ 

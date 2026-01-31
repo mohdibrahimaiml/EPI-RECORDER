@@ -615,3 +615,5 @@ def get_current_session() -> Optional[EpiRecorderSession]:
     return getattr(_thread_local, 'active_session', None)
 
 
+
+ 

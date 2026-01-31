@@ -11,3 +11,5 @@ def calculate_moving_average(data, window_size):
     return moving_avg
 
 
+
+ 

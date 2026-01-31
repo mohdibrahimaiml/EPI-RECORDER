@@ -11,3 +11,5 @@ npm install --save-dev electron@latest --force
 echo.
 echo Launching EPI Viewer...
 npm start
+
+ 

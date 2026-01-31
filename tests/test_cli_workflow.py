@@ -33,3 +33,5 @@ print(f"Classified: {result['classified']}/{data['items']}")
 print(f"Accuracy: {result['accuracy']}")
 
 
+
+ 

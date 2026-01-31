@@ -9,3 +9,4 @@
   <path d="M368 192H144a16 16 0 00-16 16v160a16 16 0 0016 16h224a16 16 0 0016-16V208a16 16 0 00-16-16zm-112 128a32 32 0 1132-32 32 32 0 01-32 32z" fill="white" />
   <path d="M352 192V144a96 96 0 00-192 0v48" stroke="white" stroke-width="32" stroke-linecap="round" fill="none"/>
 </svg>
+ 
