@@ -195,3 +195,4 @@ def show_fallback_instructions():
 
 if __name__ == "__main__":
     post_install()
+
