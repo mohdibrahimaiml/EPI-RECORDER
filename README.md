@@ -8,7 +8,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue?style=flat-square&logo=python&logoColor=white)](https://pypi.org/project/epi-recorder/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
 [![Downloads](https://img.shields.io/pypi/dm/epi-recorder?style=flat-square&color=10b981&label=Installs)](https://pypi.org/project/epi-recorder/)
-[![Users](https://img.shields.io/badge/Users-4K%2B-orange?style=flat-square&color=f59e0b)](#)
+[![Users](https://img.shields.io/badge/Users-4.5K%2B-orange?style=flat-square&color=f59e0b)](#)
 [![Crypto](https://img.shields.io/badge/Ed25519-Signed-purple?style=flat-square)](https://epilabs.org/security)
 
 **The Flight Recorder for AI Agents**
