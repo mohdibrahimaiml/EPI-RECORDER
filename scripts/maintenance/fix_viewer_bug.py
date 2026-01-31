@@ -143,3 +143,5 @@ print("  • Handles both API and CLI formats")
 print("\n✅ Demo is now bulletproof!")
 
 
+
+ 

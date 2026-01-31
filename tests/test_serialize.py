@@ -247,3 +247,5 @@ class TestCanonicalHashing:
         assert verify_hash(manifest, expected_hash, exclude_fields={"signature"})
 
 
+
+ 

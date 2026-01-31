@@ -45,3 +45,5 @@ val_file.write_text(content, encoding="utf-8")
 print("OK - Fixed Redactor API call in validate_complete.py")
 
 
+
+ 

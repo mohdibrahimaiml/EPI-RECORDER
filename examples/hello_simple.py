@@ -12,3 +12,5 @@ print(f"Sum of 0-99: {result}")
 print("Done!")
 
 
+
+ 
