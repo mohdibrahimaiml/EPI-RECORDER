@@ -1,4 +1,8 @@
-# EPI Recorder
+<p align="center">
+  <img src="docs/assets/logo.png" alt="EPI Logo" width="200"/>
+  <br>
+  <h1 align="center">EPI Recorder</h1>
+</p>
 
 [![Release](https://img.shields.io/github/v/release/mohdibrahimaiml/EPI-V2.1.2?style=flat-square&color=00d4ff)](https://github.com/mohdibrahimaiml/EPI-V2.1.2/releases)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
