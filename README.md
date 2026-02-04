@@ -24,9 +24,9 @@ Captures complete execution context—prompts, responses, tool calls—and crypt
 ---
 
 ## Traction
-- **6,000+** developers using EPI for daily debugging
-- **20,000+** agent executions recorded
-- **99.9%** atomic capture rate (zero data loss on crashes)
+- **Active** developer community
+- **Production-ready** agent recording
+- **Atomic** capture ensures zero data loss on crashes
 
 ---
 
