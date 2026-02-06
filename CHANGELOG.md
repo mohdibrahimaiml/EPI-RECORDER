@@ -162,7 +162,7 @@ Explicit capture provides stronger evidentiary guarantees.
 
 ---
 
-## [2.1.0] – 2025-12-15
+## [1.0.0] – 2025-12-15
 
 ### Initial Release
 - Portable `.epi` evidence format
