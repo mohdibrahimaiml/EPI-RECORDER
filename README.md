@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/epi-recorder/"><img src="https://img.shields.io/pypi/v/epi-recorder?style=for-the-badge&color=00d4ff&label=PyPI" alt="PyPI"/></a>
+  <a href="https://pypi.org/project/epi-recorder/"><img src="https://img.shields.io/pypi/v/epi-recorder?style=for-the-badge&color=00d4ff&label=PyPI&cacheSeconds=0" alt="PyPI"/></a>
   <a href="https://github.com/mohdibrahimaiml/epi-recorder"><img src="https://img.shields.io/badge/python-3.11%2B-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python"/></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="License"/></a>
   <a href="https://pepy.tech/project/epi-recorder"><img src="https://img.shields.io/badge/downloads-6.5K%2B-orange?style=for-the-badge" alt="Downloads"/></a>
