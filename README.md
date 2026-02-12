@@ -142,8 +142,6 @@ An AutoGen agent processed customer refund requests overnight. One request was i
 
 **Result:** 4 hours → 15 minutes. Plus cryptographic proof for regulators.
 
-**[→ View this .epi artifact](examples/refund_incident.epi)** (real anonymized recording)
-
 ---
 
 ## 🚀 Beta Program
