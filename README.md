@@ -158,7 +158,7 @@ An AutoGen agent processed customer refund requests overnight. One request was i
 - Debug agent failures weekly
 - Need audit trails for compliance
 
-**[→ Apply for Beta Access](https://forms.gle/YOUR_FORM)**
+**[→ Apply for Beta Access](https://www.epilabs.org/contact.html)**
 
 ---
 
@@ -516,7 +516,7 @@ See **[CHANGELOG.md](./CHANGELOG.md)** for detailed release notes.
 ### Quick Links
 
 - 📖 **[Full Technical Docs](docs/COMPLETE_TECHNICAL_DOCUMENTATION.md)** - Everything in one place
-- 🚀 **[Apply for Beta](https://forms.gle/YOUR_FORM)** - Get priority support
+- 🚀 **[Apply for Beta](https://www.epilabs.org/contact.html)** - Get priority support
 - 💬 **[GitHub Discussions](https://github.com/mohdibrahimaiml/epi-recorder/discussions)** - Ask questions
 - 🐛 **[Report Issues](https://github.com/mohdibrahimaiml/epi-recorder/issues)** - Bug reports & feature requests
 
