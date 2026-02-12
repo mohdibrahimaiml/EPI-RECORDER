@@ -379,15 +379,15 @@ How EPI turns execution into verifiable evidence:
 
 ```mermaid
 flowchart LR
-    A[Agent Code] -->|record()| B(Capture Layer)
-    B -->|Wrapper/API| D[Recorder]
+    A[Agent Code] -->|"record()"| B(Capture Layer)
+    B -->|"Wrapper/API"| D[Recorder]
     
     subgraph "Crash-Safe Storage"
-        D -->|Atomic Write| E[(SQLite WAL)]
+        D -->|"Atomic Write"| E[(SQLite WAL)]
     end
     
     E -->|Finalize| F[Packer]
-    K[Private Key] -->|Ed25519 Sign| F
+    K[Private Key] -->|"Ed25519 Sign"| F
     
     F -->|ZIP| G[agent.epi]
     
