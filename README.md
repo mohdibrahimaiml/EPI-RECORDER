@@ -488,6 +488,43 @@ See **[CHANGELOG.md](./CHANGELOG.md)** for detailed release notes.
 
 ---
 
+## Documentation
+
+### Core Documentation
+
+| Document | Description |
+|:---------|:------------|
+| **[EPI Specification](docs/EPI-SPEC.md)** | Complete technical specification for the `.epi` file format |
+| **[CLI Reference](docs/CLI.md)** | Full command-line interface documentation |
+| **[CHANGELOG](CHANGELOG.md)** | Detailed release notes for all versions |
+| **[Contributing Guide](CONTRIBUTING.md)** | How to contribute to EPI development |
+| **[Security Policy](SECURITY.md)** | Security guidelines and vulnerability reporting |
+
+### Feature Documentation
+
+| Feature | Guide |
+|:--------|:------|
+| **Agent Analytics** | [ANALYTICS_DEPLOYMENT.md](ANALYTICS_DEPLOYMENT.md) - Track performance across runs |
+| **LangGraph Integration** | [LANGGRAPH_DOCS_COMPLETE.md](LANGGRAPH_DOCS_COMPLETE.md) - Checkpoint saver setup |
+| **Async & Ollama** | [ASYNC_OLLAMA_COMPLETE.md](ASYNC_OLLAMA_COMPLETE.md) - Async support + local LLMs |
+
+### Examples & Testing
+
+| Resource | Description |
+|:---------|:------------|
+| **[Examples Directory](examples/)** | 25+ working code examples |
+| **[Test Results](TEST_RESULTS_V2_4_0.md)** | v2.4.0 comprehensive test report (21/21 passing) |
+| **[Technical Overview](technical_overview.md)** | Architecture deep-dive |
+
+### Quick Links
+
+- 📖 **[Full Technical Docs](docs/COMPLETE_TECHNICAL_DOCUMENTATION.md)** - Everything in one place
+- 🚀 **[Apply for Beta](https://forms.gle/YOUR_FORM)** - Get priority support
+- 💬 **[GitHub Discussions](https://github.com/mohdibrahimaiml/epi-recorder/discussions)** - Ask questions
+- 🐛 **[Report Issues](https://github.com/mohdibrahimaiml/epi-recorder/issues)** - Bug reports & feature requests
+
+---
+
 ## Contributing
 
 ```bash
