@@ -29,7 +29,12 @@ class TracedCompletions:
         Create a chat completion with automatic EPI tracing.
         
         All arguments are passed through to the underlying client.
+        Automatically routes to streaming handler when stream=True.
         """
+        # Route streaming calls to dedicated handler
+        if kwargs.get("stream", False):
+            return self._create_streaming(*args, **kwargs)
+        
         session = self._get_session()
         
         # Extract request info
@@ -98,6 +103,99 @@ class TracedCompletions:
                     "latency_seconds": round(latency, 3),
                     "timestamp": datetime.utcnow().isoformat(),
                 })
+            
+            raise
+
+    def _create_streaming(self, *args, **kwargs) -> Any:
+        """
+        Create a streaming chat completion with automatic EPI tracing.
+        
+        Yields chunks while accumulating the full response for logging.
+        After streaming completes, logs the assembled response.
+        """
+        session = self._get_session()
+        
+        # Extract request info
+        model = kwargs.get("model", "unknown")
+        messages = kwargs.get("messages", [])
+        
+        # Log request if session is active
+        if session:
+            session.log_step("llm.request", {
+                "provider": self._provider,
+                "model": model,
+                "messages": messages,
+                "stream": True,
+                "timestamp": datetime.utcnow().isoformat(),
+            })
+        
+        # Force stream=True
+        kwargs["stream"] = True
+        
+        start_time = time.time()
+        accumulated_content = []
+        finish_reason = None
+        usage = None
+        
+        try:
+            stream = self._completions.create(*args, **kwargs)
+            
+            for chunk in stream:
+                # Accumulate content from delta
+                if hasattr(chunk, "choices") and chunk.choices:
+                    delta = chunk.choices[0].delta
+                    if hasattr(delta, "content") and delta.content:
+                        accumulated_content.append(delta.content)
+                    if hasattr(chunk.choices[0], "finish_reason") and chunk.choices[0].finish_reason:
+                        finish_reason = chunk.choices[0].finish_reason
+                
+                # Check for usage in final chunk (OpenAI sends it with stream_options)
+                if hasattr(chunk, "usage") and chunk.usage:
+                    usage = {
+                        "prompt_tokens": getattr(chunk.usage, "prompt_tokens", 0),
+                        "completion_tokens": getattr(chunk.usage, "completion_tokens", 0),
+                        "total_tokens": getattr(chunk.usage, "total_tokens", 0),
+                    }
+                
+                yield chunk
+            
+            latency = time.time() - start_time
+            
+            # Log assembled response after streaming completes
+            if session:
+                response_data = {
+                    "provider": self._provider,
+                    "model": model,
+                    "choices": [{
+                        "message": {
+                            "role": "assistant",
+                            "content": "".join(accumulated_content),
+                        },
+                        "finish_reason": finish_reason,
+                    }],
+                    "stream": True,
+                    "latency_seconds": round(latency, 3),
+                    "timestamp": datetime.utcnow().isoformat(),
+                }
+                if usage:
+                    response_data["usage"] = usage
+                
+                session.log_step("llm.response", response_data)
+        
+        except Exception as e:
+            latency = time.time() - start_time
+            
+            if session:
+                session.log_step("llm.error", {
+                    "provider": self._provider,
+                    "model": model,
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "stream": True,
+                    "latency_seconds": round(latency, 3),
+                    "timestamp": datetime.utcnow().isoformat(),
+                })
+            
             
             raise
 

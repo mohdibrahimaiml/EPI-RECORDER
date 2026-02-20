@@ -45,6 +45,65 @@ After v3.0.0, the `.epi` format should be:
 
 ---
 
+## [2.6.0] – 2026-02-20
+
+### 🚀 Framework Integrations, CI Verification & OpenTelemetry Support
+
+This release transforms EPI from a standalone recorder into a **framework-native evidence layer** — integrating with the tools AI engineers already use.
+
+#### Added
+
+**LiteLLM Integration** (`epi_recorder.integrations.litellm`)
+- `EPICallback` — callback handler for 100+ LLM providers
+- `enable_epi()` / `disable_epi()` — one-line global activation
+- Captures request, response, error, and streaming events
+
+**LangChain Callback Handler** (`epi_recorder.integrations.langchain`)
+- `EPICallbackHandler` — logs LLM, tool, chain, retriever, and agent events
+- Works with LangChain, LangGraph, and any callback-compatible framework
+- Graceful fallback when LangChain is not installed
+
+**OpenAI Streaming Support**
+- `stream=True` auto-routed to streaming handler in `TracedCompletions`
+- Chunks yielded in real-time, assembled response logged after completion
+- Usage stats captured from final streaming chunk
+
+**pytest Plugin** (`pytest-epi`)
+- `--epi` flag generates signed `.epi` evidence per test
+- `--epi-dir` for custom output directory
+- End-of-session summary with file listing
+- Registered via `pytest11` entry point
+
+**GitHub Action** (`.github/actions/verify-epi/`)
+- Composite action for CI/CD pipeline verification
+- Scans for `.epi` files, verifies integrity and signatures
+- Generates GitHub Step Summary with pass/fail table
+- Configurable `fail-on-tampered` and `fail-on-unsigned` inputs
+
+**Global Install/Uninstall** (`epi install --global` / `epi uninstall --global`)
+- Injects EPI auto-recording into `sitecustomize.py`
+- Idempotent installation (safe to run multiple times)
+- Clean removal with `EPI_AUTO_RECORD=0` disable flag
+- Respects existing sitecustomize.py content
+
+**OpenTelemetry Exporter** (`epi_recorder.integrations.opentelemetry`)
+- `EPISpanExporter` — converts OpenTelemetry spans to signed `.epi` files
+- `setup_epi_tracing()` — one-line setup for any OTel-instrumented application
+- Trace-level grouping, LLM semantic conventions, batch flushing
+- Graceful fallback when OpenTelemetry is not installed
+
+#### Fixed
+
+- **Signature verification**: `verify_signature()` now correctly extracts public key from manifest
+- **LangChain handler**: Warns instead of crashing when LangChain is not installed
+- **pytest plugin**: Uses `makereport` hookwrapper for correct test outcome capture
+- **pytest plugin**: Safe `config.getini()` access with fallback
+
+#### Internal
+- 60 end-to-end test assertions, all passing
+- Real `.epi` file generation and verification in tests
+- Real `sitecustomize.py` round-trip testing
+
 ## [2.5.0] – 2026-02-13
 
 ### 🚀 Major Features

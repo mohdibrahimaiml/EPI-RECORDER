@@ -148,6 +148,10 @@ app.command(name="chat", help="Chat with your evidence file using AI")(chat_comm
 from epi_cli.debug import app as debug_app
 app.add_typer(debug_app, name="debug", help="Debug AI agent recordings for mistakes")
 
+# NEW: install/uninstall commands (v2.6.0 - global auto-recording)
+from epi_cli.install import app as install_app
+app.add_typer(install_app, name="global", help="Install/uninstall EPI auto-recording globally")
+
 # Phase 1: keys command (for manual key management)
 @app.command()
 def keys(
