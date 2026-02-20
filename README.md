@@ -300,11 +300,12 @@ See **[CLI Reference](docs/CLI.md)** for full documentation.
 
 ## Roadmap
 
-**Current (v2.5.0):**
+**Current (v2.6.0):**
+- Framework-native integrations (LiteLLM, LangChain, OpenTelemetry)
+- CI/CD verification (GitHub Action, pytest plugin)
+- OpenAI streaming support
+- Global install for automatic recording
 - Capture, verify, and replay agent runs
-- LangGraph checkpoint integration
-- Agent analytics across runs
-- OpenAI and Anthropic wrapper clients
 
 **Next:**
 - Time-travel debugging (step through any past run)
@@ -317,6 +318,7 @@ See **[CLI Reference](docs/CLI.md)** for full documentation.
 
 | Version | Date | Highlights |
 |:--------|:-----|:-----------|
+| **2.6.0** | 2026-02-20 | LiteLLM, LangChain, OpenTelemetry, pytest plugin, GitHub Action, streaming |
 | **2.5.0** | 2026-02-13 | Anthropic Claude wrapper, path resolution fix |
 | **2.4.0** | 2026-02-12 | Agent Analytics, async/await, LangGraph, Ollama |
 | **2.3.0** | 2026-02-06 | Explicit API, wrapper clients |
@@ -364,7 +366,7 @@ See **[CONTRIBUTING.md](./CONTRIBUTING.md)** for guidelines.
 
 ## Traction
 
-**6,500+ downloads** in 10 weeks · **v2.5.0** shipped Feb 2026
+**6,500+ downloads** in 10 weeks · **v2.6.0** shipped Feb 2026
 
 > *"EPI saved us 4 hours debugging a production agent failure."*
 > — ML Engineer, Fintech
