@@ -18,6 +18,8 @@ actual_reasoning = "N/A"
 actual_risk_factors = []
 actual_risk_level = "N/A"
 actual_positive_signals = []
+actual_balance = 0
+actual_transactions = []
 
 if epi_file:
     with zipfile.ZipFile(epi_file, 'r') as z:
@@ -41,6 +43,12 @@ if epi_file:
                 pass
         if not isinstance(content, dict):
             continue
+
+        # Extract bank statement data from user.input or similar steps
+        if 'average_monthly_balance' in content:
+            actual_balance = content['average_monthly_balance']
+        if 'transaction_descriptions' in content:
+            actual_transactions = content['transaction_descriptions']
 
         if 'DECISION' in kind or 'decision' in kind:
             actual_decision = content.get('decision', actual_decision)
@@ -126,7 +134,11 @@ def ask_evidence(question):
             return "<b>Fair Lending Compliance Check:</b><br><br>The AI was explicitly instructed:<br><br><i>Assess loans based ONLY on financial metrics. MUST NOT consider gender, race, religion.</i><br><br><b>Evidence confirms:</b><br>- Only financial data was provided (credit score, revenue, transactions)<br>- No protected class information in any captured prompts<br>- Decision: <b>{}</b> based on financial metrics only".format(actual_decision)
 
         elif any(w in q_lower for w in ['transaction', 'payment', 'bank', 'statement', 'balance', 'monthly']):
-            return "<b>Bank Statement Analysis from Evidence:</b><br><br><b>Average Monthly Balance:</b> $45,000<br><br><b>Captured Transactions:</b><br>1. VENDOR PAYMENT - SAMSUNG INDIA<br>2. RENT - KORAMANGALA SHOP<br>3. SALARY TRANSFER - STAFF<br>4. GST CHALLAN PAYMENT<br>5. AMAZON SELLER PAYOUT<br>6. EMI - HDFC EQUIPMENT LOAN"
+            txn_html = "<br>".join(
+                "{}. {}".format(i+1, t) for i, t in enumerate(actual_transactions)
+            ) if actual_transactions else "Not captured in this run"
+            return "<b>Bank Statement from Evidence:</b><br><br><b>Average Monthly Balance:</b> ${:,.0f}<br><br><b>Captured Transactions:</b><br>{}".format(
+                actual_balance, txn_html)
 
         else:
             return "<b>EPI Evidence Summary:</b><br><br>This package recorded a <b>loan underwriting workflow</b>.<br><br><b>From the evidence:</b><br>- Decision: <b>{}</b> ({})<br>- Risk Level: {}<br>- Reasoning: {}...<br><br><b>Try asking:</b> What risk factors? or Was this fair?".format(
