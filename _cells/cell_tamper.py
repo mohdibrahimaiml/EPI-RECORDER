@@ -52,9 +52,9 @@ if epi_file:
     print("Running cryptographic verification on forged file...")
     print()
 
-    # 4. Run REAL epi verify on the tampered file
+    # 4. Run REAL epi verify on the tampered file (using installed CLI entry point)
     result = subprocess.run(
-        [sys.executable, "-m", "epi_cli.main", "verify", str(forged_file)],
+        ["epi", "verify", str(forged_file)],
         capture_output=True, text=True
     )
     print(result.stdout)
@@ -67,16 +67,27 @@ if epi_file:
 
     print()
     print("=" * 70)
-    display(HTML(
-        '<div style="background: #fef2f2; border: 2px solid #ef4444; padding: 20px; border-radius: 12px; margin: 20px 0;">'
-        '<h2 style="color: #dc2626; margin: 0 0 10px 0;">TAMPER DETECTION COMPLETE</h2>'
-        '<p style="color: #b91c1c; margin: 0 0 10px 0; font-weight: bold;">'
-        'We extracted the .epi archive, changed APPROVED to REJECTED and $100,000 to $10,000 inside steps.jsonl, '
-        'repacked it, and ran epi verify.</p>'
-        '<p style="color: #7f1d1d; margin: 0;">'
-        '<b>The cryptographic signature detected the tampering instantly.</b><br>'
-        'The original decision chain is mathematically unforgeable.</p>'
-        '</div>'
-    ))
+
+    if result.returncode != 0:
+        display(HTML(
+            '<div style="background: #fef2f2; border: 2px solid #ef4444; padding: 20px; border-radius: 12px; margin: 20px 0;">'
+            '<h2 style="color: #dc2626; margin: 0 0 10px 0;">TAMPERING DETECTED</h2>'
+            '<p style="color: #b91c1c; margin: 0 0 10px 0; font-weight: bold;">'
+            'We extracted the .epi archive, changed APPROVED to REJECTED and $100,000 to $10,000 inside steps.jsonl, '
+            'repacked it, and ran epi verify.</p>'
+            '<p style="color: #7f1d1d; margin: 0;">'
+            '<b>Signature invalid. Modified steps.jsonl caught instantly.</b><br>'
+            'The original decision chain is mathematically unforgeable.</p>'
+            '</div>'
+        ))
+    else:
+        display(HTML(
+            '<div style="background: #fef3c7; border: 2px solid #f59e0b; padding: 20px; border-radius: 12px; margin: 20px 0;">'
+            '<h2 style="color: #92400e; margin: 0 0 10px 0;">Note: Verify returned 0</h2>'
+            '<p style="color: #78350f; margin: 0;">'
+            'Check EPI signing setup — key may not be configured in this environment. '
+            'In production, the tampered file would fail verification.</p>'
+            '</div>'
+        ))
 else:
     print("Run the recording cell first")

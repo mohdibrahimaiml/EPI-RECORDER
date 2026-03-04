@@ -12,7 +12,7 @@ if epi_file:
     print()
 
     result = subprocess.run(
-        [sys.executable, "-m", "epi_cli.main", "verify", str(epi_file)],
+        ["epi", "verify", str(epi_file)],
         capture_output=True, text=True
     )
     print(result.stdout)
