@@ -794,7 +794,9 @@ class EPIContainer:
                 import sys as _sys
                 print(f"[EPI] Notarization unavailable ({_ne}), sealing without timestamp anchor", file=_sys.stderr)
 
-        # Append any notarization files written after the file-walking loop
+        # Append/refresh notarization files written after the file-walking loop.
+        # Always re-hash: embed_notarization may overwrite existing notary files
+        # in a reused workspace (old hashes would otherwise silently fail integrity).
         notary_dir = source_dir / "artifacts" / "notarization"
         if notary_dir.is_dir():
             for notary_file in sorted(notary_dir.iterdir()):
@@ -802,9 +804,8 @@ class EPIContainer:
                     arc_name = f"artifacts/notarization/{notary_file.name}"
                     if not any(item[1] == arc_name for item in files_to_pack):
                         files_to_pack.append((notary_file, arc_name))
-                        manifest.file_manifest[arc_name] = EPIContainer._compute_file_hash(notary_file)
+                    manifest.file_manifest[arc_name] = EPIContainer._compute_file_hash(notary_file)
         files_to_pack.sort(key=lambda item: item[1])
-
         # Now that signing is done (public_key is set), write the real VERIFY.txt.
         # VERIFY.txt is reserved: packed only via writestr below (never from rglob)
         # so the archive cannot contain duplicate VERIFY.txt members.
