@@ -222,7 +222,9 @@
     } else if (sigResult.valid === true) {
       trust_level = 'LOW';
       identity = 'UNKNOWN';
-      message = 'Valid signature; identity unknown in browser (use epi keys trust + epi verify for HIGH)';
+      message =
+        'SEAL OK — signature valid. Identity is not pinned in the browser (normal). ' +
+        'Optional on a PC: epi keys trust + epi verify for a named sealer.';
     } else if (!manifest.signature) {
       trust_level = 'MEDIUM';
       identity = 'NONE';
@@ -232,6 +234,7 @@
       message = sigResult.reason || 'Signature check incomplete in this browser';
     }
 
+    var pk = (manifest.public_key && String(manifest.public_key)) || '';
     return {
       structure: true,
       manifest: true,
@@ -243,7 +246,8 @@
       identity: identity,
       message: message,
       mismatches: mismatches,
-      signer: manifest.signature ? String(manifest.signature).split(':')[1] : null
+      signer: manifest.signature ? String(manifest.signature).split(':')[1] : null,
+      publicKeyFingerprint: pk ? pk.slice(0, 32) : null
     };
   }
 

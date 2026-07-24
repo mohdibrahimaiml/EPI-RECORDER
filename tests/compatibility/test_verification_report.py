@@ -126,6 +126,8 @@ def test_report_nested_identity_keys():
         "detail",
         "registry_verified",
         "public_key_id",
+        "public_key_fingerprint",
+        "local_key_name",
         "did",
         "scitt",
     }

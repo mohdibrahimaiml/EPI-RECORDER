@@ -938,22 +938,30 @@ def print_trust_report(report: dict, epi_file: Path, verbose: bool = False):
         decision_policy = "none"
         decision_reason = report.get("trust_message", "")
 
-    # Header and Result
-    status_symbol = (
-        "[bold green]✔[/bold green]" if decision_status == "PASS" else "[bold red]✘[/bold red]"
-    )
-    panel_style = "green" if decision_status == "PASS" else "red"
+    # Header chrome: WARN (seal OK, identity unpinned) is yellow — not red FAIL
+    if decision_status == "PASS":
+        status_symbol = "[bold green]✔ SEAL[/bold green]"
+        panel_style = "green"
+    elif decision_status == "WARN":
+        status_symbol = "[bold yellow]⚠ SEAL OK[/bold yellow]"
+        panel_style = "yellow"
+    else:
+        status_symbol = "[bold red]✘ SEAL FAIL[/bold red]"
+        panel_style = "red"
 
     content_lines = []
 
-    # Decision Layer
-    content_lines.append(f"[bold]DECISION: {decision_status}[/bold]")
+    # Decision Layer — lead with seal vs identity framing
+    if decision_status == "WARN" and signature_valid is True and integrity_ok:
+        content_lines.append("[bold]DECISION: WARN[/bold]  [dim](seal OK · identity not pinned)[/dim]")
+    else:
+        content_lines.append(f"[bold]DECISION: {decision_status}[/bold]")
     content_lines.append(f"Policy: {decision_policy}")
     content_lines.append(f"Reason: {decision_reason}")
     content_lines.append("")
 
-    # Fact Layer
-    content_lines.append("[bold underline]FACTS (Objective Proofs)[/bold underline]")
+    # Fact Layer (seal)
+    content_lines.append("[bold underline]SEAL (Objective Proofs)[/bold underline]")
     i_color = "green" if integrity_ok else "red"
     content_lines.append(
         f"  [{i_color}]- Integrity:    {'Verified' if integrity_ok else 'FAILED'}[/{i_color}]"
@@ -978,23 +986,35 @@ def print_trust_report(report: dict, epi_file: Path, verbose: bool = False):
 
     content_lines.append("")
 
-    # Identity Layer
-    content_lines.append("[bold underline]IDENTITY (Trust Context)[/bold underline]")
+    # Identity Layer (separate from seal)
+    content_lines.append("[bold underline]IDENTITY (Trust Context — separate from seal)[/bold underline]")
+    id_status_display = identity_status
+    if str(identity_status).upper() == "UNKNOWN":
+        id_status_display = "NOT_PINNED"
     if identity_status == "KNOWN":
+        id_color = "green"
+    elif identity_status == "LOCAL":
         id_color = "green"
     elif identity_status in ("REVOKED", "MISMATCH"):
         id_color = "red"
     else:
         id_color = "yellow"
-    content_lines.append(f"  [{id_color}]- Status:       {identity_status}[/{id_color}]")
-    content_lines.append(f"  - Name:         {identity_name or 'Unknown'}")
-    if public_key_id:
-        content_lines.append(f"  - Key ID:       {public_key_id}...")
+    content_lines.append(f"  [{id_color}]- Status:       {id_status_display}[/{id_color}]")
+    content_lines.append(f"  - Name:         {identity_name or '—'}")
+    fp = None
+    if isinstance(identity, dict):
+        fp = identity.get("public_key_fingerprint") or identity.get("public_key_id")
+    if not fp:
+        fp = public_key_id
+    if fp:
+        content_lines.append(f"  - Fingerprint:  {fp}…")
+    local_name = identity.get("local_key_name") if isinstance(identity, dict) else None
+    if local_name:
+        content_lines.append(f"  - Local key:    {local_name} (matches this computer)")
     did_identity = identity.get("did") if isinstance(identity, dict) else None
     if did_identity:
         content_lines.append(f"  - DID:          {did_identity}")
-    content_lines.append(f"  - Source:       {identity_detail}")
-
+    content_lines.append(f"  - Detail:       {identity_detail}")
     # AIUC-1 Domain Layer
     aiuc1_data = report.get("aiuc1")
     if aiuc1_data:
@@ -1024,16 +1044,22 @@ def print_trust_report(report: dict, epi_file: Path, verbose: bool = False):
         for w in report["warnings"]:
             content_lines.append(f"  [yellow]![/yellow] {w}")
 
-    # Optional team step when seal is fine but signer is new on this machine
+    # Optional pin step when seal is fine but signer is not org-pinned
     if (
         signature_valid is True
-        and str(identity_status).upper() in ("UNKNOWN", "")
-        and decision_status in ("WARN", "PASS", "FAIL")
+        and str(identity_status).upper() in ("UNKNOWN", "LOCAL", "")
+        and decision_status in ("WARN", "PASS")
     ):
         content_lines.append("")
-        content_lines.append(
-            "[dim]Signer not on this computer’s trust list yet (optional for teams):[/dim]"
-        )
+        if str(identity_status).upper() == "LOCAL":
+            content_lines.append(
+                "[dim]Seal is fine. Identity shows LOCAL because this PC has the sealer key — "
+                "not the same as an org trust pin.[/dim]"
+            )
+        else:
+            content_lines.append(
+                "[dim]Seal is fine. Identity is not pinned here (normal). Optional for teams:[/dim]"
+            )
         content_lines.append(
             f'[dim]  epi keys trust "{epi_file}" --name sealer[/dim]'
         )
@@ -1041,8 +1067,7 @@ def print_trust_report(report: dict, epi_file: Path, verbose: bool = False):
             f'[dim]  epi verify "{epi_file}"[/dim]'
         )
         content_lines.append(
-            "[dim]Everyday check is enough for many readers. "
-            "Pin keys only when you want “known signer” on re-check.[/dim]"
+            "[dim]Pin only when you accept that sealer. Unknown/not pinned ≠ failed seal.[/dim]"
         )
 
     content = "\n".join(content_lines)

@@ -52,10 +52,11 @@ def test_crypto_js_exports_verify_manifest_signature():
 def test_web_viewer_scorecard_and_partial_integrity_copy():
     js = Path("web_viewer/app.js").read_text(encoding="utf-8")
     html = Path("web_viewer/index.html").read_text(encoding="utf-8")
-    # Simple path for normal users
+    # Simple path for normal users — seal success is green, not a failure tone
     assert "renderTrustPlainSummary" in js
     assert "trust-plain-summary" in html
-    assert "Seal looks OK" in js or "Looks good" in js
+    assert "Seal OK" in js
+    assert "not pinned" in js.lower() or "Not pinned" in js
     # Power remains available, not front-and-center
     assert "integrity_scope" in js
     assert "archive_base64" in js
@@ -63,6 +64,94 @@ def test_web_viewer_scorecard_and_partial_integrity_copy():
     assert "authority-ladder" in html
     assert "Advanced details" in html
     assert "epi keys trust" in html or "keys trust" in js
+
+
+def test_verify_warn_uses_yellow_not_red_fail_chrome(tmp_path: Path, monkeypatch):
+    """Unknown sealer: WARN decision with SEAL OK chrome, not red FAIL ✘."""
+    epi, _ = make_decision_epi(
+        tmp_path, name="warn_chrome.epi", container_format="envelope-v2"
+    )
+    # Empty trust store so identity is not KNOWN
+    trust_dir = tmp_path / "empty_trust"
+    trust_dir.mkdir()
+    monkeypatch.setenv("EPI_TRUSTED_KEYS_DIR", str(trust_dir))
+    # Isolate local keys so we don't get LOCAL from developer machine keys
+    monkeypatch.setenv("EPI_KEYS_DIR", str(tmp_path / "no_local_keys"))
+
+    result = runner.invoke(app, ["verify", str(epi)])
+    out = result.output
+    assert result.exit_code == 0, out
+    assert "WARN" in out
+    assert "SEAL OK" in out or "seal OK" in out.lower()
+    # Must not present WARN as a red FAIL seal
+    assert "✘ SEAL FAIL" not in out
+    assert "Fingerprint:" in out or "fingerprint" in out.lower() or "Key ID" in out
+
+
+def test_local_key_match_sets_local_identity(tmp_path: Path, monkeypatch):
+    from epi_core.trust import create_verification_report, apply_policy, VerificationPolicy
+    from epi_core.container import EPIContainer
+
+    keys_dir = tmp_path / "keys"
+    keys_dir.mkdir()
+    monkeypatch.setenv("EPI_KEYS_DIR", str(keys_dir))
+    km = KeyManager(keys_dir=keys_dir)
+    km.generate_keypair("default", overwrite=True)
+
+    epi, _ = make_decision_epi(
+        tmp_path, name="local_match.epi", container_format="envelope-v2", signed=True
+    )
+    # Re-sign with our isolated key so public_key matches local
+    from epi_core.trust import sign_manifest
+    from epi_core.schemas import ManifestModel
+
+    # make_decision_epi already signs with its own key — rebuild with our key
+    workspace = tmp_path / "ws2"
+    # Simpler: pack fresh with our signer
+    from tests.helpers.artifacts import make_decision_workspace
+
+    ws = make_decision_workspace(tmp_path / "w")
+    out = tmp_path / "local_signed.epi"
+    priv = km.load_private_key("default")
+    EPIContainer.pack(
+        ws,
+        ManifestModel(cli_command="t", goal="local"),
+        out,
+        signer_function=lambda m: sign_manifest(m, priv, "default"),
+    )
+    manifest = EPIContainer.read_manifest(out)
+    ok, _ = EPIContainer.verify_integrity(out)
+    report = create_verification_report(
+        integrity_ok=ok,
+        signature_valid=True,
+        signer_name=None,
+        mismatches={},
+        manifest=manifest,
+        trusted_registry=None,
+    )
+    # Without registry, still detect LOCAL
+    report = create_verification_report(
+        integrity_ok=ok,
+        signature_valid=True,
+        signer_name=None,
+        mismatches={},
+        manifest=manifest,
+        trusted_registry=TrustRegistry(trusted_keys_dir=tmp_path / "empty_t"),
+    )
+    (tmp_path / "empty_t").mkdir(exist_ok=True)
+    report = create_verification_report(
+        integrity_ok=ok,
+        signature_valid=True,
+        signer_name=None,
+        mismatches={},
+        manifest=manifest,
+        trusted_registry=TrustRegistry(trusted_keys_dir=tmp_path / "empty_t"),
+    )
+    assert report["identity"]["status"] == "LOCAL"
+    assert report["identity"].get("local_key_name") == "default"
+    applied = apply_policy(report, VerificationPolicy.STANDARD)
+    assert applied["decision"]["status"] == "PASS"
+    assert "SEAL OK" in applied["decision"]["reason"] or "local" in applied["decision"]["reason"].lower()
 
 
 def test_keys_trust_from_epi_pins_manifest_public_key(tmp_path: Path, monkeypatch):
