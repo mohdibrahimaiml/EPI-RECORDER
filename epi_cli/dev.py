@@ -551,6 +551,13 @@ def _run_fast_demo(
             return None
         size_kb = epi_path.stat().st_size // 1024 + 1
         console.print(f"  [green]✓[/green] Sealed artifact        [cyan]{epi_path}[/cyan]  ({size_kb} KB)")
+        try:
+            from epi_core.artifact_summary import format_artifact_run_summary_lines
+
+            for line in format_artifact_run_summary_lines(epi_path):
+                console.print(f"  [dim]{line}[/dim]")
+        except Exception:
+            pass
     else:
         epi_path = _find_demo_epi("demo_refund") or (Path("epi-recordings") / "demo_refund.epi")
         if not epi_path.exists():

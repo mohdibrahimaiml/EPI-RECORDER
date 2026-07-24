@@ -1561,7 +1561,17 @@ class EpiRecorderSession:
         if parts:
             breakdown = " \u00b7 ".join(parts)
             print(f"      {breakdown}", file=target)
-        print(f"      epi view {self.output_path.name}\n", file=target)
+        # Seal-time policy/fault snapshot (reads sealed analysis — no extra user command)
+        try:
+            from epi_core.artifact_summary import format_artifact_run_summary_lines
+
+            for line in format_artifact_run_summary_lines(
+                self.output_path, signed=signed
+            ):
+                print(f"      {line}", file=target)
+        except Exception:
+            print(f"      epi view {self.output_path.name}", file=target)
+        print(file=target)
 
     def _capture_environment(self) -> None:
         """Capture environment snapshot and save to temp directory."""
