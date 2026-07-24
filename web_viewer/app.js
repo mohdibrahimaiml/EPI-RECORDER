@@ -663,10 +663,12 @@ function renderIntegrity(caseData, context) {
     idEl.className = 'indicator verified';
     idEl.style.fontSize = '11px';
   } else if (pubkey) {
-    idEl.textContent = 'Not recognized yet · key ' + pubkey + '…';
+    const fp = (m.public_key || '').slice(0, 32);
+    idEl.textContent = 'Not pinned here · fingerprint ' + (fp || pubkey) + '…';
     idEl.className = 'indicator unknown';
     idEl.style.fontSize = '12px';
-    idEl.title = 'Optional: epi keys trust "file.epi" --name sealer';
+    idEl.title =
+      'Seal can still be OK. Optional: epi keys trust "file.epi" --name sealer';
   } else {
     idEl.textContent = signer || '(unsigned)';
     idEl.className = 'indicator unknown';
@@ -772,27 +774,37 @@ function renderTrustPlainSummary({ intOk, intScope, sigValid, idStatus, selfVeri
     return;
   }
 
-  if (sigValid === true && (idUpper === 'KNOWN' || idUpper === 'TRUSTED' || idUpper === 'LOCAL')) {
-    headline.textContent = 'Looks good';
+  if (sigValid === true && (idUpper === 'KNOWN' || idUpper === 'TRUSTED')) {
+    headline.textContent = 'Seal OK — sealer pinned on this machine';
     headline.style.color = 'var(--pass, #15803d)';
     body.textContent =
-      'The seal checks out and the signer is recognized on this machine. ' +
+      'Integrity and signature check out, and the sealer is in this machine’s trust list. ' +
       'For formal review, teams still run epi verify on the original file.';
     return;
   }
 
+  if (sigValid === true && idUpper === 'LOCAL') {
+    headline.textContent = 'Seal OK — sealer matches a key on this computer';
+    headline.style.color = 'var(--pass, #15803d)';
+    body.textContent =
+      'The seal is valid and the public key matches a local signing key (e.g. default). ' +
+      'That is self-recognition, not an org-wide pin. Optional: epi keys trust "file.epi" --name sealer.';
+    return;
+  }
+
   if (sigValid === true) {
-    headline.textContent = 'Seal looks OK — signer not recognized yet';
-    headline.style.color = 'var(--warn, #b45309)';
+    // Green for seal success — identity is a separate, non-failure layer
+    headline.textContent = 'Seal OK — identity not pinned here';
+    headline.style.color = 'var(--pass, #15803d)';
     const partialNote = intScope === 'partial'
       ? ' (this page checked the embedded snapshot; full archive check uses epi verify).'
       : '.';
     body.textContent =
-      'Good news: the cryptographic seal is valid — this is not a broken/tampered package' +
+      'The cryptographic seal is valid — not a broken or tampered package' +
       partialNote +
-      ' “Who signed” stays unknown in the browser until someone runs: ' +
-      'epi keys trust "file.epi" --name sealer  (then epi verify). ' +
-      'WARN/unknown signer is normal, not a failed seal.';
+      ' Identity is separate: this browser does not know org sealers. ' +
+      'Optional on a PC: epi keys trust "file.epi" --name sealer then epi verify. ' +
+      'Not pinned ≠ failed seal.';
     return;
   }
 

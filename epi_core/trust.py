@@ -397,6 +397,28 @@ class VerificationPolicy(StrEnum):
     STRICT = "strict"  # Valid integrity + trusted identity + completeness
 
 
+def _match_local_signing_key_name(public_key_hex: str) -> str | None:
+    """Return local key name if *public_key_hex* matches a key under KeyManager.keys_dir."""
+    if not public_key_hex or len(public_key_hex) < 64:
+        return None
+    want = public_key_hex.strip().lower()
+    try:
+        from epi_core.keys import KeyManager
+
+        km = KeyManager()
+        for info in km.list_keys():
+            name = info.get("name") or ""
+            try:
+                raw = km.load_public_key(name)
+                if raw.hex().lower() == want:
+                    return name
+            except Exception:
+                continue
+    except Exception:
+        return None
+    return None
+
+
 def create_verification_report(
     integrity_ok: bool,
     signature_valid: bool | None,
@@ -419,6 +441,7 @@ def create_verification_report(
     identity_name = None
     status_detail = "Registry check not performed"
     identity_status = "UNKNOWN"
+    local_key_name: str | None = None
 
     if manifest.public_key and not trusted_registry:
         # Artifact is signed but caller supplied no registry to check against.
@@ -441,8 +464,25 @@ def create_verification_report(
         elif is_trusted_identity:
             identity_status = "KNOWN"
 
+    # Local self-recognition: sealer key present on this machine (not org-pinned)
+    if (
+        identity_status == "UNKNOWN"
+        and manifest.public_key
+        and signature_valid is not False
+    ):
+        local_key_name = _match_local_signing_key_name(manifest.public_key)
+        if local_key_name:
+            identity_status = "LOCAL"
+            identity_name = identity_name or local_key_name
+            status_detail = (
+                f"Matches local signing key '{local_key_name}' on this computer "
+                "(not an org trust-list pin). Optional: epi keys trust <file.epi> "
+                f"--name {local_key_name}"
+            )
+
     # 2. Fact Layer (Objective Evidence)
     scitt_gov = (manifest.governance or {}).get("scitt") if manifest.governance else None
+    pk = (manifest.public_key or "").strip().lower()
     report = {
         "facts": {
             "integrity_ok": integrity_ok,
@@ -459,7 +499,9 @@ def create_verification_report(
             "name": identity_name or signer_name,
             "detail": status_detail,
             "registry_verified": is_trusted_identity,
-            "public_key_id": manifest.public_key[:16] if manifest.public_key else None,
+            "public_key_id": pk[:16] if pk else None,
+            "public_key_fingerprint": pk[:32] if pk else None,
+            "local_key_name": local_key_name,
             "did": (manifest.governance or {}).get("did") if manifest.governance else None,
             "scitt": {
                 "service_url": scitt_gov.get("service_url") if scitt_gov else None,
@@ -509,6 +551,9 @@ def create_verification_report(
         report["trust_level"] = "INVALID"
     elif integrity_ok and signature_valid is True and identity_status == "KNOWN":
         report["trust_level"] = "HIGH"
+    elif integrity_ok and signature_valid is True and identity_status == "LOCAL":
+        # Sealer key is on this machine; not an org registry pin
+        report["trust_level"] = "MEDIUM"
     elif integrity_ok and signature_valid is True and transparency_ok is True:
         # Valid sig + unknown identity + SCITT valid = upgraded from LOW
         report["trust_level"] = "MEDIUM"
@@ -533,11 +578,16 @@ def create_verification_report(
         report["trust_message"] = "Identity revoked - do not trust"
     elif report["trust_level"] == "HIGH":
         report["trust_message"] = "Cryptographically verified and integrity intact"
+    elif identity_status == "LOCAL" and signature_valid is True and integrity_ok:
+        report["trust_message"] = (
+            "Seal OK; sealer matches a key on this computer (not org-pinned)"
+        )
     elif report["trust_level"] == "MEDIUM":
         report["trust_message"] = "Unsigned but integrity intact"
     elif report["trust_level"] == "LOW":
         report["trust_message"] = (
-            "Valid signature from unknown identity - verify signer before trusting"
+            "Seal OK (valid signature); signer not pinned in trust list yet — "
+            "normal until you run epi keys trust"
         )
     elif report["trust_level"] == "INVALID":
         report["trust_message"] = "Invalid signature - do not trust"
@@ -587,9 +637,15 @@ def apply_policy(report: dict, policy: VerificationPolicy = VerificationPolicy.S
             # freshly generated key, so we escalate this to WARN.
             decision["status"] = "WARN"
             decision["reason"] = (
-                "Signed by unrecognised key — integrity verified but signer identity "
-                "is not in any trusted registry. Add the signer's public key to "
-                "~/.epi/trusted_keys/ or use --policy strict to require a known identity."
+                "SEAL OK — signature valid; identity not pinned on this computer yet. "
+                "This is not a failed seal. Optional: epi keys trust <file.epi> --name sealer "
+                "(or --policy strict to require a known org sealer)."
+            )
+        elif facts["signature_valid"] is True and identity["status"] == "LOCAL":
+            decision["status"] = "PASS"
+            decision["reason"] = (
+                "SEAL OK — signature valid; sealer matches a key on this computer "
+                f"({identity.get('name') or 'local'}). Not an org trust-list pin."
             )
         else:
             decision["status"] = "PASS"
@@ -597,9 +653,10 @@ def apply_policy(report: dict, policy: VerificationPolicy = VerificationPolicy.S
 
     elif policy == VerificationPolicy.STRICT:
         # Integrity + known identity + completeness
-        if identity["status"] != "KNOWN":
+        if identity["status"] not in ("KNOWN",):
             decision["reason"] = (
-                "Identity unknown or revoked (Strict Policy requires trusted signer)"
+                "Identity unknown or revoked (Strict Policy requires trusted signer; "
+                "LOCAL self-match is not enough — pin with epi keys trust)"
             )
         elif not facts["completeness_ok"]:
             decision["reason"] = (
