@@ -166,12 +166,27 @@ def _init_api_keys_store():
         _api_keys[row["key_hash"]] = (row["tier"], row["name"], row["created_at"])
     return conn
 
+# Legacy constants kept for tests/docs; live limits come from tier_gating.
 _PRO_MONTHLY_LIMIT = 10_000
-_ENTERPRISE_MONTHLY_LIMIT = 100_000
+_ENTERPRISE_MONTHLY_LIMIT = 100_000  # fallback only if plan features missing
+
+
+def _get_usage_count(key_hash: str) -> int:
+    """Current calendar-month verification count for an API key."""
+    now_dt = datetime.now(UTC)
+    db = _init_api_keys_store()
+    row = db.execute(
+        "SELECT count FROM api_usage WHERE key_hash = ? AND year = ? AND month = ?",
+        (key_hash, now_dt.year, now_dt.month),
+    ).fetchone()
+    return int(row["count"]) if row else 0
 
 
 def _increment_and_check_usage(key_hash: str, limit: int | None = None) -> bool:
-    """Increment monthly usage; return False if over limit. limit=None means unlimited."""
+    """Increment monthly usage; return False if over limit.
+
+    limit=None means unlimited (enterprise custom).
+    """
     now = time.time()
     now_dt = datetime.fromtimestamp(now, tz=UTC)
     year, month = now_dt.year, now_dt.month
@@ -181,8 +196,7 @@ def _increment_and_check_usage(key_hash: str, limit: int | None = None) -> bool:
         (key_hash, year, month),
     ).fetchone()
     current = row["count"] if row else 0
-    cap = limit if limit is not None else _PRO_MONTHLY_LIMIT
-    if current >= cap:
+    if limit is not None and current >= int(limit):
         return False
     db.execute(
         "INSERT OR REPLACE INTO api_usage (key_hash, year, month, count) VALUES (?, ?, ?, ?)",
@@ -192,15 +206,80 @@ def _increment_and_check_usage(key_hash: str, limit: int | None = None) -> bool:
     return True
 
 
-def _load_api_key_tier(request) -> tuple | None:
+def _load_api_key_record(request) -> dict | None:
+    """Return {key_hash, tier, name, user_id} for X-API-Key, or None."""
     api_key = request.headers.get("X-API-Key")
     if not api_key or not api_key.startswith("epi_"):
         return None
     key_hash = hashlib.sha256(api_key.encode()).hexdigest()
-    if key_hash in _api_keys:
-        tier, name, _ = _api_keys[key_hash]
-        return (tier, name)
-    return None
+    _init_api_keys_store()
+    if key_hash not in _api_keys:
+        # DB may have been updated out of process — reload once
+        db = _init_api_keys_store()
+        row = db.execute(
+            "SELECT key_hash, tier, name, created_at, user_id FROM api_keys WHERE key_hash = ? AND active = 1",
+            (key_hash,),
+        ).fetchone()
+        if not row:
+            return None
+        _api_keys[key_hash] = (row["tier"], row["name"], row["created_at"])
+        return {
+            "key_hash": key_hash,
+            "tier": auth_module.normalize_plan(row["tier"]),
+            "name": row["name"],
+            "user_id": row["user_id"],
+        }
+    tier, name, _ = _api_keys[key_hash]
+    db = _init_api_keys_store()
+    row = db.execute(
+        "SELECT user_id FROM api_keys WHERE key_hash = ? AND active = 1",
+        (key_hash,),
+    ).fetchone()
+    user_id = row["user_id"] if row else None
+    # Keep key tier in sync with user plan when possible
+    if user_id:
+        storage_dir = Path(os.environ.get("EPI_STORAGE_DIR", "./data"))
+        try:
+            init_billing_columns(storage_dir)
+            live_plan = auth_module.normalize_plan(
+                get_user_plan(storage_dir, user_id)
+            )
+            if live_plan != auth_module.normalize_plan(tier):
+                db.execute(
+                    "UPDATE api_keys SET tier = ? WHERE key_hash = ?",
+                    (live_plan, key_hash),
+                )
+                db.commit()
+                _api_keys[key_hash] = (live_plan, name, _api_keys[key_hash][2])
+                tier = live_plan
+        except Exception:
+            pass
+    return {
+        "key_hash": key_hash,
+        "tier": auth_module.normalize_plan(tier),
+        "name": name,
+        "user_id": user_id,
+    }
+
+
+def _load_api_key_tier(request) -> tuple | None:
+    rec = _load_api_key_record(request)
+    if not rec:
+        return None
+    return (rec["tier"], rec["name"])
+
+
+def effective_plan(request: Request) -> str:
+    """Plan from session cookie/token, or from API key tier if higher/present."""
+    from verify_portal.tier_gating import PLAN_RANK
+
+    plan = get_plan(request)
+    rec = _load_api_key_record(request)
+    if rec:
+        key_plan = rec["tier"]
+        if PLAN_RANK.get(key_plan, 0) >= PLAN_RANK.get(plan, 0):
+            return key_plan
+    return plan
 
 
 
@@ -512,27 +591,34 @@ async def verify(
         client_ip = client_ip.split(",")[0].strip()
     else:
         client_ip = request.client.host if request.client else "unknown"
-    # Check API key first — Pro/Enterprise keys bypass rate limit
-    key_info = _load_api_key_tier(request)
-    if key_info:
-        tier, key_name = key_info
-        if tier in ("pro", "enterprise"):
-            api_key_hdr = request.headers.get("X-API-Key", "")
-            if api_key_hdr.startswith("epi_"):
-                kh = hashlib.sha256(api_key_hdr.encode()).hexdigest()
-                limit = _PRO_MONTHLY_LIMIT if tier == "pro" else _ENTERPRISE_MONTHLY_LIMIT
-                if not _increment_and_check_usage(kh, limit=limit):
-                    raise HTTPException(
-                        status_code=429,
-                        detail=f"Monthly limit reached ({limit:,} verifications). Contact support@epilabs.org to increase.",
-                    )
-        else:
-            if not _check_rate_limit(client_ip):
-                raise HTTPException(status_code=429, detail="Rate limit exceeded. Upgrade to Pro or Enterprise at /pricing.")
+    # API key: monthly plan quota from tier_gating. No key: free IP day-cap.
+    key_rec = _load_api_key_record(request)
+    if key_rec:
+        tier = key_rec["tier"]
+        limit = get_rate_limit(tier)  # None = unlimited
+        if not _increment_and_check_usage(key_rec["key_hash"], limit=limit):
+            cap_txt = "unlimited" if limit is None else f"{limit:,}"
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    f"Monthly hosted verification limit reached ({cap_txt}). "
+                    f"Plan={tier}. Upgrade at /pricing or wait until next month."
+                ),
+            )
+        # touch last_used
+        try:
+            db = _init_api_keys_store()
+            db.execute(
+                "UPDATE api_keys SET last_used_at = ? WHERE key_hash = ?",
+                (time.time(), key_rec["key_hash"]),
+            )
+            db.commit()
+        except Exception:
+            pass
     elif not _check_rate_limit(client_ip):
         raise HTTPException(
             status_code=429,
-            detail="Rate limit exceeded. Upgrade at /pricing for unlimited verifications.",
+            detail="Rate limit exceeded. Sign in, create an API key, and upgrade at /pricing for higher limits.",
         )
 
     # Validate file extension
@@ -808,33 +894,145 @@ app.include_router(billing_router)
 async def plan_features(request: Request):
     from verify_portal.tier_gating import features_for_plan
 
-    plan = get_plan(request)
+    plan = effective_plan(request)
     feats = features_for_plan(plan)
+    usage = None
+    key_rec = _load_api_key_record(request)
+    if key_rec:
+        usage = {
+            "used": _get_usage_count(key_rec["key_hash"]),
+            "limit": get_rate_limit(plan),
+            "key_tier": key_rec["tier"],
+        }
+    else:
+        # Sum usage across user's keys when session-authenticated
+        storage_dir = Path(os.environ.get("EPI_STORAGE_DIR", "./data"))
+        token = auth_module.extract_token(request)
+        user = auth_module.verify_token(storage_dir, token) if token else None
+        if user:
+            db = _init_api_keys_store()
+            rows = db.execute(
+                "SELECT key_hash FROM api_keys WHERE active = 1 AND user_id = ?",
+                (user["id"],),
+            ).fetchall()
+            used = sum(_get_usage_count(r["key_hash"]) for r in rows)
+            usage = {"used": used, "limit": get_rate_limit(plan), "keys": len(rows)}
     return {
         "plan": plan,
         "features": feats,
         "rate_limit": get_rate_limit(plan),
         "label": feats.get("label", plan),
+        "usage": usage,
     }
+
+
+@app.get("/api/usage")
+async def usage_summary(request: Request):
+    """Hosted verification usage for the signed-in user (all active keys this month)."""
+    storage_dir = Path(os.environ.get("EPI_STORAGE_DIR", "./data"))
+    token = auth_module.extract_token(request)
+    user = auth_module.verify_token(storage_dir, token) if token else None
+    if not user:
+        raise HTTPException(status_code=401, detail="Sign in required.")
+    init_billing_columns(storage_dir)
+    plan = auth_module.normalize_plan(get_user_plan(storage_dir, user["id"]))
+    limit = get_rate_limit(plan)
+    db = _init_api_keys_store()
+    rows = db.execute(
+        "SELECT key_hash, name, tier FROM api_keys WHERE active = 1 AND user_id = ?",
+        (user["id"],),
+    ).fetchall()
+    per_key = [
+        {
+            "name": r["name"],
+            "tier": r["tier"],
+            "used": _get_usage_count(r["key_hash"]),
+        }
+        for r in rows
+    ]
+    total = sum(k["used"] for k in per_key)
+    return {
+        "plan": plan,
+        "limit": limit,
+        "used": total,
+        "keys": per_key,
+        "scitt": bool(features_for_plan_safe(plan).get("scitt")),
+    }
+
+
+def features_for_plan_safe(plan: str) -> dict:
+    from verify_portal.tier_gating import features_for_plan
+
+    return features_for_plan(plan)
+
+
+@app.post("/api/admin/set-plan")
+async def admin_set_plan(request: Request):
+    """Set a user's plan without Paddle (QA / manual Pro enablement).
+
+    Header: X-Admin-Key: $EPI_ADMIN_API_KEY
+    Body: {"plan": "pro", "email": "..."} or {"plan": "pro", "user_id": "..."}
+    """
+    _require_admin_key(request)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    plan = auth_module.normalize_plan(body.get("plan") or "free")
+    email = (body.get("email") or "").strip() or None
+    user_id = (body.get("user_id") or "").strip() or None
+    if not email and not user_id:
+        raise HTTPException(status_code=400, detail="Provide email or user_id.")
+    storage_dir = Path(os.environ.get("EPI_STORAGE_DIR", "./data"))
+    init_billing_columns(storage_dir)
+    ok = auth_module.set_user_plan(
+        storage_dir, plan=plan, email=email, user_id=user_id
+    )
+    if not ok:
+        raise HTTPException(status_code=404, detail="User not found.")
+    # Sync API key tiers for this user
+    db = _init_api_keys_store()
+    uid = user_id
+    if not uid and email:
+        try:
+            from verify_portal.db import connect_auth
+
+            conn = connect_auth(storage_dir)
+            row = conn.execute(
+                "SELECT id FROM users WHERE lower(email) = lower(?)", (email,)
+            ).fetchone()
+            conn.close()
+            if row:
+                uid = row["id"] if not isinstance(row, tuple) else row[0]
+        except Exception:
+            uid = None
+    if uid:
+        db.execute(
+            "UPDATE api_keys SET tier = ? WHERE user_id = ? AND active = 1",
+            (plan, uid),
+        )
+        db.commit()
+    # refresh memory cache
+    global _api_keys
+    _api_keys.clear()
+    _init_api_keys_store()
+    return {"ok": True, "plan": plan, "email": email, "user_id": uid}
 
 
 @app.post("/api/reports/pdf")
 async def generate_pdf_report(request: Request):
-    plan = get_plan(request)
-    if plan == "free":
-        raise HTTPException(
-            status_code=402,
-            detail="PDF reports require a Pro plan or higher. Upgrade at /pricing.",
-        )
-    body = {}
-    if request.headers.get("content-type", "").startswith("application/json"):
-        body = await request.json()
-    return JSONResponse({
-        "status": "ok",
-        "message": "PDF report generated for your plan: " + plan.capitalize(),
-        "plan": plan,
-        "note": "Full PDF rendering available in the CLI via 'epi annex report --format pdf'",
-    })
+    """Hosted PDF is not implemented. Annex PDF is free in the CLI.
+
+    Kept as an explicit 501 so clients are not sold a fake success response.
+    """
+    raise HTTPException(
+        status_code=501,
+        detail=(
+            "Hosted PDF reports are not available. "
+            "Generate Annex PDF offline with: epi annex report --format pdf. "
+            "See /pricing — paid plans cover hosted verify volume, API keys, and remote SCITT only."
+        ),
+    )
 
 
 # ── SCITT gate already defined at app level above the scitt_router include

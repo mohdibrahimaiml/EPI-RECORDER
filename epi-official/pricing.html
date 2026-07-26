@@ -4,48 +4,51 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>EPI Labs Pricing | Evidence Infrastructure for AI Agents</title>
-<meta name="description" content="EPI Labs pricing: Open Source free forever, Team $499/mo, Enterprise custom. Cryptographic evidence infrastructure for AI agents. Ed25519, SCITT, AIUC-1 compliance.">
+<meta name="description" content="EPI Labs pricing: free open-source CLI forever, Pro $19/mo for hosted verify + API keys + remote SCITT, volume and support by contact. Ed25519 evidence for AI agents.">
 <meta property="og:title" content="EPI Labs Pricing | Evidence Infrastructure for AI Agents">
-<meta property="og:description" content="EPI Labs pricing: Open Source free forever, Team $499/mo, Enterprise custom. Cryptographic evidence infrastructure for AI agents.">
+<meta property="og:description" content="Open source free forever. Pro for hosted verification scale. Volume and custom support by contact. No fake feature checklists.">
 <meta property="og:image" content="https://epilabs.org/assets/logo.png">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon.ico">
 <link rel="apple-touch-icon" href="favicon.ico">
 <link rel="stylesheet" href="css/epi.css?v=30">
 <style>
-.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:32px;max-width:1200px;margin:0 auto;padding:0 24px}
-.pricing-card{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-str);padding:40px 32px;position:relative;transition:transform var(--ease) .2s,box-shadow var(--ease) .2s}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:28px;max-width:1200px;margin:0 auto;padding:0 24px}
+.pricing-card{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-str);padding:36px 28px;position:relative;transition:transform var(--ease) .2s,box-shadow var(--ease) .2s}
 .pricing-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.08)}
-.pricing-card.enterprise{border-color:var(--accent-line);border-width:2px}
+.pricing-card.featured{border-color:var(--accent-line);border-width:2px}
 .pricing-card .badge{position:absolute;top:-14px;right:24px;background:var(--accent);color:#fff;padding:4px 16px;border-radius:20px;font-size:.75rem;font-weight:600;letter-spacing:.04em}
 .pricing-card h3{font-size:1.1rem;color:var(--ink-muted);font-weight:500;margin:0 0 8px;text-transform:uppercase;letter-spacing:.08em}
-.pricing-card .price{font-size:3rem;font-weight:700;color:var(--ink);margin:0 0 4px}
+.pricing-card .price{font-size:2.6rem;font-weight:700;color:var(--ink);margin:0 0 4px}
 .pricing-card .price small{font-size:1rem;font-weight:400;color:var(--ink-muted)}
-.pricing-card .price-sub{color:var(--ink-muted);font-size:.85rem;margin-bottom:24px}
-.pricing-card .features{list-style:none;padding:0;margin:0 0 32px}
-.pricing-card .features li{padding:8px 0;border-bottom:1px solid var(--border);font-size:.92rem;color:var(--ink-soft);display:flex;align-items:center;gap:10px}
-.pricing-card .features li .icon{font-size:1.1rem;flex-shrink:0}
+.pricing-card .price-sub{color:var(--ink-muted);font-size:.85rem;margin-bottom:20px}
+.pricing-card .features{list-style:none;padding:0;margin:0 0 28px}
+.pricing-card .features li{padding:8px 0;border-bottom:1px solid var(--border);font-size:.9rem;color:var(--ink-soft);display:flex;align-items:flex-start;gap:10px}
+.pricing-card .features li .icon{font-size:1.05rem;flex-shrink:0;line-height:1.4}
 .pricing-card .features li .icon.check{color:var(--verified)}
 .pricing-card .features li .icon.dash{color:var(--ink-dim)}
 .pricing-card .features li .icon.star{color:var(--accent-lt)}
+.pricing-card .note{font-size:.8rem;color:var(--ink-dim);margin:-12px 0 20px;line-height:1.45}
 .pricing-card .cta-btn{display:block;width:100%;padding:14px;text-align:center;border-radius:10px;font-family:var(--sans);font-size:.95rem;font-weight:600;cursor:pointer;text-decoration:none;transition:all var(--ease) .15s;border:2px solid transparent}
 .pricing-card .cta-btn.primary{background:var(--accent);color:#fff}
 .pricing-card .cta-btn.primary:hover{background:var(--accent-lt)}
 .pricing-card .cta-btn.secondary{background:transparent;color:var(--accent);border-color:var(--accent-line)}
 .pricing-card .cta-btn.secondary:hover{background:var(--accent-glow)}
-.compare-section{max-width:1200px;margin:100px auto 0;padding:0 24px}
-.compare-section h2{text-align:center;font-size:1.8rem;color:var(--ink);margin-bottom:40px}
-.compare-table{width:100%;border-collapse:collapse;font-size:.9rem}
-.compare-table th,.compare-table td{padding:14px 16px;text-align:left;border-bottom:1px solid var(--border)}
-.compare-table th{font-weight:600;color:var(--ink-soft);font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;background:var(--bg-alt)}
+.honesty-banner{max-width:900px;margin:0 auto 48px;padding:20px 24px;background:var(--bg-alt);border:1px solid var(--border);border-radius:12px;font-size:.9rem;color:var(--ink-soft);line-height:1.55}
+.honesty-banner strong{color:var(--ink)}
+.compare-section{max-width:1200px;margin:100px auto 0;padding:0 24px;overflow-x:auto}
+.compare-section h2{text-align:center;font-size:1.8rem;color:var(--ink);margin-bottom:12px}
+.compare-section .compare-sub{text-align:center;color:var(--ink-muted);font-size:.9rem;margin:0 0 32px}
+.compare-table{width:100%;border-collapse:collapse;font-size:.88rem;min-width:720px}
+.compare-table th,.compare-table td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--border)}
+.compare-table th{font-weight:600;color:var(--ink-soft);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;background:var(--bg-alt)}
 .compare-table th:first-child{text-align:left}
-.compare-table th:nth-child(2),.compare-table th:nth-child(3),.compare-table th:nth-child(4){text-align:center}
+.compare-table th:not(:first-child),.compare-table td:not(:first-child){text-align:center}
 .compare-table td{color:var(--ink)}
-.compare-table td:nth-child(2),.compare-table td:nth-child(3),.compare-table td:nth-child(4){text-align:center;font-weight:600}
+.compare-table td:not(:first-child){font-weight:600}
 .compare-table .row-label{font-weight:500}
-.compare-table .check{color:var(--verified);font-size:1.2rem}
+.compare-table .check{color:var(--verified);font-size:1.15rem}
 .compare-table .dash{color:var(--ink-dim)}
-.compare-table .star{color:var(--accent-lt);font-size:1.2rem}
 .faq-section{max-width:800px;margin:100px auto 80px;padding:0 24px}
 .faq-section h2{text-align:center;font-size:1.8rem;color:var(--ink);margin-bottom:48px}
 .faq-item{margin-bottom:32px}
@@ -93,121 +96,130 @@
 </div>
 <main style="padding-top:120px">
 
-<section style="text-align:center;padding:60px 24px 40px">
+<section style="text-align:center;padding:60px 24px 24px">
   <h1 style="font-size:2.4rem;color:var(--ink);margin:0 0 12px">Simple pricing. Radical transparency.</h1>
-  <p style="color:var(--ink-soft);font-size:1.1rem;max-width:600px;margin:0 auto">Open source forever. Team plans for teams. Enterprise for regulated organizations.</p>
+  <p style="color:var(--ink-soft);font-size:1.1rem;max-width:640px;margin:0 auto">Open source free forever. Pay only for hosted scale, API access, remote SCITT, and human support.</p>
 </section>
+
+<div class="honesty-banner">
+  <strong>What you pay for is what the product gates.</strong>
+  Multi-signer Annex chains, Annex PDF reports, the public GitHub Action, local SCITT, and local role bindings ship free in the CLI.
+  Paid plans raise hosted verification limits, unlock remote SCITT registration, and add support — not a second product stack.
+</div>
 
 <section class="pricing-grid">
 
   <div class="pricing-card">
     <h3>Open Source</h3>
     <div class="price">$0</div>
-    <div class="price-sub">Free forever. MIT licensed.</div>
+    <div class="price-sub">Free forever. MIT licensed. Runs fully offline.</div>
     <ul class="features">
       <li><span class="icon check">&#10003;</span> CLI &amp; Python SDK</li>
-      <li><span class="icon check">&#10003;</span> Browser-based viewer</li>
-      <li><span class="icon check">&#10003;</span> Ed25519 signing &amp; verification</li>
-      <li><span class="icon check">&#10003;</span> Self-hosted verification</li>
-      <li><span class="icon check">&#10003;</span> SCITT local transparency</li>
-      <li><span class="icon check">&#10003;</span> EU AI Act Annex IV (9 sections)</li>
-      <li><span class="icon check">&#10003;</span> All Agentic Framework integrations</li>
-      <li><span class="icon dash">&#8212;</span> CI/CD GitHub Actions</li>
-      <li><span class="icon dash">&#8212;</span> Support</li>
+      <li><span class="icon check">&#10003;</span> Browser viewer &amp; offline verify</li>
+      <li><span class="icon check">&#10003;</span> Ed25519 seal &amp; verification</li>
+      <li><span class="icon check">&#10003;</span> Local SCITT transparency</li>
+      <li><span class="icon check">&#10003;</span> Annex IV tooling (9 sections) + multi-sign</li>
+      <li><span class="icon check">&#10003;</span> Annex PDF / HTML reports via CLI</li>
+      <li><span class="icon check">&#10003;</span> Public GitHub Action (<code>verify-epi</code>)</li>
+      <li><span class="icon check">&#10003;</span> Integrations: LangChain, LangGraph, LiteLLM, OTel, pytest, AGT</li>
+      <li><span class="icon check">&#10003;</span> Local role bindings for Annex signers</li>
+      <li><span class="icon dash">&#8212;</span> Hosted verification at scale</li>
+      <li><span class="icon dash">&#8212;</span> Remote SCITT anchoring</li>
+      <li><span class="icon dash">&#8212;</span> Paid support</li>
     </ul>
+    <p class="note">Public hosted verify has a low free rate limit (abuse protection). Unlimited offline verify on your machine.</p>
     <a href="https://github.com/mohdibrahimaiml/epi-recorder" class="cta-btn secondary">Star on GitHub</a>
   </div>
 
-  <div class="pricing-card">
-    <div class="badge" style="background:var(--verified)">NEW</div>
+  <div class="pricing-card featured">
+    <div class="badge" style="background:var(--verified)">SELF-SERVE</div>
     <h3>Pro</h3>
     <div class="price">$19<small>/mo</small></div>
-    <div class="price-sub">Individual practitioner. Cancel anytime.</div>
+    <div class="price-sub">Individuals shipping agents. Cancel anytime.</div>
     <ul class="features">
-      <li><span class="icon check">✓</span> Everything in Open Source</li>
-      <li><span class="icon check">✓</span> Hosted verification (10K checks/mo)</li>
-      <li><span class="icon check">✓</span> API key access</li>
-      <li><span class="icon check">✓</span> SCITT remote anchoring</li>
-      <li><span class="icon check">✓</span> Founder email support</li>
-      <li><span class="icon dash">—</span> PDF compliance reports</li>
-      <li><span class="icon dash">—</span> Multi-signer approval chains</li>
-      <li><span class="icon dash">—</span> GitHub CI/CD Action</li>
-      <li><span class="icon dash">—</span> RBAC</li>
+      <li><span class="icon check">&#10003;</span> Everything in Open Source</li>
+      <li><span class="icon check">&#10003;</span> Hosted verification — 10,000 checks / month (API key)</li>
+      <li><span class="icon check">&#10003;</span> Up to 10 API keys</li>
+      <li><span class="icon check">&#10003;</span> Remote SCITT registration (hosted log)</li>
+      <li><span class="icon check">&#10003;</span> Founder email support</li>
     </ul>
+    <p class="note">Use an API key for the 10K quota. Remote SCITT requires the hosted service to be configured in production.</p>
     <a id="pro-subscribe-btn" href="#" class="cta-btn primary">Subscribe for $19/mo</a>
   </div>
 
   <div class="pricing-card">
-    <div class="badge">RECOMMENDED</div>
+    <div class="badge">VOLUME</div>
     <h3>Team</h3>
     <div class="price">$499<small>/mo</small></div>
-    <div class="price-sub">Up to 10 seats. Annual billing available.</div>
+    <div class="price-sub">Higher hosted limits + support. Contact to enable.</div>
     <ul class="features">
-      <li><span class="icon check">&#10003;</span> Everything in Open Source</li>
-      <li><span class="icon check">&#10003;</span> Role-based approvals</li>
-      <li><span class="icon check">&#10003;</span> CI/CD GitHub Action</li>
-      <li><span class="icon check">&#10003;</span> Audit reports (JSON/Markdown)</li>
-      <li><span class="icon dash">&#8212;</span> Multi-signer approval chains</li>
-      <li><span class="icon check">&#10003;</span> Email support (48h response)</li>
-      <li><span class="icon dash">&#8212;</span> RBAC enforcement</li>
-      <li><span class="icon dash">&#8212;</span> Hosted SCITT service</li>
-      <li><span class="icon dash">&#8212;</span> Dedicated onboarding</li>
+      <li><span class="icon check">&#10003;</span> Everything in Pro</li>
+      <li><span class="icon check">&#10003;</span> Hosted verification — 50,000 checks / month</li>
+      <li><span class="icon check">&#10003;</span> Up to 50 API keys</li>
+      <li><span class="icon check">&#10003;</span> Remote SCITT (same hosted service)</li>
+      <li><span class="icon check">&#10003;</span> Email support (target 48h response)</li>
+      <li><span class="icon check">&#10003;</span> Shared onboarding call</li>
+      <li><span class="icon dash">&#8212;</span> Org seats / SSO (not productized yet)</li>
     </ul>
-    <a href="mailto:mohdibrahim@epilabs.org" class="cta-btn primary">Start 14-day pilot</a>
+    <p class="note">Team is volume + support today — not a multi-tenant org product with seats. Plan is enabled manually after contact.</p>
+    <a href="mailto:mohdibrahim@epilabs.org?subject=Team%20plan%20inquiry" class="cta-btn primary">Contact for Team</a>
   </div>
 
-  <div class="pricing-card enterprise">
+  <div class="pricing-card">
     <h3>Enterprise</h3>
     <div class="price">Custom</div>
-    <div class="price-sub">Unlimited seats. Annual contract.</div>
+    <div class="price-sub">Contract, volume, and hands-on help.</div>
     <ul class="features">
-      <li><span class="icon check">&#10003;</span> Everything in Team</li>
-      <li><span class="icon star">&#10022;</span> RBAC enforcement</li>
-      <li><span class="icon star">&#10022;</span> SCITT remote transparency</li>
-      <li><span class="icon star">&#10022;</span> EU database notification</li>
-      <li><span class="icon star">&#10022;</span> Dedicated onboarding engineer</li>
-      <li><span class="icon star">&#10022;</span> SLA (99.9% for hosted SCITT)</li>
-      <li><span class="icon star">&#10022;</span> Priority audit support</li>
-      <li><span class="icon star">&#10022;</span> Custom data retention</li>
-      <li><span class="icon star">&#10022;</span> SSO / SAML</li>
-      <li><span class="icon star">&#10022;</span> Countersigned attestation</li>
-      <li><span class="icon star">&#10022;</span> Managed DID:WEB registry</li>
-      <li><span class="icon star">&#10022;</span> Regulatory adapters (FDA, HIPAA, NIST)</li>
+      <li><span class="icon check">&#10003;</span> Custom hosted verification limits</li>
+      <li><span class="icon check">&#10003;</span> Remote SCITT + priority ops attention</li>
+      <li><span class="icon star">&#10022;</span> Dedicated onboarding</li>
+      <li><span class="icon star">&#10022;</span> Priority support</li>
+      <li><span class="icon star">&#10022;</span> Contractual SLA (negotiated in writing)</li>
+      <li><span class="icon star">&#10022;</span> Custom integration / compliance consulting</li>
       <li><span class="icon star">&#10022;</span> Legal &amp; procurement support</li>
+      <li><span class="icon dash">&#8212;</span> SSO / SAML — roadmap, not shipped</li>
+      <li><span class="icon dash">&#8212;</span> Managed multi-tenant DID registry — roadmap</li>
+      <li><span class="icon dash">&#8212;</span> FDA / HIPAA / NIST adapter suite — roadmap</li>
     </ul>
+    <p class="note">Enterprise sells limits, support, and services — not a separate closed-source feature matrix. Roadmap items are labeled, not checkmarks.</p>
     <a href="mailto:mohdibrahim@epilabs.org?subject=Enterprise%20Inquiry" class="cta-btn secondary">Contact us</a>
   </div>
 
 </section>
 
-<section class="pilot-banner">
-  <h3>Start a 14-day Enterprise pilot</h3>
-  <p>Full Enterprise tier. No credit card. No commitment. Includes a dedicated onboarding call.</p>
-  <a href="mailto:mohdibrahim@epilabs.org?subject=Pilot%20Program%20Signup">Request Pilot Access</a>
+<section class="pilot-banner" style="margin-top:64px">
+  <h3>14-day Pro pilot</h3>
+  <p>Pro-level hosted limits and an onboarding call. No credit card required. Same open-source tools you already have offline.</p>
+  <a href="mailto:mohdibrahim@epilabs.org?subject=Pro%20Pilot%20Program">Request pilot access</a>
 </section>
 
 <section class="compare-section">
   <h2>Feature comparison</h2>
+  <p class="compare-sub">Only rows that match shipped software or clearly labeled services.</p>
   <table class="compare-table">
     <thead>
-      <tr><th>Feature</th><th>Open Source</th><th>Team</th><th>Enterprise</th></tr>
+      <tr>
+        <th>Feature</th>
+        <th>Open Source</th>
+        <th>Pro</th>
+        <th>Team</th>
+        <th>Enterprise</th>
+      </tr>
     </thead>
     <tbody>
-      <tr><td class="row-label">Ed25519 Signing</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">Verification (CLI + Browser)</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">SCITT Transparency</td><td class="check">Local</td><td class="check">Local</td><td class="check">Remote + Local</td></tr>
-      <tr><td class="row-label">PDF Reports</td><td class="dash">&#8212;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">RBAC</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">EU AI Act Annex IV</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">Multi-Signer</td><td class="check">Tracked</td><td class="check">&#10003;</td><td class="check">Enforced</td></tr>
-      <tr><td class="row-label">REST API</td><td class="dash">&#8212;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">CI/CD Actions</td><td class="dash">&#8212;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">Viewer Dashboard</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">Support</td><td class="dash">Community</td><td class="check">Email 48h</td><td class="check">Dedicated</td></tr>
-      <tr><td class="row-label">SLA</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td><td class="check">99.9%</td></tr>
-      <tr><td class="row-label">Countersigned Attestation</td><td class="dash">&#8212;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">Managed DID:WEB Registry</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">Regulatory Adapters</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td><td class="check">&#10003;</td></tr>
+      <tr><td class="row-label">CLI / SDK / offline verify</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+      <tr><td class="row-label">Ed25519 seal &amp; verify</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+      <tr><td class="row-label">Local SCITT</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+      <tr><td class="row-label">Annex IV + multi-sign + CLI PDF</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+      <tr><td class="row-label">GitHub Action (public)</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+      <tr><td class="row-label">Local role bindings</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+      <tr><td class="row-label">Hosted verify quota</td><td>Low free cap</td><td>10,000 / mo</td><td>50,000 / mo</td><td>Custom</td></tr>
+      <tr><td class="row-label">API keys</td><td>1 (onboarding)</td><td>10</td><td>50</td><td>Custom</td></tr>
+      <tr><td class="row-label">Remote SCITT</td><td class="dash">&#8212;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+      <tr><td class="row-label">Hosted PDF API</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td></tr>
+      <tr><td class="row-label">Org seats / SSO</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td><td>Roadmap</td></tr>
+      <tr><td class="row-label">Support</td><td>Community</td><td>Email</td><td>Email 48h target</td><td>Dedicated</td></tr>
+      <tr><td class="row-label">Contractual SLA</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td><td>Negotiated</td></tr>
     </tbody>
   </table>
 </section>
@@ -216,23 +228,31 @@
   <h2>Frequently asked questions</h2>
   <div class="faq-item">
     <h4>Can I use the open source version in production?</h4>
-    <p>Yes. EPI Recorder is MIT licensed. You can use it in production, modify it, and distribute it. The open source CLI does full Annex IV compliance. Team and Enterprise tiers add collaboration, RBAC, hosted services, and support.</p>
+    <p>Yes. EPI Recorder is MIT licensed. You can run it in production, modify it, and distribute it. The CLI seals, verifies, multi-signs Annex sections, and can emit Annex PDF reports offline. Paid tiers add hosted verification scale, remote SCITT, API keys, and support — not a different evidence format.</p>
+  </div>
+  <div class="faq-item">
+    <h4>What do I actually get if I pay for Pro?</h4>
+    <p>A higher monthly hosted verification quota (10,000 with an API key), more API keys, access to remote SCITT registration when the service is live, and founder email support. Everything for recording and verifying .epi files offline remains free.</p>
   </div>
   <div class="faq-item">
     <h4>How does the pilot program work?</h4>
-    <p>You get full Enterprise access for 14 days. We set up a dedicated onboarding call to understand your use case, help you configure signing keys, and walk through your first compliance artifact. No credit card required. At the end of the pilot, you can downgrade to Team, stay on Open Source, or sign an Enterprise agreement.</p>
+    <p>We enable Pro-level hosted access for about 14 days and schedule an onboarding call: signing keys, first sealed artifact, verify path. No credit card. Afterward you can stay on Open Source, subscribe to Pro, discuss Team volume, or talk Enterprise services.</p>
   </div>
   <div class="faq-item">
-    <h4>Do I need the Enterprise tier for EU AI Act compliance?</h4>
-    <p>No. The open source CLI generates Annex IV compliance artifacts with Ed25519 signatures, hash chains, and SCITT transparency receipts. Enterprise adds RBAC enforcement, hosted SCITT, PDF export, and dedicated support — helpful for regulated organizations with formal governance requirements, but not required for technical compliance.</p>
+    <h4>Do I need a paid tier for EU AI Act Annex IV technical artifacts?</h4>
+    <p>No. The open-source CLI produces Annex IV artifacts with signatures, hash chains, multi-signer approvals, and optional local SCITT receipts. That is technical evidence tooling — not legal advice or a notified-body certification. Paid tiers help when you want hosted scale and support, not because Annex is locked behind a paywall.</p>
   </div>
   <div class="faq-item">
-    <h4>What happens after the pilot?</h4>
-    <p>You choose: stay on the free Open Source tier, subscribe to Team ($499/mo), or sign an Enterprise agreement. Your .epi artifacts are yours forever regardless of tier — they're self-contained, self-verifying files.</p>
+    <h4>Why is multi-sign / CI / PDF free if older pages said otherwise?</h4>
+    <p>Those capabilities ship in the open-source CLI and GitHub Action. We stopped listing them as paid differentiators. Hosted PDF generation over the API is not implemented; use <code>epi annex report --format pdf</code>.</p>
   </div>
   <div class="faq-item">
     <h4>Is EPI SOC 2 or ISO 27001 certified?</h4>
-    <p>EPI Recorder is an open-source tool that runs in your infrastructure. We are pursuing SOC 2 for the hosted SCITT service (Enterprise tier). The CLI and verification tools are entirely local — no certification needed for the tools themselves.</p>
+    <p>The CLI and verification tools run in your infrastructure. We are not claiming SOC 2 / ISO certification for a hosted control plane today. Any future certification would apply to operated services under a written program — not to the offline tools themselves.</p>
+  </div>
+  <div class="faq-item">
+    <h4>What about SSO, managed DID registries, and regulatory adapters?</h4>
+    <p>They are roadmap / consulting topics, not shipped SaaS features. Enterprise customers can fund custom work; we will not list them as product checkmarks until they exist.</p>
   </div>
 </section>
 
@@ -260,21 +280,19 @@
   var btn = document.getElementById("pro-subscribe-btn");
   if (!btn) return;
 
-  var paddleConfig = null;
-
   // Load Paddle config from API
   fetch("/api/paddle/config").then(function(r){return r.json()}).then(function(cfg){
-    paddleConfig = cfg;
-
-    Paddle.Environment.set(cfg.sandbox ? "sandbox" : "production");
-    Paddle.Initialize({
-      token: cfg.client_token,
-      checkout: { settings: { displayMode: "overlay", variant: "one-page" } }
-    });
+    if (cfg.client_token) {
+      Paddle.Environment.set(cfg.sandbox ? "sandbox" : "production");
+      Paddle.Initialize({
+        token: cfg.client_token,
+        checkout: { settings: { displayMode: "overlay", variant: "one-page" } }
+      });
+    }
 
     btn.addEventListener("click", function(e){
       e.preventDefault();
-      if (!cfg.pro_price_id) {
+      if (!cfg.pro_price_id || !cfg.client_token) {
         alert("Payment is not configured yet. Please contact mohdibrahim@epilabs.org to subscribe.");
         return;
       }
