@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>EPI Labs Pricing | Evidence Infrastructure for AI Agents</title>
-<meta name="description" content="EPI Labs pricing: free open-source CLI forever, Pro $19/mo for hosted verify + API keys + remote SCITT, volume and support by contact. Ed25519 evidence for AI agents.">
+<meta name="description" content="EPI Labs pricing: Starter $10/mo, Pro $40/mo, Advanced $120/mo. Open source free forever. Hosted verify, API keys, remote SCITT.">
 <meta property="og:title" content="EPI Labs Pricing | Evidence Infrastructure for AI Agents">
-<meta property="og:description" content="Open source free forever. Pro for hosted verification scale. Volume and custom support by contact. No fake feature checklists.">
+<meta property="og:description" content="Starter $10/mo, Pro $40/mo, Advanced $120/mo. 7-day free trial on all plans. Cancel anytime.">
 <meta property="og:image" content="https://epilabs.org/assets/logo.png">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon.ico">
 <link rel="apple-touch-icon" href="favicon.ico">
-<link rel="stylesheet" href="css/epi.css?v=30">
+<link rel="stylesheet" href="css/epi.css?v=31">
 <style>
 .pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:28px;max-width:1200px;margin:0 auto;padding:0 24px}
 .pricing-card{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-str);padding:36px 28px;position:relative;transition:transform var(--ease) .2s,box-shadow var(--ease) .2s}
@@ -34,8 +34,18 @@
 .pricing-card .cta-btn.primary:hover{background:var(--accent-lt)}
 .pricing-card .cta-btn.secondary{background:transparent;color:var(--accent);border-color:var(--accent-line)}
 .pricing-card .cta-btn.secondary:hover{background:var(--accent-glow)}
+.pricing-card .price-placeholder{color:var(--ink-dim);font-size:1.4rem;font-weight:400}
+.pricing-card .price-loaded{color:var(--ink)}
 .honesty-banner{max-width:900px;margin:0 auto 48px;padding:20px 24px;background:var(--bg-alt);border:1px solid var(--border);border-radius:12px;font-size:.9rem;color:var(--ink-soft);line-height:1.55}
 .honesty-banner strong{color:var(--ink)}
+.billing-toggle{display:flex;justify-content:center;align-items:center;gap:12px;margin:0 auto 40px;max-width:400px}
+.billing-toggle span{font-size:.9rem;color:var(--ink-muted);font-weight:500}
+.billing-toggle span.active{color:var(--ink);font-weight:700}
+.billing-toggle button{position:relative;width:52px;height:28px;border-radius:14px;background:var(--accent);border:none;cursor:pointer;transition:background var(--ease) .2s}
+.billing-toggle button::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform var(--ease) .2s}
+.billing-toggle button.yearly{background:var(--ink-dim)}
+.billing-toggle button.yearly::after{transform:translateX(24px)}
+.trial-badge{display:inline-block;background:var(--verified-bg);color:var(--verified);font-size:.78rem;font-weight:600;padding:2px 10px;border-radius:10px;margin-left:6px}
 .compare-section{max-width:1200px;margin:100px auto 0;padding:0 24px;overflow-x:auto}
 .compare-section h2{text-align:center;font-size:1.8rem;color:var(--ink);margin-bottom:12px}
 .compare-section .compare-sub{text-align:center;color:var(--ink-muted);font-size:.9rem;margin:0 0 32px}
@@ -54,15 +64,9 @@
 .faq-item{margin-bottom:32px}
 .faq-item h4{font-size:1.05rem;color:var(--ink);margin:0 0 8px;font-weight:600}
 .faq-item p{color:var(--ink-soft);font-size:.92rem;line-height:1.6;margin:0}
-.pilot-banner{max-width:800px;margin:0 auto 80px;padding:40px;background:var(--accent-glow);border:1px solid var(--accent-line);border-radius:16px;text-align:center}
-.pilot-banner h3{color:var(--accent);font-size:1.3rem;margin:0 0 8px}
-.pilot-banner p{color:var(--ink-soft);margin:0 0 20px;font-size:.92rem}
-.pilot-banner a{display:inline-block;padding:14px 36px;background:var(--accent);color:#fff;border-radius:10px;text-decoration:none;font-weight:600;font-size:.95rem}
-.pilot-banner a:hover{background:var(--accent-lt)}
 </style>
 </head>
 <body>
-<!-- ═══ SITE NAV ═══ -->
 <nav id="nav">
   <div class="nav-inner">
     <a href="/" class="nav-logo"><img src="/assets/logo.png" alt="EPI Labs"></a>
@@ -104,66 +108,64 @@
 <div class="honesty-banner">
   <strong>What you pay for is what the product gates.</strong>
   Multi-signer Annex chains, Annex PDF reports, the public GitHub Action, local SCITT, and local role bindings ship free in the CLI.
-  Paid plans raise hosted verification limits, unlock remote SCITT registration, and add support — not a second product stack.
+  Paid plans raise hosted verification limits, unlock remote SCITT registration, and add support &mdash; not a second product stack.
+</div>
+
+<div class="billing-toggle">
+  <span id="label-monthly" class="active">Monthly</span>
+  <button id="billing-toggle-btn" onclick="toggleBilling()" aria-label="Toggle billing period"></button>
+  <span id="label-yearly">Yearly</span>
 </div>
 
 <section class="pricing-grid">
 
   <div class="pricing-card">
-    <h3>Open Source</h3>
-    <div class="price">$0</div>
-    <div class="price-sub">Free forever. MIT licensed. Runs fully offline.</div>
+    <h3>Starter</h3>
+    <div class="price" id="price-starter"><span class="price-placeholder">$10<small>/mo</small></span></div>
+    <div class="price-sub">Individuals getting started. 7-day free trial &middot; cancel anytime.</div>
     <ul class="features">
-      <li><span class="icon check">&#10003;</span> CLI &amp; Python SDK</li>
-      <li><span class="icon check">&#10003;</span> Browser viewer &amp; offline verify</li>
-      <li><span class="icon check">&#10003;</span> Ed25519 seal &amp; verification</li>
-      <li><span class="icon check">&#10003;</span> Local SCITT transparency</li>
-      <li><span class="icon check">&#10003;</span> Annex IV tooling (9 sections) + multi-sign</li>
-      <li><span class="icon check">&#10003;</span> Annex PDF / HTML reports via CLI</li>
-      <li><span class="icon check">&#10003;</span> Public GitHub Action (<code>verify-epi</code>)</li>
-      <li><span class="icon check">&#10003;</span> Integrations: LangChain, LangGraph, LiteLLM, OTel, pytest, AGT</li>
-      <li><span class="icon check">&#10003;</span> Local role bindings for Annex signers</li>
-      <li><span class="icon dash">&#8212;</span> Hosted verification at scale</li>
-      <li><span class="icon dash">&#8212;</span> Remote SCITT anchoring</li>
+      <li><span class="icon check">&#10003;</span> Everything in Open Source</li>
+      <li><span class="icon check">&#10003;</span> 10,000 online checks / month</li>
+      <li><span class="icon check">&#10003;</span> Sign in and check files in browser</li>
+      <li><span class="icon check">&#10003;</span> 1 CI / automation key</li>
+      <li><span class="icon dash">&#8212;</span> Remote SCITT</li>
       <li><span class="icon dash">&#8212;</span> Paid support</li>
     </ul>
-    <p class="note">Public hosted verify has a low free rate limit (abuse protection). Unlimited offline verify on your machine.</p>
-    <a href="https://github.com/mohdibrahimaiml/epi-recorder" class="cta-btn secondary">Star on GitHub</a>
+    <p class="note">Online checks count toward your monthly limit. Private check never counts. Offline: free forever.</p>
+    <button id="btn-starter" class="cta-btn primary" onclick="openCheckout('starter')">Subscribe &mdash; Starter</button>
   </div>
 
   <div class="pricing-card featured">
-    <div class="badge" style="background:var(--verified)">SELF-SERVE</div>
+    <div class="badge" style="background:var(--verified)">POPULAR</div>
     <h3>Pro</h3>
-    <div class="price">$19<small>/mo</small></div>
-    <div class="price-sub">Individuals shipping agents. Cancel anytime.</div>
+    <div class="price" id="price-pro"><span class="price-placeholder">$40<small>/mo</small></span></div>
+    <div class="price-sub">Practitioners shipping agents. 7-day free trial &middot; cancel anytime.</div>
     <ul class="features">
-      <li><span class="icon check">&#10003;</span> Everything in Open Source</li>
-      <li><span class="icon check">&#10003;</span> Online verification — 10,000 checks / month</li>
-      <li><span class="icon check">&#10003;</span> Sign in and check files in the browser (no key required)</li>
-      <li><span class="icon check">&#10003;</span> Optional CI keys (up to 10)</li>
+      <li><span class="icon check">&#10003;</span> Everything in Starter</li>
+      <li><span class="icon check">&#10003;</span> 10,000 online checks / month</li>
+      <li><span class="icon check">&#10003;</span> Up to 10 CI / automation keys</li>
       <li><span class="icon check">&#10003;</span> Remote transparency log (SCITT)</li>
       <li><span class="icon check">&#10003;</span> Founder email support</li>
     </ul>
-    <p class="note">Simple path: sign in → Verify a file. CI keys only if you automate.</p>
-    <a id="pro-subscribe-btn" href="/account" class="cta-btn primary">Get Pro — sign in</a>
+    <p class="note">Sign in &rarr; Full report (upload) counts toward your limit. Private check never counts. Use CI keys for scripts.</p>
+    <button id="btn-pro" class="cta-btn primary" onclick="openCheckout('pro')">Subscribe &mdash; Pro</button>
   </div>
 
   <div class="pricing-card">
     <div class="badge">VOLUME</div>
-    <h3>Team</h3>
-    <div class="price">$499<small>/mo</small></div>
-    <div class="price-sub">Higher volume for a group. Contact to enable.</div>
+    <h3>Advanced</h3>
+    <div class="price" id="price-advanced"><span class="price-placeholder">$120<small>/mo</small></span></div>
+    <div class="price-sub">Team-scale volume. 7-day free trial &middot; cancel anytime.</div>
     <ul class="features">
       <li><span class="icon check">&#10003;</span> Everything in Pro</li>
-      <li><span class="icon check">&#10003;</span> Online verification — 50,000 checks / month</li>
-      <li><span class="icon check">&#10003;</span> Up to 50 CI keys for automation</li>
+      <li><span class="icon check">&#10003;</span> 50,000 online checks / month</li>
+      <li><span class="icon check">&#10003;</span> Up to 50 CI / automation keys</li>
       <li><span class="icon check">&#10003;</span> Remote transparency log</li>
       <li><span class="icon check">&#10003;</span> Email support (target 48h)</li>
       <li><span class="icon check">&#10003;</span> Shared onboarding call</li>
-      <li><span class="icon dash">&#8212;</span> Multi-user seats / SSO (not built yet)</li>
     </ul>
-    <p class="note">Team = higher volume + support — not a seats product yet.</p>
-    <a href="mailto:mohdibrahim@epilabs.org?subject=Team%20plan%20inquiry" class="cta-btn primary">Contact for Team</a>
+    <p class="note">Higher volume for a group. Team plans carry the "Team / Advanced" badge in your account.</p>
+    <button id="btn-advanced" class="cta-btn primary" onclick="openCheckout('advanced')">Subscribe &mdash; Advanced</button>
   </div>
 
   <div class="pricing-card">
@@ -178,23 +180,14 @@
       <li><span class="icon star">&#10022;</span> Contractual SLA (negotiated in writing)</li>
       <li><span class="icon star">&#10022;</span> Custom integration / compliance consulting</li>
       <li><span class="icon star">&#10022;</span> Legal &amp; procurement support</li>
-      <li><span class="icon dash">&#8212;</span> SSO / SAML — roadmap, not shipped</li>
-      <li><span class="icon dash">&#8212;</span> Managed multi-tenant DID registry — roadmap</li>
-      <li><span class="icon dash">&#8212;</span> FDA / HIPAA / NIST adapter suite — roadmap</li>
     </ul>
-    <p class="note">Enterprise sells limits, support, and services — not a separate closed-source feature matrix. Roadmap items are labeled, not checkmarks.</p>
+    <p class="note">Enterprise sells limits, support, and services &mdash; not a separate closed-source feature matrix.</p>
     <a href="mailto:mohdibrahim@epilabs.org?subject=Enterprise%20Inquiry" class="cta-btn secondary">Contact us</a>
   </div>
 
 </section>
 
-<section class="pilot-banner" style="margin-top:64px">
-  <h3>14-day Pro pilot</h3>
-  <p>Pro-level hosted limits and an onboarding call. No credit card required. Same open-source tools you already have offline.</p>
-  <a href="mailto:mohdibrahim@epilabs.org?subject=Pro%20Pilot%20Program">Request pilot access</a>
-</section>
-
-<section class="compare-section">
+<section class="compare-section" style="margin-top:64px">
   <h2>Feature comparison</h2>
   <p class="compare-sub">Only rows that match shipped software or clearly labeled services.</p>
   <table class="compare-table">
@@ -202,25 +195,23 @@
       <tr>
         <th>Feature</th>
         <th>Open Source</th>
+        <th>Starter</th>
         <th>Pro</th>
-        <th>Team</th>
+        <th>Advanced</th>
         <th>Enterprise</th>
       </tr>
     </thead>
     <tbody>
-      <tr><td class="row-label">CLI / SDK / offline verify</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">Ed25519 seal &amp; verify</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">Local SCITT</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">Annex IV + multi-sign + CLI PDF</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">GitHub Action (public)</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">Local role bindings</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">Hosted verify quota</td><td>Low free cap</td><td>10,000 / mo</td><td>50,000 / mo</td><td>Custom</td></tr>
-      <tr><td class="row-label">API keys</td><td>1 (onboarding)</td><td>10</td><td>50</td><td>Custom</td></tr>
-      <tr><td class="row-label">Remote SCITT</td><td class="dash">&#8212;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">Hosted PDF API</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td></tr>
-      <tr><td class="row-label">Org seats / SSO</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td><td>Roadmap</td></tr>
-      <tr><td class="row-label">Support</td><td>Community</td><td>Email</td><td>Email 48h target</td><td>Dedicated</td></tr>
-      <tr><td class="row-label">Contractual SLA</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td><td>Negotiated</td></tr>
+      <tr><td class="row-label">CLI / SDK / offline verify</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+      <tr><td class="row-label">Ed25519 seal &amp; verify</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+      <tr><td class="row-label">Local SCITT</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+      <tr><td class="row-label">Annex IV + multi-sign + CLI PDF</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+      <tr><td class="row-label">GitHub Action (public)</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+      <tr><td class="row-label">Hosted verify quota</td><td>Low free cap</td><td>10,000 / mo</td><td>10,000 / mo</td><td>50,000 / mo</td><td>Custom</td></tr>
+      <tr><td class="row-label">API keys</td><td>1 (onboarding)</td><td>1</td><td>10</td><td>50</td><td>Custom</td></tr>
+      <tr><td class="row-label">Remote SCITT</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+      <tr><td class="row-label">Support</td><td>Community</td><td>Community</td><td>Email</td><td>Email 48h target</td><td>Dedicated</td></tr>
+      <tr><td class="row-label">Contractual SLA</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td><td>Negotiated</td></tr>
     </tbody>
   </table>
 </section>
@@ -229,31 +220,27 @@
   <h2>Frequently asked questions</h2>
   <div class="faq-item">
     <h4>Can I use the open source version in production?</h4>
-    <p>Yes. EPI Recorder is MIT licensed. You can run it in production, modify it, and distribute it. The CLI seals, verifies, multi-signs Annex sections, and can emit Annex PDF reports offline. Paid tiers add hosted verification scale, remote SCITT, API keys, and support — not a different evidence format.</p>
+    <p>Yes. EPI Recorder is MIT licensed. The CLI seals, verifies, multi-signs Annex sections, and can emit Annex PDF reports offline. Paid tiers add hosted verification scale, remote SCITT, API keys, and support &mdash; not a different evidence format.</p>
+  </div>
+  <div class="faq-item">
+    <h4>What does Starter give me that Open Source doesn't?</h4>
+    <p>Starter is for individuals who want hosted online verification (10,000 checks/month) without running infrastructure. Sign in, upload a .epi file, get a full report. Everything the CLI can do locally remains free forever. Starter does not include remote SCITT or paid support.</p>
   </div>
   <div class="faq-item">
     <h4>What do I actually get if I pay for Pro?</h4>
-    <p>A higher monthly hosted verification quota (10,000 with an API key), more API keys, access to remote SCITT registration when the service is live, and founder email support. Everything for recording and verifying .epi files offline remains free.</p>
+    <p>10,000 hosted checks/month, up to 10 API keys, remote SCITT registration, and founder email support. Starter is a lower-cost entry point without SCITT or support. Advanced is for teams that need 50,000 checks/month and 50 keys.</p>
   </div>
   <div class="faq-item">
-    <h4>How does the pilot program work?</h4>
-    <p>We enable Pro-level hosted access for about 14 days and schedule an onboarding call: signing keys, first sealed artifact, verify path. No credit card. Afterward you can stay on Open Source, subscribe to Pro, discuss Team volume, or talk Enterprise services.</p>
+    <h4>What happens during the 7-day free trial?</h4>
+    <p>You get full access to the plan you selected. No charges for the first 7 days. Cancel anytime before the trial ends and you won't be billed. Your plan downgrades to Free at trial end if you don't subscribe.</p>
   </div>
   <div class="faq-item">
     <h4>Do I need a paid tier for EU AI Act Annex IV technical artifacts?</h4>
-    <p>No. The open-source CLI produces Annex IV artifacts with signatures, hash chains, multi-signer approvals, and optional local SCITT receipts. That is technical evidence tooling — not legal advice or a notified-body certification. Paid tiers help when you want hosted scale and support, not because Annex is locked behind a paywall.</p>
+    <p>No. The open-source CLI produces Annex IV artifacts with signatures, hash chains, multi-signer approvals, and optional local SCITT receipts. That is technical evidence tooling &mdash; not legal advice or a notified-body certification.</p>
   </div>
   <div class="faq-item">
-    <h4>Why is multi-sign / CI / PDF free if older pages said otherwise?</h4>
-    <p>Those capabilities ship in the open-source CLI and GitHub Action. We stopped listing them as paid differentiators. Hosted PDF generation over the API is not implemented; use <code>epi annex report --format pdf</code>.</p>
-  </div>
-  <div class="faq-item">
-    <h4>Is EPI SOC 2 or ISO 27001 certified?</h4>
-    <p>The CLI and verification tools run in your infrastructure. We are not claiming SOC 2 / ISO certification for a hosted control plane today. Any future certification would apply to operated services under a written program — not to the offline tools themselves.</p>
-  </div>
-  <div class="faq-item">
-    <h4>What about SSO, managed DID registries, and regulatory adapters?</h4>
-    <p>They are roadmap / consulting topics, not shipped SaaS features. Enterprise customers can fund custom work; we will not list them as product checkmarks until they exist.</p>
+    <h4>How do I cancel?</h4>
+    <p>Cancel anytime from your account page or by contacting support. You'll keep access until the end of your billing period.</p>
   </div>
 </section>
 
@@ -264,8 +251,8 @@
     <a href="/how-it-works" style="color:var(--accent)">Docs</a> &middot;
     <a href="/verify/" style="color:var(--accent)">Verify</a> &middot;
     <a href="/pricing" style="color:var(--accent)">Pricing</a> &middot;
-    <a href="/enterprise" style="color:var(--accent)">Enterprise</a> &middot;<a href="https://github.com/mohdibrahimaiml/epi-recorder" style="color:var(--accent)">GitHub</a> &middot;
-    <a href="https://pypi.org/project/epi-recorder/" style="color:var(--accent)">PyPI</a> &middot;
+    <a href="/enterprise" style="color:var(--accent)">Enterprise</a> &middot;
+    <a href="https://github.com/mohdibrahimaiml/epi-recorder" style="color:var(--accent)">GitHub</a> &middot;
     <a href="/terms" style="color:var(--accent)">Terms</a> &middot;
     <a href="/privacy" style="color:var(--accent)">Privacy</a> &middot;
     <a href="mailto:mohdibrahim@epilabs.org" style="color:var(--accent)">Contact</a>
@@ -278,35 +265,118 @@
 <script src="/js/nav.js"></script>
 <script>
 (function(){
-  var btn = document.getElementById("pro-subscribe-btn");
-  if (!btn) return;
+  var cfg = null;
+  var isYearly = false;
+  var paddleReady = false;
 
-  // Load Paddle config from API
-  fetch("/api/paddle/config").then(function(r){return r.json()}).then(function(cfg){
-    if (!cfg.pro_price_id || !cfg.client_token) {
-      // Payments not live — keep simple: sign in / contact
-      btn.href = "/account";
-      btn.textContent = "Get Pro — sign in";
+  function priceIdFor(tier) {
+    if (!cfg || !cfg.tiers || !cfg.tiers[tier]) return null;
+    return isYearly ? cfg.tiers[tier].year : cfg.tiers[tier].month;
+  }
+
+  function loadPrices() {
+    if (!cfg || !paddleReady) return;
+    if (typeof Paddle === "undefined") return;
+
+    var tiers = ["starter", "pro", "advanced"];
+    tiers.forEach(function(tier) {
+      var priceId = priceIdFor(tier);
+      if (!priceId) return;
+      var el = document.getElementById("price-" + tier);
+      if (!el) return;
+      Paddle.PricePreview({
+        items: [{ priceId: priceId, quantity: 1 }],
+        customerIPAddress: null
+      }).then(function(result) {
+        if (result && result.data && result.data.details && result.data.details.lineItems && result.data.details.lineItems.length > 0) {
+          var li = result.data.details.lineItems[0];
+          var total = li.formattedTotals ? li.formattedTotals.total : null;
+          if (total) {
+            var label = isYearly ? "/yr" : "/mo";
+            el.innerHTML = '<span class="price-loaded">' + total + '<small>' + label + '</small></span>';
+          }
+        }
+      }).catch(function(e) {
+        // PricePreview failed, leave placeholder
+      });
+    });
+  }
+
+  window.toggleBilling = function() {
+    isYearly = !isYearly;
+    var btn = document.getElementById("billing-toggle-btn");
+    var mo = document.getElementById("label-monthly");
+    var yr = document.getElementById("label-yearly");
+    if (isYearly) {
+      btn.className = "yearly";
+      mo.className = "";
+      yr.className = "active";
+    } else {
+      btn.className = "";
+      mo.className = "active";
+      yr.className = "";
+    }
+    // Reset all prices to placeholder while reloading
+    document.getElementById("price-starter").innerHTML = '<span class="price-placeholder">$' + (isYearly ? '100' : '10') + '<small>' + (isYearly ? '/yr' : '/mo') + '</small></span>';
+    document.getElementById("price-pro").innerHTML = '<span class="price-placeholder">$' + (isYearly ? '400' : '40') + '<small>' + (isYearly ? '/yr' : '/mo') + '</small></span>';
+    document.getElementById("price-advanced").innerHTML = '<span class="price-placeholder">$' + (isYearly ? '1200' : '120') + '<small>' + (isYearly ? '/yr' : '/mo') + '</small></span>';
+    loadPrices();
+  };
+
+  window.openCheckout = function(tier) {
+    if (!cfg || !cfg.client_token) {
+      window.location.href = "/account";
       return;
     }
-    btn.textContent = "Subscribe for $19/mo";
-    btn.href = "#";
+    var priceId = priceIdFor(tier);
+    if (!priceId) {
+      window.location.href = "/account";
+      return;
+    }
+    if (typeof Paddle === "undefined") {
+      window.location.href = "/account";
+      return;
+    }
+    var user = null;
+    try {
+      var raw = localStorage.getItem("epi_user");
+      if (raw) user = JSON.parse(raw);
+    } catch (e) {}
+    var checkoutOptions = {
+      items: [{ priceId: priceId, quantity: 1 }],
+      settings: { displayMode: "overlay", variant: "one-page", successUrl: window.location.origin + "/welcome" }
+    };
+    if (user && user.email) {
+      checkoutOptions.customer = { email: user.email };
+    }
+    Paddle.Checkout.open(checkoutOptions);
+  };
+
+  // Load paddle config from API, then init Paddle.js and load preview prices
+  fetch("/api/paddle/config").then(function(r){return r.json()}).then(function(c){
+    cfg = c;
+    if (!cfg.client_token || !cfg.environment) {
+      // Payments not live &mdash; buttons redirect to sign in
+      ["btn-starter", "btn-pro", "btn-advanced"].forEach(function(id) {
+        var b = document.getElementById(id);
+        if (b) {
+          b.textContent = "Sign in to get started";
+          b.onclick = function(){ window.location.href = "/account"; };
+        }
+      });
+      return;
+    }
     if (typeof Paddle !== "undefined") {
-      Paddle.Environment.set(cfg.sandbox ? "sandbox" : "production");
+      Paddle.Environment.set(cfg.environment);
       Paddle.Initialize({
         token: cfg.client_token,
         checkout: { settings: { displayMode: "overlay", variant: "one-page" } }
       });
+      paddleReady = true;
+      loadPrices();
     }
-    btn.addEventListener("click", function(e){
-      e.preventDefault();
-      Paddle.Checkout.open({
-        items: [{ priceId: cfg.pro_price_id, quantity: 1 }]
-      });
-    });
   }).catch(function(){
-    btn.href = "/account";
-    btn.textContent = "Get Pro — sign in";
+    // Config fetch failed, keep buttons as sign-in redirects
   });
 })();
 </script>

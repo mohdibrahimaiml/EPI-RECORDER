@@ -1,7 +1,7 @@
 """EPI billing module — Paddle webhook, plan helpers.
 
-Plans live in the same auth.db as users (see verify_portal.auth) so Pro / Team
-(Advanced) / Enterprise upgrades apply to the logged-in GitHub identity.
+Plans live in the same auth.db as users (see verify_portal.auth) so Starter / Pro
+/ Advanced / Enterprise upgrades apply to the logged-in GitHub identity.
 """
 from __future__ import annotations
 
@@ -39,7 +39,16 @@ PADDLE_SANDBOX = os.getenv("PADDLE_SANDBOX", "false").lower() == "true"
 PADDLE_VENDOR_ID = os.getenv("PADDLE_VENDOR_ID", "")
 PADDLE_VENDOR_AUTH_CODE = os.getenv("PADDLE_VENDOR_AUTH_CODE", "")
 
+PADDLE_ENV = os.getenv("PADDLE_ENV", "sandbox").lower()
+if PADDLE_ENV not in ("sandbox", "live", "production"):
+    raise RuntimeError(f"PADDLE_ENV must be sandbox or live, got: {PADDLE_ENV}")
+
+PADDLE_STARTER_PRICE_ID_MONTHLY = os.getenv("PADDLE_STARTER_PRICE_ID_MONTHLY", "")
+PADDLE_STARTER_PRICE_ID_YEARLY = os.getenv("PADDLE_STARTER_PRICE_ID_YEARLY", "")
 PADDLE_PRO_PRICE_ID = os.getenv("PADDLE_PRO_PRICE_ID", "")
+PADDLE_PRO_PRICE_ID_YEARLY = os.getenv("PADDLE_PRO_PRICE_ID_YEARLY", "")
+PADDLE_ADVANCED_PRICE_ID = os.getenv("PADDLE_ADVANCED_PRICE_ID", "")
+PADDLE_ADVANCED_PRICE_ID_YEARLY = os.getenv("PADDLE_ADVANCED_PRICE_ID_YEARLY", "")
 PADDLE_TEAM_PRICE_ID = os.getenv("PADDLE_TEAM_PRICE_ID", "") or os.getenv("PADDLE_ADVANCED_PRICE_ID", "")
 PADDLE_ENTERPRISE_PRICE_ID = os.getenv("PADDLE_ENTERPRISE_PRICE_ID", "")
 
@@ -65,12 +74,14 @@ def set_user_plan_by_customer_id(storage_dir, cid, *, plan):
 
 def _plan_from_price_id(price_id: str) -> str:
     if not price_id:
-        return "pro"
+        return "starter"
+    if PADDLE_STARTER_PRICE_ID_MONTHLY and price_id in (PADDLE_STARTER_PRICE_ID_MONTHLY, PADDLE_STARTER_PRICE_ID_YEARLY):
+        return "starter"
     if PADDLE_ENTERPRISE_PRICE_ID and price_id == PADDLE_ENTERPRISE_PRICE_ID:
         return "enterprise"
-    if PADDLE_TEAM_PRICE_ID and price_id == PADDLE_TEAM_PRICE_ID:
+    if PADDLE_ADVANCED_PRICE_ID and price_id in (PADDLE_ADVANCED_PRICE_ID, PADDLE_ADVANCED_PRICE_ID_YEARLY):
         return "team"
-    if PADDLE_PRO_PRICE_ID and price_id == PADDLE_PRO_PRICE_ID:
+    if PADDLE_PRO_PRICE_ID and price_id in (PADDLE_PRO_PRICE_ID, PADDLE_PRO_PRICE_ID_YEARLY):
         return "pro"
     # Fallback: name heuristics
     low = price_id.lower()
@@ -92,15 +103,28 @@ def _extract_price_id(event_data: dict) -> str:
 
 
 @router.get("/api/paddle/config")
-async def get_paddle_config():
+async def get_paddle_config(request: Request):
     """Return client-side Paddle configuration."""
+    country = request.headers.get("cf-ipcountry") or request.headers.get("x-vercel-ip-country")
     return {
         "client_token": PADDLE_CLIENT_TOKEN,
-        "pro_price_id": PADDLE_PRO_PRICE_ID,
-        "team_price_id": PADDLE_TEAM_PRICE_ID,
-        "advanced_price_id": PADDLE_TEAM_PRICE_ID,
+        "environment": "sandbox" if PADDLE_SANDBOX else "production",
+        "country": country,
+        "tiers": {
+            "starter": {
+                "month": PADDLE_STARTER_PRICE_ID_MONTHLY,
+                "year": PADDLE_STARTER_PRICE_ID_YEARLY,
+            },
+            "pro": {
+                "month": PADDLE_PRO_PRICE_ID,
+                "year": PADDLE_PRO_PRICE_ID_YEARLY,
+            },
+            "advanced": {
+                "month": PADDLE_ADVANCED_PRICE_ID,
+                "year": PADDLE_ADVANCED_PRICE_ID_YEARLY,
+            },
+        },
         "enterprise_price_id": PADDLE_ENTERPRISE_PRICE_ID,
-        "sandbox": PADDLE_SANDBOX,
     }
 
 
