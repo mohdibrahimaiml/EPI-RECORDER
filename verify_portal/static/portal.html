@@ -276,20 +276,39 @@ function resetPage(){
   dropzone.scrollIntoView({behavior:'smooth'});
 }
 
+function apiBase(){
+  var h=(location&&location.hostname)||'';
+  // Same-origin on epilabs.org / pages.dev (Cloudflare proxies /api)
+  if(h==='epilabs.org'||h==='www.epilabs.org'||h.endsWith('.pages.dev')) return '';
+  if(h==='localhost'||h==='127.0.0.1') return '';
+  return 'https://epi-verify-portal.onrender.com';
+}
+function authHeaders(){
+  var h={};
+  try{
+    var t=localStorage.getItem('epi_token')||'';
+    if(t) h['Authorization']='Bearer '+t;
+  }catch(e){}
+  return h;
+}
 async function handleFile(file){
-  if(!file.name.endsWith('.epi')){showError('Please upload a .epi file.','If your file has a different extension, it may not be a valid EPI artifact.');return}
-  if(file.size>50*1024*1024){showError('File too large. Maximum size is 50 MB.','Large artifacts can be split or compressed before verification.');return}
+  if(!file.name.endsWith('.epi')){showError('Please choose a .epi evidence file.','');return}
+  if(file.size>50*1024*1024){showError('File too large (max 50 MB).','');return}
   hideAll();loading.classList.add('active');progressFill.style.width='30%';
   var fd=new FormData();fd.append('file',file);fd.append('aiuc1','true');
   try{
     progressFill.style.width='60%';
-    var apiBase=location.hostname==='epilabs.org'?'https://epi-verify-portal.onrender.com':'';
-    var res=await fetch(apiBase+'/api/verify',{method:'POST',body:fd});
+    var res=await fetch(apiBase()+'/api/verify',{
+      method:'POST',
+      body:fd,
+      credentials:'include',
+      headers:authHeaders()
+    });
     progressFill.style.width='90%';
-    var data=await res.json();
+    var data=await res.json().catch(function(){return {};});
     if(!res.ok){handleServerError(res.status,data);return}
     showResults(data);
-  }catch(err){showError('Network error: '+err.message,'Please check your connection and try again.')}
+  }catch(err){showError('Could not reach the server. Wait a moment and try again.','')}
   finally{loading.classList.remove('active');progressFill.style.width='0%'}
 }
 
@@ -303,10 +322,10 @@ function showError(msg,hint){
 }
 
 function handleServerError(st,data){
-  var title='Verification Failed',msg=data.detail||'Unknown error.',hint='';
-  if(st===429){title='Rate Limit Reached';msg='Free verifications used for today.';hint='Contact EPI Labs for unlimited institutional access.'}
-  else if(st===413){title='File Too Large';msg=data.detail||'Exceeds size limit.'}
-  else if(st===400){title='Invalid File'}
+  var title='Could not verify',msg=(data&&data.detail)||'Something went wrong.',hint='';
+  if(st===429){title='Limit reached';msg=(data&&data.detail)||'Monthly or free limit reached.';hint='Sign in at /account for a higher plan, or run: epi verify offline.';}
+  else if(st===413){title='File too large';msg=(data&&data.detail)||'Max 50 MB.';}
+  else if(st===400){title='Invalid file';
   else if(st>=500){title='Server Error';msg='Something went wrong on our end.';hint='Please try again in a few minutes.'}
   errorTitle.textContent=title;errorMessage.textContent=msg;errorHint.textContent=hint;errorSection.classList.add('active')
 }
