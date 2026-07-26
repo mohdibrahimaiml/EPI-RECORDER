@@ -96,35 +96,47 @@
 
   <div id="state-account" style="display:none">
     <h1 id="acct-name">Your Account</h1>
-    <p class="subtitle">Manage your subscription, API keys, and settings.</p>
+    <p class="subtitle">Check evidence online. Keep it simple.</p>
 
     <div class="acct-card">
-      <h3>Plan</h3>
-      <div style="display:flex;align-items:center;gap:12px">
+      <h3>Your plan</h3>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <span id="plan-badge" class="plan-badge free">Free</span>
         <a href="/pricing" class="acct-btn secondary" id="upgrade-link">Upgrade</a>
+      </div>
+      <p id="usage-line" style="color:var(--ink-soft);font-size:.92rem;margin:14px 0 0;line-height:1.5">Loading usage…</p>
+      <p id="plan-plain" style="color:var(--ink-muted);font-size:.85rem;margin:8px 0 0;line-height:1.5"></p>
+      <div class="acct-row" style="margin-top:18px">
+        <a href="/verify/" class="acct-btn primary">Verify a file</a>
+        <a href="/enterprise" class="acct-btn secondary">Enterprise kit</a>
       </div>
       <div id="plan-features" style="margin-top:16px;display:none"></div>
     </div>
 
     <div class="acct-card">
-      <h3>API Key</h3>
-      <p style="color:var(--ink-soft);font-size:.88rem;margin-bottom:8px">Use this key with the EPI CLI and API for hosted verification and SCITT anchoring.</p>
-      <div class="apikey-box" id="apikey-section" style="display:none">
-        <span id="apikey-value">—</span>
-        <button onclick="copyApiKey()">Copy</button>
-      </div>
-      <div id="no-apikey" style="margin-top:12px">
-        <p style="color:var(--ink-muted);font-size:.88rem;margin-bottom:8px">No API key generated yet.</p>
-        <button class="acct-btn primary" onclick="createApiKey()">Generate API Key</button>
+      <h3 style="cursor:pointer;user-select:none" id="advanced-toggle" onclick="toggleAdvanced()">
+        Advanced — CI / automation key <span style="font-weight:400;color:var(--ink-muted);font-size:.8rem" id="advanced-chevron">▸ show</span>
+      </h3>
+      <div id="advanced-body" style="display:none;margin-top:12px">
+        <p style="color:var(--ink-soft);font-size:.88rem;margin:0 0 10px;line-height:1.5">
+          Only needed for scripts and CI. You can verify files in the browser while signed in — no key required for Pro / Team / Enterprise.
+        </p>
+        <div class="apikey-box" id="apikey-section" style="display:none">
+          <span id="apikey-value">—</span>
+          <button type="button" onclick="copyApiKey()">Copy</button>
+        </div>
+        <div id="no-apikey" style="margin-top:12px">
+          <button type="button" class="acct-btn secondary" onclick="createApiKey()">Create CI key</button>
+        </div>
+        <pre id="ci-example" style="display:none;margin-top:12px;padding:12px 14px;background:var(--bg-dark);border-radius:8px;font-size:.75rem;color:#C8CDD5;overflow:auto;white-space:pre-wrap"></pre>
       </div>
     </div>
 
     <div class="acct-card">
-      <h3>Account</h3>
+      <h3>Signed in</h3>
       <div id="acct-email" style="margin-bottom:8px;color:var(--ink-soft)"></div>
       <div id="acct-org" style="margin-bottom:12px;color:var(--ink-dim);font-size:.85rem"></div>
-      <button class="acct-btn danger" onclick="logout()">Sign Out</button>
+      <button type="button" class="acct-btn danger" onclick="logout()">Sign Out</button>
     </div>
 
     <div class="error-msg" id="error-msg"></div>
@@ -357,6 +369,15 @@ function showError(msg) {
   showState('error');
 }
 
+function toggleAdvanced() {
+  var body = document.getElementById('advanced-body');
+  var chev = document.getElementById('advanced-chevron');
+  if (!body) return;
+  var open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if (chev) chev.textContent = open ? '▸ show' : '▾ hide';
+}
+
 async function loadPlan() {
   var plan = normalizePlan(userData && userData.plan);
   var badge = document.getElementById('plan-badge');
@@ -369,12 +390,21 @@ async function loadPlan() {
     if (plan === 'enterprise') {
       up.style.display = 'none';
     } else if (plan === 'pro' || plan === 'team') {
-      up.textContent = 'Manage plan';
+      up.textContent = 'Plans';
       up.style.display = 'inline-block';
     } else {
       up.textContent = 'Upgrade';
       up.style.display = 'inline-block';
     }
+  }
+
+  var plain = document.getElementById('plan-plain');
+  var usageEl = document.getElementById('usage-line');
+  if (plain) {
+    if (plan === 'enterprise') plain.textContent = 'Online checks included. Drop a file on Verify — no API key needed in the browser.';
+    else if (plan === 'team') plain.textContent = 'Team volume plan: higher online check limit. Share a CI key only if you automate.';
+    else if (plan === 'pro') plain.textContent = 'Pro: online checks included. Use Verify while signed in — no key required.';
+    else plain.textContent = 'Free: limited online checks. Upgrade for more, or run epi verify offline forever.';
   }
 
   try {
@@ -385,30 +415,15 @@ async function loadPlan() {
     if (!r.ok) return;
     var f = await r.json();
     var feat = f.features || {};
-    var verifs = feat.verifications == null ? 'Unlimited' : (Number(feat.verifications).toLocaleString() + '/mo');
-    var usage = f.usage || null;
-    var usedLine = verifs;
-    if (usage && typeof usage.used === 'number') {
-      var lim = usage.limit == null ? '∞' : Number(usage.limit).toLocaleString();
-      usedLine = usage.used.toLocaleString() + ' used / ' + lim + ' limit this month';
+    var lim = feat.verifications == null ? '∞' : Number(feat.verifications).toLocaleString();
+    var used = 0;
+    if (f.usage && typeof f.usage.used === 'number') used = f.usage.used;
+    if (usageEl) {
+      usageEl.textContent = 'Online checks this month: ' + used.toLocaleString() + ' used · ' + lim + ' included';
     }
-    var list_items = [
-      { k: 'Plan', v: planLabel(f.plan || plan) },
-      { k: 'Hosted verifications', v: usedLine },
-      { k: 'SCITT remote anchoring', v: feat.scitt ? 'Enabled (API key or signed-in Pro+)' : '— (Pro+)' },
-      { k: 'Annex PDF', v: 'CLI free (epi annex report --format pdf)' },
-      { k: 'API keys', v: feat.api_keys ? ('Up to ' + (feat.api_key_limit == null ? 'custom' : feat.api_key_limit)) : '—' },
-      { k: 'Support', v: feat.support || 'Community' },
-    ];
-    var html = '<ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">';
-    for (var i = 0; i < list_items.length; i++) {
-      var item = list_items[i];
-      html += '<li style="display:flex;justify-content:space-between;font-size:.82rem;padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--ink-soft)">' + item.k + '</span><span style="color:var(--ink);font-weight:500">' + item.v + '</span></li>';
-    }
-    html += '</ul>';
-    var el = document.getElementById('plan-features');
-    if (el) { el.innerHTML = html; el.style.display = 'block'; }
-  } catch (e) {}
+  } catch (e) {
+    if (usageEl) usageEl.textContent = 'Usage will appear after the first online check.';
+  }
 }
 
 async function loadApiKeys() {
@@ -421,15 +436,20 @@ async function loadApiKeys() {
     if (!r.ok) throw new Error('fail');
     var data = await r.json();
     var keys = data.keys || [];
+    var ex = document.getElementById('ci-example');
     if (keys.length > 0) {
-      // Server only returns hashes after create; keep lastPlainApiKey if we just created one
       var display = lastPlainApiKey || (keys[0].key_hash || '••••••••');
       document.getElementById('apikey-section').style.display = 'flex';
       document.getElementById('apikey-value').textContent = display;
       document.getElementById('no-apikey').style.display = 'none';
+      if (ex && lastPlainApiKey) {
+        ex.style.display = 'block';
+        ex.textContent = 'curl -X POST https://epilabs.org/api/verify \\\n  -H "X-API-Key: ' + lastPlainApiKey + '" \\\n  -F "file=@run.epi"';
+      }
     } else {
       document.getElementById('no-apikey').style.display = 'block';
       document.getElementById('apikey-section').style.display = 'none';
+      if (ex) ex.style.display = 'none';
     }
   } catch (e) {
     document.getElementById('no-apikey').style.display = 'block';

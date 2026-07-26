@@ -31,6 +31,7 @@ def _write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+@enterprise_app.command("setup")
 @enterprise_app.command("bootstrap")
 def bootstrap(
     out: Path = typer.Option(
@@ -229,12 +230,17 @@ set EPI_NOTARIZE=0
     _write(out / "README.md", readme)
     console.print(f"[green]✓[/green] README: {out / 'README.md'}")
     console.print(
-        f"\n[bold green]Enterprise kit ready:[/bold green] {out}\n"
-        f"[dim]Next: seal with [cyan]{key_name}[/cyan], import bundle in CI, "
-        f"[cyan]epi enterprise kit <file.epi>[/cyan] for auditors.[/dim]\n"
+        f"\n[bold green]Done. Your company kit is ready:[/bold green] {out}\n\n"
+        f"[bold]Next 3 steps[/bold]\n"
+        f"  1. Record an agent run into a .epi file\n"
+        f"  2. [cyan]epi enterprise pack your-run.epi[/cyan]\n"
+        f"  3. Send [cyan]auditor-pack.zip[/cyan] to your auditor\n\n"
+        f"[dim]Key: {key_name} · Never commit private keys · "
+        f"Share only org-trust-bundle.zip with CI[/dim]\n"
     )
 
 
+@enterprise_app.command("pack")
 @enterprise_app.command("kit")
 def kit(
     artifact: Path = typer.Argument(..., exists=True, help="Path to sealed .epi file"),
@@ -352,9 +358,9 @@ def capabilities():
   • Cloud SSO/SAML · multi-tenant SaaS seats · FDA/HIPAA adapter suite
   • Managed multi-tenant DID registry · hosted PDF API (use CLI)
 
-Commands:
-  epi enterprise bootstrap
-  epi enterprise kit <file.epi>
+Commands (simple path):
+  epi enterprise setup
+  epi enterprise pack <file.epi>
   epi enterprise capabilities
 """
     )

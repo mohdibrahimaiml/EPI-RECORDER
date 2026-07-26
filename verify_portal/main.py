@@ -591,21 +591,23 @@ async def verify(
         client_ip = client_ip.split(",")[0].strip()
     else:
         client_ip = request.client.host if request.client else "unknown"
-    # API key: monthly plan quota from tier_gating. No key: free IP day-cap.
+    # Quotas (simplest path first):
+    # 1) API key → monthly plan limit
+    # 2) Signed-in session (Pro/Team/Enterprise) → monthly plan limit by user
+    # 3) Anonymous → free IP day-cap
     key_rec = _load_api_key_record(request)
     if key_rec:
         tier = key_rec["tier"]
         limit = get_rate_limit(tier)  # None = unlimited
         if not _increment_and_check_usage(key_rec["key_hash"], limit=limit):
-            cap_txt = "unlimited" if limit is None else f"{limit:,}"
+            cap_txt = "∞" if limit is None else f"{limit:,}"
             raise HTTPException(
                 status_code=429,
                 detail=(
-                    f"Monthly hosted verification limit reached ({cap_txt}). "
-                    f"Plan={tier}. Upgrade at /pricing or wait until next month."
+                    f"Monthly verification limit reached ({cap_txt}). "
+                    "Upgrade at /pricing or try again next month."
                 ),
             )
-        # touch last_used
         try:
             db = _init_api_keys_store()
             db.execute(
@@ -615,11 +617,39 @@ async def verify(
             db.commit()
         except Exception:
             pass
-    elif not _check_rate_limit(client_ip):
-        raise HTTPException(
-            status_code=429,
-            detail="Rate limit exceeded. Sign in, create an API key, and upgrade at /pricing for higher limits.",
-        )
+    else:
+        storage_dir = Path(os.environ.get("EPI_STORAGE_DIR", "./data"))
+        token = auth_module.extract_token(request)
+        user = auth_module.verify_token(storage_dir, token) if token else None
+        if user:
+            init_billing_columns(storage_dir)
+            plan = auth_module.normalize_plan(get_user_plan(storage_dir, user["id"]))
+            from verify_portal.tier_gating import PLAN_RANK
+
+            if PLAN_RANK.get(plan, 0) >= PLAN_RANK.get("pro", 1):
+                limit = get_rate_limit(plan)
+                user_bucket = "user:" + hashlib.sha256(
+                    str(user["id"]).encode()
+                ).hexdigest()
+                if not _increment_and_check_usage(user_bucket, limit=limit):
+                    cap_txt = "∞" if limit is None else f"{limit:,}"
+                    raise HTTPException(
+                        status_code=429,
+                        detail=(
+                            f"Monthly verification limit reached ({cap_txt}). "
+                            "Upgrade at /pricing or try again next month."
+                        ),
+                    )
+            elif not _check_rate_limit(client_ip):
+                raise HTTPException(
+                    status_code=429,
+                    detail="Free limit reached. Upgrade at /pricing for more online checks.",
+                )
+        elif not _check_rate_limit(client_ip):
+            raise HTTPException(
+                status_code=429,
+                detail="Free limit reached. Sign in at /account, or run: epi verify offline.",
+            )
 
     # Validate file extension
     if not file.filename or not file.filename.endswith(".epi"):
@@ -905,7 +935,7 @@ async def plan_features(request: Request):
             "key_tier": key_rec["tier"],
         }
     else:
-        # Sum usage across user's keys when session-authenticated
+        # Sum usage across user's keys + browser (session) bucket
         storage_dir = Path(os.environ.get("EPI_STORAGE_DIR", "./data"))
         token = auth_module.extract_token(request)
         user = auth_module.verify_token(storage_dir, token) if token else None
@@ -915,7 +945,10 @@ async def plan_features(request: Request):
                 "SELECT key_hash FROM api_keys WHERE active = 1 AND user_id = ?",
                 (user["id"],),
             ).fetchall()
-            used = sum(_get_usage_count(r["key_hash"]) for r in rows)
+            user_bucket = "user:" + hashlib.sha256(str(user["id"]).encode()).hexdigest()
+            used = sum(_get_usage_count(r["key_hash"]) for r in rows) + _get_usage_count(
+                user_bucket
+            )
             usage = {"used": used, "limit": get_rate_limit(plan), "keys": len(rows)}
     return {
         "plan": plan,
@@ -950,11 +983,14 @@ async def usage_summary(request: Request):
         }
         for r in rows
     ]
-    total = sum(k["used"] for k in per_key)
+    user_bucket = "user:" + hashlib.sha256(str(user["id"]).encode()).hexdigest()
+    session_used = _get_usage_count(user_bucket)
+    total = sum(k["used"] for k in per_key) + session_used
     return {
         "plan": plan,
         "limit": limit,
         "used": total,
+        "session_used": session_used,
         "keys": per_key,
         "scitt": bool(features_for_plan_safe(plan).get("scitt")),
     }

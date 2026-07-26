@@ -138,30 +138,31 @@
     <div class="price-sub">Individuals shipping agents. Cancel anytime.</div>
     <ul class="features">
       <li><span class="icon check">&#10003;</span> Everything in Open Source</li>
-      <li><span class="icon check">&#10003;</span> Hosted verification — 10,000 checks / month (API key)</li>
-      <li><span class="icon check">&#10003;</span> Up to 10 API keys</li>
-      <li><span class="icon check">&#10003;</span> Remote SCITT registration (hosted log)</li>
+      <li><span class="icon check">&#10003;</span> Online verification — 10,000 checks / month</li>
+      <li><span class="icon check">&#10003;</span> Sign in and check files in the browser (no key required)</li>
+      <li><span class="icon check">&#10003;</span> Optional CI keys (up to 10)</li>
+      <li><span class="icon check">&#10003;</span> Remote transparency log (SCITT)</li>
       <li><span class="icon check">&#10003;</span> Founder email support</li>
     </ul>
-    <p class="note">Use an API key for the 10K quota. Remote SCITT requires the hosted service to be configured in production.</p>
-    <a id="pro-subscribe-btn" href="#" class="cta-btn primary">Subscribe for $19/mo</a>
+    <p class="note">Simple path: sign in → Verify a file. CI keys only if you automate.</p>
+    <a id="pro-subscribe-btn" href="/account" class="cta-btn primary">Get Pro — sign in</a>
   </div>
 
   <div class="pricing-card">
     <div class="badge">VOLUME</div>
     <h3>Team</h3>
     <div class="price">$499<small>/mo</small></div>
-    <div class="price-sub">Higher hosted limits + support. Contact to enable.</div>
+    <div class="price-sub">Higher volume for a group. Contact to enable.</div>
     <ul class="features">
       <li><span class="icon check">&#10003;</span> Everything in Pro</li>
-      <li><span class="icon check">&#10003;</span> Hosted verification — 50,000 checks / month</li>
-      <li><span class="icon check">&#10003;</span> Up to 50 API keys</li>
-      <li><span class="icon check">&#10003;</span> Remote SCITT (same hosted service)</li>
-      <li><span class="icon check">&#10003;</span> Email support (target 48h response)</li>
+      <li><span class="icon check">&#10003;</span> Online verification — 50,000 checks / month</li>
+      <li><span class="icon check">&#10003;</span> Up to 50 CI keys for automation</li>
+      <li><span class="icon check">&#10003;</span> Remote transparency log</li>
+      <li><span class="icon check">&#10003;</span> Email support (target 48h)</li>
       <li><span class="icon check">&#10003;</span> Shared onboarding call</li>
-      <li><span class="icon dash">&#8212;</span> Org seats / SSO (not productized yet)</li>
+      <li><span class="icon dash">&#8212;</span> Multi-user seats / SSO (not built yet)</li>
     </ul>
-    <p class="note">Team is volume + support today — not a multi-tenant org product with seats. Plan is enabled manually after contact.</p>
+    <p class="note">Team = higher volume + support — not a seats product yet.</p>
     <a href="mailto:mohdibrahim@epilabs.org?subject=Team%20plan%20inquiry" class="cta-btn primary">Contact for Team</a>
   </div>
 
@@ -282,29 +283,30 @@
 
   // Load Paddle config from API
   fetch("/api/paddle/config").then(function(r){return r.json()}).then(function(cfg){
-    if (cfg.client_token) {
+    if (!cfg.pro_price_id || !cfg.client_token) {
+      // Payments not live — keep simple: sign in / contact
+      btn.href = "/account";
+      btn.textContent = "Get Pro — sign in";
+      return;
+    }
+    btn.textContent = "Subscribe for $19/mo";
+    btn.href = "#";
+    if (typeof Paddle !== "undefined") {
       Paddle.Environment.set(cfg.sandbox ? "sandbox" : "production");
       Paddle.Initialize({
         token: cfg.client_token,
         checkout: { settings: { displayMode: "overlay", variant: "one-page" } }
       });
     }
-
     btn.addEventListener("click", function(e){
       e.preventDefault();
-      if (!cfg.pro_price_id || !cfg.client_token) {
-        alert("Payment is not configured yet. Please contact mohdibrahim@epilabs.org to subscribe.");
-        return;
-      }
       Paddle.Checkout.open({
         items: [{ priceId: cfg.pro_price_id, quantity: 1 }]
       });
     });
   }).catch(function(){
-    btn.addEventListener("click", function(e){
-      e.preventDefault();
-      alert("Payment is currently unavailable. Please try again later or contact mohdibrahim@epilabs.org.");
-    });
+    btn.href = "/account";
+    btn.textContent = "Get Pro — sign in";
   });
 })();
 </script>
