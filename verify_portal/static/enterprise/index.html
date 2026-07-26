@@ -60,26 +60,65 @@
   <h1 style="font-size:clamp(1.8rem,3vw,2.4rem);color:var(--ink);margin:0 0 12px;line-height:1.2">
     Org seals the run.<br>Humans add bound reviews.<br>Auditors verify offline.
   </h1>
-  <p style="color:var(--ink-soft);font-size:1.05rem;max-width:36rem;line-height:1.65;margin:0 0 8px">
-    EPI is a <strong>file-first</strong> evidence layer — not a dashboard login.
-    Cryptography proves integrity and sealer keys; free-text names are claims, not HR identity.
+  <p style="color:var(--ink-soft);font-size:1.05rem;max-width:40rem;line-height:1.65;margin:0 0 8px">
+    EPI is a <strong>file-first</strong> evidence layer for enterprises — not a dashboard login.
+    You get portable cryptographic evidence, org key trust, policy checks, Annex tooling, and CI gates.
+    Optional hosted verify/SCITT for scale. Self-host when you must.
   </p>
   <div class="ent-cta">
     <a class="primary" href="https://pypi.org/project/epi-recorder/">pip install epi-recorder</a>
+    <a class="secondary" href="mailto:mohdibrahim@epilabs.org?subject=Enterprise%20pilot">Request enterprise pilot</a>
     <a class="secondary" href="/verify/">Verify a file</a>
   </div>
 
-  <h2 style="margin:56px 0 12px;font-size:1.35rem;color:var(--ink)">Acceptance gate</h2>
-  <p style="color:var(--ink-soft);font-size:.92rem;margin:0 0 16px">Commands security and CI should run.</p>
-  <pre><code>epi keys generate --name org-seal
-epi keys bundle-export --out org-trust-bundle.zip
-# seal artifacts in CI with that key
+  <h2 style="margin:56px 0 12px;font-size:1.35rem;color:var(--ink)">30-minute enterprise kit</h2>
+  <p style="color:var(--ink-soft);font-size:.92rem;margin:0 0 16px">One command scaffolds org trust, policy, and CI. Then seal runs and hand auditors a pack.</p>
+  <pre><code>epi enterprise bootstrap --out enterprise-epi
+# seal agent runs with org-seal key
 
 # Auditor / CI:
-epi keys bundle-import org-trust-bundle.zip
+epi keys bundle-import enterprise-epi/org-trust-bundle.zip
 epi verify artifact.epi --policy strict
-epi verify artifact_reviewed.epi --review</code></pre>
+epi enterprise kit artifact.epi --out auditor-pack.zip
 
+# Inventory of what ships:
+epi enterprise capabilities</code></pre>
+
+  <div class="ent-grid">
+    <div class="ent-card">
+      <h3>Shipped for enterprise</h3>
+      <ul>
+        <li>Sealed <code>.epi</code> + offline verify/view</li>
+        <li>Org keys + trust bundles</li>
+        <li>Policy + fault analysis</li>
+        <li>Annex IV tooling + multi-sign + CLI PDF</li>
+        <li>GitHub Action CI gate</li>
+        <li>Optional hosted verify + remote SCITT</li>
+        <li>Self-hosted gateway / Decision Ops</li>
+      </ul>
+    </div>
+    <div class="ent-card">
+      <h3>Services (human + contract)</h3>
+      <ul>
+        <li>Dedicated onboarding / pilot</li>
+        <li>Custom hosted volume &amp; ops attention</li>
+        <li>Legal &amp; procurement support</li>
+        <li>SLA only if signed in writing</li>
+      </ul>
+    </div>
+    <div class="ent-card">
+      <h3>Roadmap (not product yet)</h3>
+      <ul>
+        <li>Cloud SSO / SAML</li>
+        <li>Multi-tenant SaaS seats</li>
+        <li>FDA / HIPAA / NIST adapter suite</li>
+        <li>Managed multi-tenant DID registry</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 style="margin:56px 0 12px;font-size:1.35rem;color:var(--ink)">Acceptance gate</h2>
+  <p style="color:var(--ink-soft);font-size:.92rem;margin:0 0 16px">What PASS means for security and CI.</p>
   <div class="ent-grid">
     <div class="ent-card">
       <h3>Modes</h3>
@@ -93,16 +132,17 @@ epi verify artifact_reviewed.epi --review</code></pre>
       <h3>What PASS means</h3>
       <ul>
         <li><code>--policy strict</code> → integrity + trusted sealer + completeness</li>
-        <li><code>--review</code> Binding True → v1.1 human review bound to sealed evidence</li>
+        <li><code>--review</code> Binding True → human review bound to sealed evidence</li>
         <li>Standard-policy <strong>WARN</strong> with unknown key is expected until trust import</li>
       </ul>
     </div>
     <div class="ent-card">
       <h3>Docs</h3>
       <ul>
-        <li><a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/ENTERPRISE-TRUST-PROFILE.md" style="color:var(--accent)">Enterprise Trust Profile</a></li>
+        <li><a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/ENTERPRISE-CAPABILITY.md" style="color:var(--accent)">Enterprise capability map</a></li>
+        <li><a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/ENTERPRISE-EVIDENCE-PLAYBOOK.md" style="color:var(--accent)">Evidence playbook</a></li>
         <li><a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/ENTERPRISE-TRUST-BUNDLE.md" style="color:var(--accent)">Trust bundle guide</a></li>
-        <li><a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/evidence-profile/v0.1.json" style="color:var(--accent)">Decision-grade profile v0.1</a></li>
+        <li><a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/SELF-HOSTED-RUNBOOK.md" style="color:var(--accent)">Self-hosted runbook</a></li>
       </ul>
     </div>
   </div>
