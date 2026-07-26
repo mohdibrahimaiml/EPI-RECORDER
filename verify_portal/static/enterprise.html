@@ -71,18 +71,14 @@
     <a class="secondary" href="/verify/">Verify a file</a>
   </div>
 
-  <h2 style="margin:56px 0 12px;font-size:1.35rem;color:var(--ink)">30-minute enterprise kit</h2>
-  <p style="color:var(--ink-soft);font-size:.92rem;margin:0 0 16px">One command scaffolds org trust, policy, and CI. Then seal runs and hand auditors a pack.</p>
-  <pre><code>epi enterprise bootstrap --out enterprise-epi
-# seal agent runs with org-seal key
-
-# Auditor / CI:
-epi keys bundle-import enterprise-epi/org-trust-bundle.zip
-epi verify artifact.epi --policy strict
-epi enterprise kit artifact.epi --out auditor-pack.zip
-
-# Inventory of what ships:
-epi enterprise capabilities</code></pre>
+  <h2 style="margin:56px 0 12px;font-size:1.35rem;color:var(--ink)">15-minute path (keep it simple)</h2>
+  <p style="color:var(--ink-soft);font-size:.92rem;margin:0 0 16px">Two commands for your engineer. No dashboards. No API keys required for a pilot pack.</p>
+  <pre><code>pip install epi-recorder
+epi enterprise setup
+# record one agent run → your-run.epi
+epi enterprise pack your-run.epi
+# → send auditor-pack.zip to security / audit</code></pre>
+  <p style="color:var(--ink-muted);font-size:.88rem;margin:12px 0 0">Online checks (optional): sign in → <a href="/verify/" style="color:var(--accent)">Verify a file</a>. Details: <a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/ENTERPRISE-15-MINUTES.md" style="color:var(--accent)">Enterprise in 15 minutes</a>.</p>
 
   <div class="ent-grid">
     <div class="ent-card">

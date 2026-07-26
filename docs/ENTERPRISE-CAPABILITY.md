@@ -33,21 +33,20 @@
 - Managed multi-tenant DID registry  
 - Hosted PDF API (use `epi annex report --format pdf`)
 
-## 30-minute enterprise path
+## 15-minute enterprise path
 
 ```bash
 pip install epi-recorder
-epi enterprise bootstrap --out enterprise-epi
-# seal agent runs with org-seal key
-epi keys bundle-import enterprise-epi/org-trust-bundle.zip
-epi verify path/to/run.epi --policy strict
-epi enterprise kit path/to/run.epi --out auditor-pack.zip
+epi enterprise setup
+# record one agent run → your-run.epi
+epi enterprise pack your-run.epi
 ```
 
-Or list the inventory anytime:
+Online (Pro/Team/Enterprise): sign in → [Verify a file](https://epilabs.org/verify/) — **no API key in the browser**.
 
 ```bash
 epi enterprise capabilities
 ```
 
-See also: [ENTERPRISE-EVIDENCE-PLAYBOOK.md](./ENTERPRISE-EVIDENCE-PLAYBOOK.md), [ENTERPRISE-TRUST-BUNDLE.md](./ENTERPRISE-TRUST-BUNDLE.md), [SELF-HOSTED-RUNBOOK.md](./SELF-HOSTED-RUNBOOK.md).
+See [ENTERPRISE-15-MINUTES.md](./ENTERPRISE-15-MINUTES.md). Also: [ENTERPRISE-EVIDENCE-PLAYBOOK.md](./ENTERPRISE-EVIDENCE-PLAYBOOK.md), [SELF-HOSTED-RUNBOOK.md](./SELF-HOSTED-RUNBOOK.md).  
+Operators only: [OPERATOR-RUNBOOK.md](./OPERATOR-RUNBOOK.md).
