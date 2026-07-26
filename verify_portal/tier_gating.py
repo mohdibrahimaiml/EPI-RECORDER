@@ -1,4 +1,12 @@
-"""Tier-gating for paid plan features."""
+"""Tier-gating for paid plan features.
+
+Honesty contract (must match website/pricing.html):
+
+- Free forever offline: CLI, local SCITT, Annex multi-sign, CLI PDF, public GitHub Action.
+- Paid plans gate hosted verification volume, API key limits, and remote SCITT only.
+- Hosted PDF API is not implemented — `pdf` is always False (use CLI).
+- Seats / SSO / regulatory adapters are not gated here because they are not shipped.
+"""
 
 from __future__ import annotations
 
@@ -12,11 +20,12 @@ from verify_portal.billing import get_user_plan, init_billing_columns
 
 PLAN_RANK = {"free": 0, "pro": 1, "team": 2, "enterprise": 3}
 
+# Hosted-only capabilities. Do not list free CLI features as paid flags.
 PLAN_FEATURES = {
     "free": {
-        "verifications": 100,
+        "verifications": 100,  # soft plan label; public /api/verify also uses IP free cap
         "scitt": False,
-        "pdf": False,
+        "pdf": False,  # hosted PDF not implemented; CLI PDF is free
         "api_keys": True,  # 1 free key for onboarding
         "api_key_limit": 1,
         "support": "Community",
@@ -25,25 +34,25 @@ PLAN_FEATURES = {
     "pro": {
         "verifications": 10_000,
         "scitt": True,
-        "pdf": True,
+        "pdf": False,
         "api_keys": True,
         "api_key_limit": 10,
-        "support": "Email 48h",
+        "support": "Email",
         "label": "Pro",
     },
     "team": {
         "verifications": 50_000,
         "scitt": True,
-        "pdf": True,
+        "pdf": False,
         "api_keys": True,
         "api_key_limit": 50,
-        "support": "Email 48h + Slack",
-        "label": "Team / Advanced",
+        "support": "Email 48h target",
+        "label": "Team",
     },
     "enterprise": {
-        "verifications": None,
+        "verifications": None,  # custom / negotiated
         "scitt": True,
-        "pdf": True,
+        "pdf": False,
         "api_keys": True,
         "api_key_limit": None,
         "support": "Dedicated",

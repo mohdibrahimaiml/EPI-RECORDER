@@ -240,18 +240,26 @@ def _current_tree_root() -> tuple[bytes, list[bytes]]:
 
 @router.post("/register")
 async def scitt_register(request: Request) -> Response:
-    # Tier gate — free users cannot anchor to SCITT
-    # Skip gate in test environments (no auth token = no user = free = blocked)
+    # Tier gate — free users cannot anchor to SCITT.
+    # Pro+ via session cookie/token OR X-API-Key (same effective plan as verify).
+    # Skip gate in tests (PYTEST_RUNNING) so unit tests stay hermetic.
     import os
     if not os.environ.get("PYTEST_RUNNING"):
         try:
-            from verify_portal.tier_gating import get_plan
-            plan = get_plan(request)
-            if plan == "free":
+            from verify_portal.main import effective_plan
+            from verify_portal.tier_gating import PLAN_RANK
+
+            plan = effective_plan(request)
+            if PLAN_RANK.get(plan, 0) < PLAN_RANK.get("pro", 1):
                 raise HTTPException(
                     status_code=402,
-                    detail="SCITT remote anchoring requires a Pro plan or higher. Upgrade at /pricing.",
+                    detail=(
+                        "SCITT remote anchoring requires a Pro plan or higher "
+                        "(sign in or send X-API-Key from a Pro account). Upgrade at /pricing."
+                    ),
                 )
+        except HTTPException:
+            raise
         except ImportError:
             pass
 

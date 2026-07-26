@@ -386,12 +386,18 @@ async function loadPlan() {
     var f = await r.json();
     var feat = f.features || {};
     var verifs = feat.verifications == null ? 'Unlimited' : (Number(feat.verifications).toLocaleString() + '/mo');
+    var usage = f.usage || null;
+    var usedLine = verifs;
+    if (usage && typeof usage.used === 'number') {
+      var lim = usage.limit == null ? '∞' : Number(usage.limit).toLocaleString();
+      usedLine = usage.used.toLocaleString() + ' used / ' + lim + ' limit this month';
+    }
     var list_items = [
       { k: 'Plan', v: planLabel(f.plan || plan) },
-      { k: 'Hosted verifications', v: verifs },
-      { k: 'SCITT remote anchoring', v: feat.scitt ? 'Enabled' : '—' },
-      { k: 'PDF reports', v: feat.pdf ? 'Enabled' : '—' },
-      { k: 'API keys', v: feat.api_keys ? ('Up to ' + (feat.api_key_limit == null ? 'unlimited' : feat.api_key_limit)) : '—' },
+      { k: 'Hosted verifications', v: usedLine },
+      { k: 'SCITT remote anchoring', v: feat.scitt ? 'Enabled (API key or signed-in Pro+)' : '— (Pro+)' },
+      { k: 'Annex PDF', v: 'CLI free (epi annex report --format pdf)' },
+      { k: 'API keys', v: feat.api_keys ? ('Up to ' + (feat.api_key_limit == null ? 'custom' : feat.api_key_limit)) : '—' },
       { k: 'Support', v: feat.support || 'Community' },
     ];
     var html = '<ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">';
