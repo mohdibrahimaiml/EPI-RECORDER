@@ -57,7 +57,12 @@ def test_revoked_key(tmp_path, registry_setup):
     assert report["trust_level"] == "INVALID"
 
 def test_unknown_key(tmp_path):
-    """Test that an unknown key is flagged as MEDIUM trust."""
+    """Unpinned sealer is not org-trusted; strict policy fails.
+
+    When the sealer private/public key still exists under EPI_KEYS_DIR on this
+    machine, identity is LOCAL (self-match), not org-pinned KNOWN. Either way
+    STRICT must fail until the key is trusted.
+    """
     path = tmp_path / "unknown.epi"
     session = GuardrailsRecorderSession(output_path=path, auto_sign=True)
     
@@ -78,9 +83,9 @@ def test_unknown_key(tmp_path):
     empty_reg.mkdir()
     os.environ["EPI_TRUSTED_KEYS_DIR"] = str(empty_reg)
     
-    # In STRICT policy, unknown key results in failure
+    # In STRICT policy, unpinned identity (UNKNOWN or LOCAL) fails
     result = runner.invoke(app, ["verify", str(path), "--strict", "--json"])
     assert result.exit_code != 0
     report = json.loads(result.stdout)
-    assert report["identity"]["status"] == "UNKNOWN"
+    assert report["identity"]["status"] in ("UNKNOWN", "LOCAL")
     assert report["decision"]["status"] == "FAIL"
