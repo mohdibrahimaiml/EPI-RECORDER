@@ -107,8 +107,8 @@
       <p id="usage-line" style="color:var(--ink-soft);font-size:.92rem;margin:14px 0 0;line-height:1.5">Loading usage…</p>
       <p id="plan-plain" style="color:var(--ink-muted);font-size:.85rem;margin:8px 0 0;line-height:1.5"></p>
       <div class="acct-row" style="margin-top:18px">
-        <a href="/portal" class="acct-btn primary">Verify a file</a>
-        <a href="/verify/" class="acct-btn secondary">Offline browser check</a>
+        <a href="/verify/?mode=server" class="acct-btn primary">Full report (upload)</a>
+        <a href="/verify/" class="acct-btn secondary">Private check</a>
         <a href="/enterprise" class="acct-btn secondary">Enterprise kit</a>
       </div>
       <div id="plan-features" style="margin-top:16px;display:none"></div>
@@ -402,10 +402,10 @@ async function loadPlan() {
   var plain = document.getElementById('plan-plain');
   var usageEl = document.getElementById('usage-line');
   if (plain) {
-    if (plan === 'enterprise') plain.textContent = 'Online checks included. Drop a file on Verify — no API key needed in the browser.';
-    else if (plan === 'team') plain.textContent = 'Team volume plan: higher online check limit. Share a CI key only if you automate.';
-    else if (plan === 'pro') plain.textContent = 'Pro: online checks included. Use Verify while signed in — no key required.';
-    else plain.textContent = 'Free: limited online checks. Upgrade for more, or run epi verify offline forever.';
+    if (plan === 'enterprise') plain.textContent = 'Use “Full report (upload)” while signed in — no API key needed. Or “Private check” so the file is never uploaded. Truly offline: epi verify on your PC.';
+    else if (plan === 'team') plain.textContent = 'Team: higher upload-check limit. Sign in → Full report (upload). Private check never uses your quota. CI keys only if you automate.';
+    else if (plan === 'pro') plain.textContent = 'Pro: sign in → Full report (upload) counts toward your plan. Private check = no upload, no quota. Offline: epi verify.';
+    else plain.textContent = 'Free: limited upload checks. Private check never uploads. Offline forever free: epi verify.';
   }
 
   try {
