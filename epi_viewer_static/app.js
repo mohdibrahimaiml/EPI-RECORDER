@@ -990,6 +990,8 @@ function getStepBadges(step, analysis) {
     const badges = [
         `<span class="timeline-badge timeline-badge--step">#${escapeHtml(getDisplayStepNumber(step))}</span>`,
         `<span class="timeline-badge timeline-badge--kind">${escapeHtml(step.kind || "unknown")}</span>`,
+        // Verification class: R = recomputable, A = attested_only
+        (function(){var vc = step.verification_class || (step.content && step.content.verification_class) || ""; return vc ? '<span class="ev-vclass ev-vclass-' + vc + '" title="' + (vc === "recomputable" ? "Recomputable" : "Attested only") + '">' + (vc === "recomputable" ? "R" : "A") + '</span>' : "";})(),
     ];
 
     if (!analysis) {
