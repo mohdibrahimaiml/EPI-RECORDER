@@ -144,6 +144,7 @@ def _audit_step_sequence_completeness(steps: list[dict]) -> tuple[bool, list[str
 
     pending_tool_calls: list[tuple[int, str | None]] = []
     pending_llm_requests: list[tuple[int, str | None]] = []
+    pending_pre_commits: list[tuple[int, str | None]] = []
     pending_approvals: list[tuple[int, str | None]] = []
 
     for s in steps:
@@ -167,6 +168,8 @@ def _audit_step_sequence_completeness(steps: list[dict]) -> tuple[bool, list[str
             if not matched and pending_tool_calls:
                 pending_tool_calls.pop(0)
 
+        elif kind == "llm.pre_commit":
+            pending_pre_commits.append((idx, span_id))
         elif kind == "llm.request":
             pending_llm_requests.append((idx, span_id))
         elif kind in ("llm.response", "llm.error"):
@@ -179,6 +182,9 @@ def _audit_step_sequence_completeness(steps: list[dict]) -> tuple[bool, list[str
                         break
             if not matched and pending_llm_requests:
                 pending_llm_requests.pop(0)
+            # Clear the oldest pending pre-commit when any LLM response arrives
+            if pending_pre_commits:
+                pending_pre_commits.pop(0)
 
         elif kind == "agent.approval.request":
             action = content.get("action")
@@ -197,6 +203,8 @@ def _audit_step_sequence_completeness(steps: list[dict]) -> tuple[bool, list[str
 
     for idx, call_id in pending_tool_calls:
         gaps.append(f"tool.call at step {idx} is missing a corresponding tool.response")
+    for idx, call_id in pending_pre_commits:
+        gaps.append(f"llm.pre_commit at step {idx} was committed but never executed — response never arrived (crash, timeout, or cancellation)")
     for idx, span_id in pending_llm_requests:
         gaps.append(f"llm.request at step {idx} is missing a corresponding response or error")
     for idx, action in pending_approvals:
