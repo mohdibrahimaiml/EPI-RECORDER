@@ -64,6 +64,18 @@ class TracedCompletions:
                 "messages": messages,
                 "timestamp": utc_now_iso(),
             })
+            # Pre-execution commitment: log intent before the API call fires.
+            # Chain ordering proves this commitment existed before the response
+            # that references it. Full chronology requires RFC 3161 notarization
+            # (EPI_NOTARIZE=1), which timestamps the pre-commit with an external
+            # authority after this entry is written.
+            msg_digest = {"model": model, "message_count": len(messages)}
+            session.log_step("llm.pre_commit", {
+                "provider": self._provider,
+                "model": model,
+                "message_count": len(messages),
+                "timestamp": utc_now_iso(),
+            })
         
         # Call original method
         start_time = time.time()

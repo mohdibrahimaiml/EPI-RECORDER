@@ -69,6 +69,12 @@ class TracedMessages:
                 request_data["system"] = system
             
             session.log_step("llm.request", request_data)
+            session.log_step("llm.pre_commit", {
+                "provider": self._provider,
+                "model": model,
+                "message_count": len(messages),
+                "timestamp": utc_now_iso(),
+            })
         
         # Call original method
         start_time = time.time()
