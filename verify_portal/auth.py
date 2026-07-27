@@ -41,8 +41,9 @@ PLAN_ALIASES = {
     "advanced": "team",
     "advance": "team",
     "business": "team",
+    "basic": "starter",
 }
-VALID_PLANS = frozenset({"free", "pro", "team", "enterprise"})
+VALID_PLANS = frozenset({"free", "starter", "pro", "team", "enterprise"})
 
 
 def _client_id() -> str:
