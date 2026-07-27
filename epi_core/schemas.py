@@ -251,6 +251,12 @@ class StepModel(BaseModel):
         description="The source or actor type that generated this step's core content (user, tool, reasoning, system)"
     )
 
+    verification_class: Optional[Literal["recomputable", "attested_only"]] = Field(
+        default=None,
+        description="How this step can be verified: recomputable (deterministic, can re-execute) or attested_only (non-deterministic, must trust the recorder)"
+    )
+
+
     @model_validator(mode="before")
     @classmethod
     def populate_source_type(cls, data: Any) -> Any:
@@ -269,6 +275,10 @@ class StepModel(BaseModel):
                         data["source_type"] = "system"
                     else:
                         data["source_type"] = "reasoning"
+                elif kind in ("tool.call", "tool.response", "shell.command", "python.call"):
+                    data["verification_class"] = "recomputable"
+                elif kind in ("llm.request", "llm.response", "agent.decision", "agent.approval.request", "agent.approval.response"):
+                    data["verification_class"] = "attested_only"
                 elif kind in ("agent.run.start",):
                     data["source_type"] = "user"
                 elif kind in ("llm.request", "llm.response", "agent.decision", "agent.handoff", "agent.run.end", "tool.call", "agent.approval.request"):
