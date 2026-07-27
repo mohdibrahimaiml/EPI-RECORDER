@@ -33,6 +33,19 @@ def _truncate_content(data: Any, max_length: int = MAX_CONTENT_STRING_LENGTH) ->
         return data
 
 
+
+def _compute_verification_class(kind: str, content: dict) -> str | None:
+    if not kind:
+        return None
+    if kind in ("tool.call", "tool.response", "shell.command", "python.call"):
+        is_deterministic = (content or {}).get("epi_deterministic") is True
+        return "recomputable" if is_deterministic else "attested_only"
+    if kind in ("llm.request", "llm.response", "agent.decision",
+                "agent.approval.request", "agent.approval.response"):
+        return "attested_only"
+    return None
+
+
 class RecordingContext:
     """
     Global recording context for capturing LLM calls.
@@ -112,7 +125,7 @@ class RecordingContext:
                 timestamp=utc_now(),
                 kind=kind,
                 content=content,
-                trace_id=trace_id,
+                trace_id=trace_id, verification_class=_compute_verification_class(kind, content),
                 span_id=span_id,
                 parent_span_id=parent_span_id,
                 prev_hash=self._last_step_hash
