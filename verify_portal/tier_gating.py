@@ -18,11 +18,29 @@ from fastapi import HTTPException, Request
 from verify_portal.auth import extract_token, normalize_plan, verify_token
 from verify_portal.billing import get_user_plan, init_billing_columns
 
-PLAN_RANK = {"free": 0, "pro": 1, "team": 2, "enterprise": 3}
+PLAN_RANK = {"free": 0, "starter": 1, "pro": 2, "team": 3, "enterprise": 4}
 
 # Hosted-only capabilities. Do not list free CLI features as paid flags.
 PLAN_FEATURES = {
     "free": {
+        "verifications": 100,
+        "scitt": False,
+        "pdf": False,
+        "api_keys": True,
+        "api_key_limit": 1,
+        "support": "Community",
+        "label": "Free",
+    },
+    "starter": {
+        "verifications": 10_000,
+        "scitt": False,
+        "pdf": False,
+        "api_keys": True,
+        "api_key_limit": 1,
+        "support": "Community",
+        "label": "Starter",
+    },
+    "dummy_free_placeholder": {
         "verifications": 100,  # soft plan label; public /api/verify also uses IP free cap
         "scitt": False,
         "pdf": False,  # hosted PDF not implemented; CLI PDF is free

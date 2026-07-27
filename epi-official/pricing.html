@@ -4,30 +4,32 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>EPI Labs Pricing | Evidence Infrastructure for AI Agents</title>
-<meta name="description" content="EPI Labs: open-source CLI free forever. Pro $40/mo for hosted verification convenience. Enterprise integration and compliance consulting by engagement.">
+<meta name="description" content="Open-source CLI free forever. Starter $1/mo, Pro $40/mo. Cryptographically sealed evidence for AI agents with RFC 3161 notarization and Bitcoin anchoring.">
 <meta property="og:title" content="EPI Labs Pricing | Evidence Infrastructure for AI Agents">
-<meta property="og:description" content="Open source free forever. Pro for hosted convenience at $40/mo. Consulting for compliance and integration.">
+<meta property="og:description" content="Free CLI forever. Starter $1/mo, Pro $40/mo for hosted convenience. Ed25519 sealing, notarization, SCITT, Annex IV.">
 <meta property="og:image" content="https://epilabs.org/assets/logo.png">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon.ico">
 <link rel="apple-touch-icon" href="favicon.ico">
-<link rel="stylesheet" href="css/epi.css?v=32">
+<link rel="stylesheet" href="css/epi.css?v=33">
 <style>
-.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:28px;max-width:900px;margin:0 auto;padding:0 24px}
-.pricing-card{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-str);padding:36px 28px;position:relative;transition:transform var(--ease) .2s,box-shadow var(--ease) .2s}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;max-width:1000px;margin:0 auto;padding:0 24px}
+.pricing-card{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-str);padding:32px 24px;position:relative;transition:transform var(--ease) .2s,box-shadow var(--ease) .2s}
 .pricing-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.08)}
 .pricing-card.featured{border-color:var(--accent-line);border-width:2px}
 .pricing-card .badge{position:absolute;top:-14px;right:24px;background:var(--accent);color:#fff;padding:4px 16px;border-radius:20px;font-size:.75rem;font-weight:600;letter-spacing:.04em}
 .pricing-card h3{font-size:1.1rem;color:var(--ink-muted);font-weight:500;margin:0 0 8px;text-transform:uppercase;letter-spacing:.08em}
 .pricing-card .price{font-size:2.6rem;font-weight:700;color:var(--ink);margin:0 0 4px}
 .pricing-card .price small{font-size:1rem;font-weight:400;color:var(--ink-muted)}
+.pricing-card .price .trial-badge{display:inline-block;background:var(--verified-bg);color:var(--verified);font-size:.72rem;font-weight:600;padding:2px 10px;border-radius:10px;margin-left:6px;vertical-align:middle;position:relative;top:-4px}
 .pricing-card .price-sub{color:var(--ink-muted);font-size:.85rem;margin-bottom:20px}
-.pricing-card .features{list-style:none;padding:0;margin:0 0 28px}
-.pricing-card .features li{padding:8px 0;border-bottom:1px solid var(--border);font-size:.9rem;color:var(--ink-soft);display:flex;align-items:flex-start;gap:10px}
-.pricing-card .features li .icon{font-size:1.05rem;flex-shrink:0;line-height:1.4}
+.pricing-card .features{list-style:none;padding:0;margin:0 0 24px}
+.pricing-card .features li{padding:7px 0;border-bottom:1px solid var(--border);font-size:.88rem;color:var(--ink-soft);display:flex;align-items:flex-start;gap:8px;line-height:1.4}
+.pricing-card .features li .icon{font-size:1rem;flex-shrink:0;line-height:1.4}
 .pricing-card .features li .icon.check{color:var(--verified)}
 .pricing-card .features li .icon.star{color:var(--accent-lt)}
-.pricing-card .note{font-size:.8rem;color:var(--ink-dim);margin:-12px 0 20px;line-height:1.45}
+.pricing-card .features li .icon.dash{color:var(--ink-dim)}
+.pricing-card .note{font-size:.78rem;color:var(--ink-dim);margin:-8px 0 18px;line-height:1.45}
 .pricing-card .cta-btn{display:block;width:100%;padding:14px;text-align:center;border-radius:10px;font-family:var(--sans);font-size:.95rem;font-weight:600;cursor:pointer;text-decoration:none;transition:all var(--ease) .15s;border:2px solid transparent}
 .pricing-card .cta-btn.primary{background:var(--accent);color:#fff}
 .pricing-card .cta-btn.primary:hover{background:var(--accent-lt)}
@@ -35,16 +37,9 @@
 .pricing-card .cta-btn.secondary:hover{background:var(--accent-glow)}
 .pricing-card .price-placeholder{color:var(--ink-dim);font-size:1.4rem;font-weight:400}
 .pricing-card .price-loaded{color:var(--ink)}
-.thesis-banner{max-width:800px;margin:0 auto 48px;padding:28px 32px;background:var(--bg-alt);border:1px solid var(--border);border-radius:12px;font-size:.92rem;color:var(--ink-soft);line-height:1.6}
+.thesis-banner{max-width:800px;margin:0 auto 40px;padding:28px 32px;background:var(--bg-alt);border:1px solid var(--border);border-radius:12px;font-size:.92rem;color:var(--ink-soft);line-height:1.6}
 .thesis-banner strong{color:var(--ink)}
-.services-section{max-width:800px;margin:80px auto 0;padding:24px}
-.services-section h2{text-align:center;font-size:1.6rem;color:var(--ink);margin:0 0 24px}
-.service-card{background:var(--bg-card);border-radius:12px;border:1px solid var(--border-str);padding:28px 24px;margin-bottom:20px}
-.service-card h4{font-size:1.05rem;color:var(--ink);margin:0 0 8px}
-.service-card p{color:var(--ink-soft);font-size:.9rem;line-height:1.55;margin:0 0 12px}
-.service-card .cta-inline{display:inline-block;padding:10px 24px;background:var(--accent);color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:.85rem;margin-top:4px}
-.service-card .cta-inline:hover{background:var(--accent-lt)}
-.billing-toggle{display:flex;justify-content:center;align-items:center;gap:12px;margin:0 auto 40px;max-width:400px}
+.billing-toggle{display:flex;justify-content:center;align-items:center;gap:12px;margin:0 auto 36px;max-width:400px}
 .billing-toggle span{font-size:.9rem;color:var(--ink-muted);font-weight:500}
 .billing-toggle span.active{color:var(--ink);font-weight:700}
 .billing-toggle button{position:relative;width:52px;height:28px;border-radius:14px;background:var(--accent);border:none;cursor:pointer;transition:background var(--ease) .2s}
@@ -53,14 +48,21 @@
 .billing-toggle button.yearly::after{transform:translateX(24px)}
 .compare-section{max-width:900px;margin:80px auto 0;padding:0 24px;overflow-x:auto}
 .compare-section h2{text-align:center;font-size:1.4rem;color:var(--ink);margin-bottom:12px}
-.compare-table{width:100%;border-collapse:collapse;font-size:.88rem}
-.compare-table th,.compare-table td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--border)}
-.compare-table th{font-weight:600;color:var(--ink-soft);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;background:var(--bg-alt)}
+.compare-table{width:100%;border-collapse:collapse;font-size:.86rem}
+.compare-table th,.compare-table td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.compare-table th{font-weight:600;color:var(--ink-soft);font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;background:var(--bg-alt)}
 .compare-table td{color:var(--ink)}
 .compare-table td:not(:first-child){text-align:center;font-weight:600}
 .compare-table .row-label{font-weight:500}
-.compare-table .check{color:var(--verified);font-size:1.15rem}
+.compare-table .check{color:var(--verified);font-size:1.1rem}
 .compare-table .dash{color:var(--ink-dim)}
+.services-section{max-width:800px;margin:80px auto 0;padding:0 24px}
+.services-section h2{text-align:center;font-size:1.4rem;color:var(--ink);margin:0 0 24px}
+.service-card{background:var(--bg-card);border-radius:12px;border:1px solid var(--border-str);padding:24px 20px;margin-bottom:18px}
+.service-card h4{font-size:1rem;color:var(--ink);margin:0 0 8px}
+.service-card p{color:var(--ink-soft);font-size:.88rem;line-height:1.55;margin:0}
+.service-card a{display:inline-block;margin-top:10px;color:var(--accent);text-decoration:none;font-weight:600;font-size:.85rem}
+.service-card a:hover{text-decoration:underline}
 .faq-section{max-width:700px;margin:80px auto 80px;padding:0 24px}
 .faq-section h2{text-align:center;font-size:1.6rem;color:var(--ink);margin-bottom:40px}
 .faq-item{margin-bottom:28px}
@@ -78,15 +80,11 @@
       <li><a href="/#how">How it works</a></li>
       <li><a href="/#use">How to use</a></li>
       <li><a href="/pricing">Pricing</a></li>
-      <li class="nav-icon-item"><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener" class="nav-icon-link" aria-label="GitHub" title="GitHub">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.4-1.3-1.8-1.3-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.3.5-2.4 1.2-3.2 0-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.9 1.2 3.2 0 4.7-2.8 5.7-5.5 6 .4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3z"/></svg>
-      </a></li>
+      <li class="nav-icon-item"><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener" class="nav-icon-link" aria-label="GitHub" title="GitHub"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.4-1.3-1.8-1.3-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.3.5-2.4 1.2-3.2 0-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.9 1.2 3.2 0 4.7-2.8 5.7-5.5 6 .4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3z"/></svg></a></li>
       <li id="nav-auth-slot"></li>
       <li><a href="/pricing" class="nav-link-cta">Get Started</a></li>
     </ul>
-    <button type="button" class="nav-mob" id="mobBtn" aria-label="Open menu" aria-expanded="false" aria-controls="mobMenu">
-      <span></span><span></span><span></span>
-    </button>
+    <button type="button" class="nav-mob" id="mobBtn" aria-label="Open menu" aria-expanded="false" aria-controls="mobMenu"><span></span><span></span><span></span></button>
   </div>
 </nav>
 <div class="mob-menu" id="mobMenu" style="display:none">
@@ -103,19 +101,12 @@
 
 <section style="text-align:center;padding:60px 24px 24px">
   <h1 style="font-size:2.4rem;color:var(--ink);margin:0 0 12px">Free to verify. Pay for convenience.</h1>
-  <p style="color:var(--ink-soft);font-size:1.1rem;max-width:620px;margin:0 auto">
-    The CLI &mdash; the real product &mdash; is MIT-licensed and free forever.
-    Pro is hosted verification at $40/mo so you don't need to install anything.
-    Everything else is a conversation.
-  </p>
+  <p style="color:var(--ink-soft);font-size:1.1rem;max-width:620px;margin:0 auto">The CLI -- the real product -- is MIT-licensed and free forever. Starter is $1/month for hosted verification. Everything else is a conversation.</p>
 </section>
 
 <div class="thesis-banner">
   <strong>Your AI agent did something consequential. Prove it.</strong><br><br>
-  EPI Recorder cryptographically seals an agent's decision trail &mdash; what it did,
-  who reviewed it, who approved it &mdash; into a tamper-proof, self-verifiable
-  <code>.epi</code> file that works completely offline. No server. No trust in EPI Labs.
-  No vendor lock-in. Anyone can verify with <code>epi verify</code> and a public key.<br><br>
+  EPI Recorder cryptographically seals an agent's decision trail -- what it did, who reviewed it, who approved it -- into a tamper-proof, self-verifiable <code>.epi</code> file with Ed25519 signatures, RFC 3161 timestamping, and optional Bitcoin anchoring. Works completely offline. No server. No trust in EPI Labs. No vendor lock-in. Anyone can verify with <code>epi verify</code> and a public key.<br><br>
   <strong>That's the product. It's free. We charge for services on top of it.</strong>
 </div>
 
@@ -133,103 +124,116 @@
     <div class="price-sub">MIT licensed. Free forever. No account required.</div>
     <ul class="features">
       <li><span class="icon check">&#10003;</span> CLI &amp; Python SDK</li>
-      <li><span class="icon check">&#10003;</span> Ed25519 seal &amp; offline verification</li>
-      <li><span class="icon check">&#10003;</span> Annex IV tooling (9 sections) + multi-signer</li>
+      <li><span class="icon check">&#10003;</span> Ed25519 sealing + offline verification</li>
+      <li><span class="icon check">&#10003;</span> Annex IV (9 sections) + multi-signer chains</li>
       <li><span class="icon check">&#10003;</span> Annex PDF / HTML reports via CLI</li>
+      <li><span class="icon check">&#10003;</span> RFC 3161 notarization + Bitcoin anchoring</li>
       <li><span class="icon check">&#10003;</span> Public GitHub Action (<code>verify-epi</code>)</li>
       <li><span class="icon check">&#10003;</span> Integrations: LangChain, LangGraph, LiteLLM, OTel, pytest, AGT</li>
     </ul>
-    <p class="note">Also includes 100 free hosted verification checks per month. Unlimited offline.</p>
+    <p class="note">100 free hosted checks/month. Unlimited offline. No server needed.</p>
     <a href="https://github.com/mohdibrahimaiml/epi-recorder" class="cta-btn secondary">Star on GitHub</a>
   </div>
 
-  <div class="pricing-card featured">
-    <div class="badge" style="background:var(--verified)">HOSTED</div>
-    <h3>Pro</h3>
-    <div class="price" id="price-pro"><span class="price-placeholder">$40<small>/mo</small></span></div>
-    <div class="price-sub">Hosted verification convenience. 7-day free trial &middot; cancel anytime.</div>
+  <div class="pricing-card">
+    <div class="badge">ENTRY</div>
+    <h3>Starter</h3>
+    <div class="price" id="price-starter"><span class="price-placeholder">$1<small>/mo</small></span><span class="trial-badge">7-day trial</span></div>
+    <div class="price-sub">Individuals getting started. Cancel anytime.</div>
     <ul class="features">
       <li><span class="icon check">&#10003;</span> Everything in Open Source</li>
       <li><span class="icon check">&#10003;</span> 10,000 hosted checks / month</li>
-      <li><span class="icon check">&#10003;</span> Web-based verify &mdash; no CLI install needed</li>
-      <li><span class="icon check">&#10003;</span> Up to 10 API keys for CI / automation</li>
-      <li><span class="icon check">&#10003;</span> Remote transparency log (SCITT anchoring)</li>
+      <li><span class="icon check">&#10003;</span> Web-based verify -- upload and check</li>
+      <li><span class="icon check">&#10003;</span> 1 CI / automation key</li>
+      <li><span class="icon dash">&#8212;</span> Remote SCITT anchoring</li>
+      <li><span class="icon dash">&#8212;</span> Paid support</li>
+    </ul>
+    <p class="note">Runs on shared infrastructure. Cold starts happen. <a href="/status" style="color:var(--accent)">Status page</a>. Offline CLI always works regardless.</p>
+    <button id="btn-starter" class="cta-btn primary" onclick="openCheckout('starter')">Subscribe -- Starter</button>
+  </div>
+
+  <div class="pricing-card featured">
+    <div class="badge" style="background:var(--verified)">POPULAR</div>
+    <h3>Pro</h3>
+    <div class="price" id="price-pro"><span class="price-placeholder">$40<small>/mo</small></span><span class="trial-badge">7-day trial</span></div>
+    <div class="price-sub">Practitioners shipping agents. Cancel anytime.</div>
+    <ul class="features">
+      <li><span class="icon check">&#10003;</span> Everything in Starter</li>
+      <li><span class="icon check">&#10003;</span> 10,000 hosted checks / month</li>
+      <li><span class="icon check">&#10003;</span> Up to 10 CI / automation keys</li>
+      <li><span class="icon check">&#10003;</span> Remote SCITT anchoring</li>
       <li><span class="icon check">&#10003;</span> Founder email support</li>
     </ul>
-    <p class="note">Runs on shared infrastructure. Cold starts happen. Offline CLI verify is always available and unlimited regardless of plan. Check the <a href="/status" style="color:var(--accent)">status page</a> for current uptime.</p>
-    <button id="btn-pro" class="cta-btn primary" onclick="openCheckout('pro')">Subscribe &mdash; Pro</button>
+    <p class="note">Same infrastructure as Starter. Pro adds SCITT anchoring, more API keys, and direct support. Offline CLI is always free.</p>
+    <button id="btn-pro" class="cta-btn primary" onclick="openCheckout('pro')">Subscribe -- Pro</button>
   </div>
 
-</section>
-
-<section class="services-section">
-  <h2>Need something bigger?</h2>
-
-  <div class="service-card">
-    <h4>Compliance-readiness consulting</h4>
-    <p>We help you map your agent workflow to real regulatory frameworks &mdash; EU AI Act Annex IV, OMB M-25-21, or your auditor's checklist. You get a concrete evidence plan, not a generic deck. Priced per engagement after a scoping call.</p>
-    <a href="mailto:mohdibrahim@epilabs.org?subject=Compliance%20consulting%20inquiry" class="cta-inline">Get in touch</a>
-  </div>
-
-  <div class="service-card">
-    <h4>Enterprise integration &amp; deployment</h4>
-    <p>We wire EPI into your existing agent stack &mdash; custom wrappers for your LLM gateway, CI pipeline integration, signing key management for your team, and a dedicated hosted verification instance if you need one. Scope, timeline, and pricing discussed upfront. No open-ended SLA sold before we understand what you need.</p>
-    <a href="mailto:mohdibrahim@epilabs.org?subject=Enterprise%20integration%20inquiry" class="cta-inline">Get in touch</a>
-  </div>
-
-  <div class="service-card">
-    <h4>Custom development &amp; advisory</h4>
-    <p>Regulatory adapter suites, custom DID registry integration, specialized Annex formats for your industry. Funded as a consulting engagement, scoped to your requirements. The resulting code ships open-source where possible.</p>
-    <a href="mailto:mohdibrahim@epilabs.org?subject=Custom%20development%20inquiry" class="cta-inline">Get in touch</a>
-  </div>
 </section>
 
 <section class="compare-section">
   <h2>What's free, what's paid</h2>
   <table class="compare-table">
     <thead>
-      <tr><th>Capability</th><th>Open Source</th><th>Pro</th></tr>
+      <tr><th>Capability</th><th>Open Source</th><th>Starter</th><th>Pro</th></tr>
     </thead>
     <tbody>
-      <tr><td class="row-label">CLI / SDK / offline verify</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">Ed25519 seal &amp; verify</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">Annex IV + multi-sign + CLI PDF</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">GitHub Action (public)</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">Hosted web verification</td><td>100 / mo</td><td>10,000 / mo</td></tr>
-      <tr><td class="row-label">API keys</td><td>1</td><td>10</td></tr>
-      <tr><td class="row-label">Remote SCITT anchoring</td><td class="dash">&#8212;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">Support</td><td>Community</td><td>Email</td></tr>
-      <tr><td class="row-label">Consulting / integration</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td></tr>
+      <tr><td class="row-label">CLI / SDK / offline verify</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+      <tr><td class="row-label">Ed25519 seal &amp; verify</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+      <tr><td class="row-label">RFC 3161 notarization</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+      <tr><td class="row-label">Annex IV + multi-sign + CLI PDF</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+      <tr><td class="row-label">GitHub Action (public)</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+      <tr><td class="row-label">Hosted web verification</td><td>100 / mo</td><td>10,000 / mo</td><td>10,000 / mo</td></tr>
+      <tr><td class="row-label">API keys</td><td>1</td><td>1</td><td>10</td></tr>
+      <tr><td class="row-label">Remote SCITT anchoring</td><td class="dash">&#8212;</td><td class="dash">&#8212;</td><td class="check">&#10003;</td></tr>
+      <tr><td class="row-label">Support</td><td>Community</td><td>Community</td><td>Email</td></tr>
     </tbody>
   </table>
-  <p style="text-align:center;color:var(--ink-dim);font-size:.82rem;margin-top:12px">Consulting and integration are engagement-based, not part of the Pro subscription. <a href="mailto:mohdibrahim@epilabs.org" style="color:var(--accent)">Contact us</a> to scope.</p>
+</section>
+
+<section class="services-section">
+  <h2>Need something bigger?</h2>
+  <div class="service-card">
+    <h4>Compliance-readiness consulting</h4>
+    <p>Map your agent workflow to EU AI Act Annex IV, OMB M-25-21, or your auditor's checklist. You get a concrete evidence plan, not a generic deck. Priced per engagement.</p>
+    <a href="mailto:mohdibrahim@epilabs.org?subject=Compliance%20consulting">Get in touch &rarr;</a>
+  </div>
+  <div class="service-card">
+    <h4>Enterprise integration &amp; deployment</h4>
+    <p>Custom wrappers for your LLM gateway, CI pipeline integration, signing key management for your team, dedicated hosted instance. Scope, timeline, and pricing discussed upfront.</p>
+    <a href="mailto:mohdibrahim@epilabs.org?subject=Enterprise%20integration">Get in touch &rarr;</a>
+  </div>
+  <div class="service-card">
+    <h4>Custom development &amp; advisory</h4>
+    <p>Regulatory adapter suites, custom DID registry integration, specialized Annex formats. Funded as a consulting engagement. Resulting code ships open-source where possible.</p>
+    <a href="mailto:mohdibrahim@epilabs.org?subject=Custom%20development">Get in touch &rarr;</a>
+  </div>
 </section>
 
 <section class="faq-section">
   <h2>Frequently asked questions</h2>
   <div class="faq-item">
     <h4>Why is the CLI free forever?</h4>
-    <p>Because the value of cryptographic evidence infrastructure is that it's trustless. If you had to pay EPI Labs to verify your own files, it wouldn't be trustless. The CLI is MIT-licensed so you can verify, modify, and distribute it without us. That's the whole point.</p>
+    <p>Because cryptographic evidence is only trustworthy if it's trustless. If you had to pay EPI Labs to verify your own files, it wouldn't be trustless. The CLI is MIT-licensed: verify, modify, distribute without us. That's the whole point.</p>
   </div>
   <div class="faq-item">
-    <h4>What does Pro actually give me?</h4>
-    <p>Convenience. Upload a <code>.epi</code> file through your browser and get a verification report without installing anything. 10,000 checks/month, up to 10 API keys for CI pipelines, and your evidence is anchored into a remote transparency log. Everything the CLI does offline remains free whether you subscribe or not.</p>
+    <h4>What's the difference between Starter and Pro?</h4>
+    <p>Both give you 10,000 hosted checks/month. Pro adds remote SCITT anchoring, up to 10 API keys (vs 1), and founder email support. Starter is $1/month for the hosted basics. The offline CLI is the same on both -- it's free either way.</p>
   </div>
   <div class="faq-item">
     <h4>What happens during the 7-day free trial?</h4>
-    <p>Full Pro access. No charges for 7 days. Cancel anytime before the trial ends and you won't be billed. Your plan reverts to Free at the end of the trial if you don't continue.</p>
+    <p>Full access to the plan you selected. No charges for the first 7 days. Cancel anytime before the trial ends and you won't be billed.</p>
+  </div>
+  <div class="faq-item">
+    <h4>What is notarization and why is it free?</h4>
+    <p>EPI seals evidence with RFC 3161 timestamps from public time authorities and optionally anchors proofs into the Bitcoin blockchain via OpenTimestamps. This proves <em>when</em> evidence was created, not just what it contains, without depending on EPI Labs infrastructure. We ship it free in the CLI because timestamping shouldn't require a subscription.</p>
   </div>
   <div class="faq-item">
     <h4>Is the hosted backend production-grade?</h4>
-    <p>It runs on shared infrastructure today &mdash; suitable for individual practitioners. It may experience occasional cold starts. Offline CLI verify (<code>epi verify</code>) has no dependencies on any server and works regardless. Organizations needing dedicated infrastructure should contact us for an Enterprise engagement.</p>
-  </div>
-  <div class="faq-item">
-    <h4>Do I need a paid tier for EU AI Act compliance?</h4>
-    <p>No. The free open-source CLI produces Annex IV technical documentation with cryptographic signatures, hash chains, and multi-signer approvals. That's the evidence tooling. Legal interpretation and regulatory submission are separate from the tool &mdash; we offer compliance-readiness consulting as a paid service to help you navigate that gap.</p>
+    <p>It runs on shared infrastructure. Suitable for individual practitioners. May experience occasional cold starts. Offline CLI verify works regardless. Organizations needing dedicated infrastructure should contact us for an Enterprise engagement.</p>
   </div>
   <div class="faq-item">
     <h4>How does Enterprise / consulting work?</h4>
-    <p>It's a conversation, not a shopping cart. You email us, we scope what you need &mdash; compliance mapping, integration, dedicated infrastructure, custom development &mdash; and price it as a bounded engagement. No pre-packaged SLA, no generic tier. You pay for real work, not server uptime promises we can't yet make.</p>
+    <p>You email us, we scope what you need -- compliance mapping, integration, dedicated infrastructure, custom development. Priced as a bounded engagement after we understand the scope. No pre-packaged SLA, no generic tier.</p>
   </div>
 </section>
 
@@ -257,29 +261,32 @@
   var isYearly = false;
   var paddleReady = false;
 
-  function priceIdFor() {
-    if (!cfg || !cfg.tiers || !cfg.tiers.pro) return null;
-    return isYearly ? cfg.tiers.pro.year : cfg.tiers.pro.month;
+  function priceIdFor(tier) {
+    if (!cfg || !cfg.tiers || !cfg.tiers[tier]) return null;
+    return isYearly ? cfg.tiers[tier].year : cfg.tiers[tier].month;
   }
 
-  function loadPrice() {
+  function loadPrices() {
     if (!cfg || !paddleReady) return;
     if (typeof Paddle === "undefined") return;
-    var priceId = priceIdFor();
-    if (!priceId) return;
-    var el = document.getElementById("price-pro");
-    if (!el) return;
-    Paddle.PricePreview({
-      items: [{ priceId: priceId, quantity: 1 }]
-    }).then(function(result) {
-      if (result && result.data && result.data.details && result.data.details.lineItems && result.data.details.lineItems.length > 0) {
-        var li = result.data.details.lineItems[0];
-        var total = li.formattedTotals ? li.formattedTotals.total : null;
-        if (total) {
-          el.innerHTML = '<span class="price-loaded">' + total + '<small>' + (isYearly ? '/yr' : '/mo') + '</small></span>';
+    var tiers = ["starter", "pro"];
+    tiers.forEach(function(tier) {
+      var priceId = priceIdFor(tier);
+      if (!priceId) return;
+      var el = document.getElementById("price-" + tier);
+      if (!el) return;
+      Paddle.PricePreview({
+        items: [{ priceId: priceId, quantity: 1 }]
+      }).then(function(result) {
+        if (result && result.data && result.data.details && result.data.details.lineItems && result.data.details.lineItems.length > 0) {
+          var li = result.data.details.lineItems[0];
+          var total = li.formattedTotals ? li.formattedTotals.total : null;
+          if (total) {
+            el.innerHTML = '<span class="price-loaded">' + total + '<small>' + (isYearly ? '/yr' : '/mo') + '</small></span><span class="trial-badge">7-day trial</span>';
+          }
         }
-      }
-    }).catch(function() {});
+      }).catch(function() {});
+    });
   }
 
   window.toggleBilling = function() {
@@ -296,57 +303,40 @@
       mo.className = "active";
       yr.className = "";
     }
-    document.getElementById("price-pro").innerHTML = '<span class="price-placeholder">$' + (isYearly ? '400' : '40') + '<small>' + (isYearly ? '/yr' : '/mo') + '</small></span>';
-    loadPrice();
+    document.getElementById("price-starter").innerHTML = '<span class="price-placeholder">$' + (isYearly ? '12' : '1') + '<small>' + (isYearly ? '/yr' : '/mo') + '</small></span><span class="trial-badge">7-day trial</span>';
+    document.getElementById("price-pro").innerHTML = '<span class="price-placeholder">$' + (isYearly ? '400' : '40') + '<small>' + (isYearly ? '/yr' : '/mo') + '</small></span><span class="trial-badge">7-day trial</span>';
+    loadPrices();
   };
 
   window.openCheckout = function(tier) {
-    if (!cfg || !cfg.client_token) {
-      window.location.href = "/account";
-      return;
-    }
-    var priceId = priceIdFor();
-    if (!priceId) {
-      window.location.href = "/account";
-      return;
-    }
-    if (typeof Paddle === "undefined") {
-      window.location.href = "/account";
-      return;
-    }
+    if (!cfg || !cfg.client_token) { window.location.href = "/account"; return; }
+    var priceId = priceIdFor(tier);
+    if (!priceId) { window.location.href = "/account"; return; }
+    if (typeof Paddle === "undefined") { window.location.href = "/account"; return; }
     var user = null;
-    try {
-      var raw = localStorage.getItem("epi_user");
-      if (raw) user = JSON.parse(raw);
-    } catch (e) {}
-    var checkoutOptions = {
+    try { var raw = localStorage.getItem("epi_user"); if (raw) user = JSON.parse(raw); } catch (e) {}
+    var opts = {
       items: [{ priceId: priceId, quantity: 1 }],
       settings: { displayMode: "overlay", variant: "one-page", successUrl: window.location.origin + "/welcome" }
     };
-    if (user && user.email) {
-      checkoutOptions.customer = { email: user.email };
-    }
-    Paddle.Checkout.open(checkoutOptions);
+    if (user && user.email) opts.customer = { email: user.email };
+    Paddle.Checkout.open(opts);
   };
 
   fetch("/api/paddle/config").then(function(r){return r.json()}).then(function(c){
     cfg = c;
     if (!cfg.client_token || !cfg.environment) {
-      var b = document.getElementById("btn-pro");
-      if (b) {
-        b.textContent = "Sign in to get started";
-        b.onclick = function(){ window.location.href = "/account"; };
-      }
+      ["btn-starter", "btn-pro"].forEach(function(id) {
+        var b = document.getElementById(id);
+        if (b) { b.textContent = "Sign in to get started"; b.onclick = function(){ window.location.href = "/account"; }; }
+      });
       return;
     }
     if (typeof Paddle !== "undefined") {
       Paddle.Environment.set(cfg.environment);
-      Paddle.Initialize({
-        token: cfg.client_token,
-        checkout: { settings: { displayMode: "overlay", variant: "one-page" } }
-      });
+      Paddle.Initialize({ token: cfg.client_token, checkout: { settings: { displayMode: "overlay", variant: "one-page" } } });
       paddleReady = true;
-      loadPrice();
+      loadPrices();
     }
   }).catch(function(){});
 })();
