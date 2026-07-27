@@ -18,7 +18,7 @@ from fastapi import HTTPException, Request
 from verify_portal.auth import extract_token, normalize_plan, verify_token
 from verify_portal.billing import get_user_plan, init_billing_columns
 
-PLAN_RANK = {"free": 0, "starter": 1, "pro": 2, "team": 3, "enterprise": 4}
+PLAN_RANK = {"free": 0, "hosted": 1, "team": 2, "enterprise": 3}
 
 # Hosted-only capabilities. Do not list free CLI features as paid flags.
 PLAN_FEATURES = {
