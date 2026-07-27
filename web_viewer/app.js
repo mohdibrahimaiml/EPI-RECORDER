@@ -1083,7 +1083,12 @@ function renderEvidence(caseData) {
     }
 
     // Chain hash
-    const prevHash = step.prev_hash
+    
+  const vc = step.verification_class || (step.content && step.content.verification_class) || "";
+  const vcBadge = vc
+    ? `<span class="ev-vclass ev-vclass-${vc}" title="${vc === 'recomputable' ? 'Recomputable' : 'Attested only'}">${vc === 'recomputable' ? 'R' : 'A'}</span>`
+    : "";
+  const prevHash = step.prev_hash
       ? (step.prev_hash === 'CHAIN_START' ? 'START' : step.prev_hash.slice(0, 8))
       : '—';
 
@@ -1098,6 +1103,7 @@ function renderEvidence(caseData) {
           <span class="ev-ts-time">${esc(ts)}</span>
           <span class="ev-ts-delta">${esc(deltaStr)}</span>
           <span class="ev-chain">&#9935; <span class="ev-chain-id">${esc(prevHash)}</span></span>
+        ${vcBadge}
         </div>
         <div class="ev-kind ${esc(tone.kindClass)}">${esc(kindDisplay)}</div>
         <div class="ev-summary">${esc(summary)}</div>
@@ -2107,3 +2113,6 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
+.ev-vclass{display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;border-radius:50%;font-size:.65rem;font-weight:700;margin-left:4px;flex-shrink:0}
+.ev-vclass-recomputable{background:rgba(34,197,94,.15);color:#22c55e}
+.ev-vclass-attested_only{background:rgba(249,115,22,.15);color:#f97316}

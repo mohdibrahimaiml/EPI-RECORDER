@@ -577,6 +577,34 @@ def verify_command(
                     # 5. prev_hash Chain Verification
                     chain_ok, chain_breaks = _verify_step_chain(steps)
 
+                                        # 5.5 AUD-CO-05: Verification Class Classification
+                    # Classify steps as recomputable (deterministic, verifiable by re-execution)
+                    # or attested_only (non-deterministic, must trust the recorder).
+                    recomputable_count = 0
+                    attested_count = 0
+                    for s in steps:
+                        vc = s.get("verification_class") if isinstance(s, dict) else None
+                        if not vc and isinstance(s, dict):
+                            vc = (s.get("content") or {}).get("verification_class")
+                        if vc == "recomputable":
+                            recomputable_count += 1
+                        elif vc == "attested_only":
+                            attested_count += 1
+                    unclassified_count = len(steps) - recomputable_count - attested_count
+                    if recomputable_count + attested_count > 0:
+                        vc_summary = f"{recomputable_count} recomputable, {attested_count} attested"
+                        if unclassified_count > 0:
+                            vc_summary += f", {unclassified_count} unclassified"
+                    else:
+                        vc_summary = "not classified"
+                    audit_result["verification_class"] = {
+                        "status": "not_classified" if (recomputable_count + attested_count == 0) else "classified",
+                        "recomputable": recomputable_count,
+                        "attested_only": attested_count,
+                        "unclassified": unclassified_count,
+                        "summary": vc_summary,
+                    }
+
                     # 6. AUD-CO-02: Step Count Attestation
                     # Compare actual step count against the signed manifest.total_steps.
                     # Only checked when the manifest has total_steps set (new artifacts).

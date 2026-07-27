@@ -1419,3 +1419,6 @@ if (document.readyState === "loading") {
 } else {
     init();
 }
+.ev-vclass{display:inline-block;width:18px;height:18px;line-height:18px;text-align:center;border-radius:50%;font-size:.6rem;font-weight:700;margin-left:3px;vertical-align:middle}
+.ev-vclass-recomputable{background:rgba(34,197,94,.15);color:#22c55e}
+.ev-vclass-attested_only{background:rgba(249,115,22,.15);color:#f97316}
