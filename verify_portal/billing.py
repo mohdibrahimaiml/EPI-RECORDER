@@ -43,8 +43,8 @@ PADDLE_ENV = os.getenv("PADDLE_ENV", "sandbox").lower()
 if PADDLE_ENV not in ("sandbox", "live", "production"):
     raise RuntimeError(f"PADDLE_ENV must be sandbox or live, got: {PADDLE_ENV}")
 
-PADDLE_STARTER_PRICE_ID_MONTHLY = os.getenv("PADDLE_STARTER_PRICE_ID_MONTHLY", "")
-PADDLE_STARTER_PRICE_ID_YEARLY = os.getenv("PADDLE_STARTER_PRICE_ID_YEARLY", "")
+PADDLE_HOSTED_PRICE_ID_MONTHLY = os.getenv("PADDLE_HOSTED_PRICE_ID_MONTHLY", "")
+PADDLE_HOSTED_PRICE_ID_YEARLY = os.getenv("PADDLE_HOSTED_PRICE_ID_YEARLY", "")
 PADDLE_PRO_PRICE_ID = os.getenv("PADDLE_PRO_PRICE_ID", "")
 PADDLE_PRO_PRICE_ID_YEARLY = os.getenv("PADDLE_PRO_PRICE_ID_YEARLY", "")
 PADDLE_ADVANCED_PRICE_ID = os.getenv("PADDLE_ADVANCED_PRICE_ID", "")
@@ -74,9 +74,7 @@ def set_user_plan_by_customer_id(storage_dir, cid, *, plan):
 
 def _plan_from_price_id(price_id: str) -> str:
     if not price_id:
-        return "starter"
-    if PADDLE_STARTER_PRICE_ID_MONTHLY and price_id in (PADDLE_STARTER_PRICE_ID_MONTHLY, PADDLE_STARTER_PRICE_ID_YEARLY):
-        return "starter"
+        return "hosted"
     if PADDLE_ENTERPRISE_PRICE_ID and price_id == PADDLE_ENTERPRISE_PRICE_ID:
         return "enterprise"
     if PADDLE_ADVANCED_PRICE_ID and price_id in (PADDLE_ADVANCED_PRICE_ID, PADDLE_ADVANCED_PRICE_ID_YEARLY):
@@ -111,17 +109,9 @@ async def get_paddle_config(request: Request):
         "environment": "sandbox" if PADDLE_SANDBOX else "production",
         "country": country,
         "tiers": {
-            "starter": {
-                "month": PADDLE_STARTER_PRICE_ID_MONTHLY,
-                "year": PADDLE_STARTER_PRICE_ID_YEARLY,
-            },
-            "pro": {
-                "month": PADDLE_PRO_PRICE_ID,
-                "year": PADDLE_PRO_PRICE_ID_YEARLY,
-            },
-            "advanced": {
-                "month": PADDLE_ADVANCED_PRICE_ID,
-                "year": PADDLE_ADVANCED_PRICE_ID_YEARLY,
+            "hosted": {
+                "month": PADDLE_HOSTED_PRICE_ID_MONTHLY,
+                "year": PADDLE_HOSTED_PRICE_ID_YEARLY,
             },
         },
         "enterprise_price_id": PADDLE_ENTERPRISE_PRICE_ID,
