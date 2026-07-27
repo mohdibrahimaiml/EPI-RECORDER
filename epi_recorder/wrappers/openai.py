@@ -76,6 +76,23 @@ class TracedCompletions:
                 "message_count": len(messages),
                 "timestamp": utc_now_iso(),
             })
+            # Optional Tier 1 notarization: RFC 3161 timestamp from external TSA
+            # proves this pre-commit existed by a specific point in external time,
+            # not just before the response in the local chain.
+            if os.environ.get("EPI_NOTARIZE", "").strip():
+                try:
+                    import hashlib
+                    from epi_core.notarize import notarize_hash
+                    pre_hash = hashlib.sha256(
+                        (str(model) + str(len(messages)) + utc_now_iso()).encode()
+                    ).hexdigest()
+                    ts = notarize_hash(pre_hash, label="llm.pre_commit")
+                    if ts:
+                        # The TSA receipt proves external chronology.
+                        # Stored in the next step (response) for verifier access.
+                        self._last_pre_commit_ts = ts
+                except Exception:
+                    self._last_pre_commit_ts = None
         
         # Call original method
         start_time = time.time()
