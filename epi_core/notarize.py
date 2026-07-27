@@ -183,26 +183,37 @@ def _submit_opentimestamps(digest_hex: str) -> tuple[Optional[bytes], str]:
 def notarize_hash(digest_hex: str, label: str = "pre_commit") -> Optional[dict]:
     """Timestamp a single hash with RFC 3161 (Tier 1).
 
-    Returns a dict with {tsa_url, tsr_b64, timestamp_utc} on success,
-    or None if notarization is disabled or fails.
-    
-    Controlled by EPI_NOTARIZE env var (any non-empty truthy value).
+    Always attempts notarization. Returns a dict with the TSA receipt on
+    success, or an evidence dict recording the attempt failure so auditors
+    can distinguish "never attempted" from "attempted but TSA unreachable".
     """
-    if not os.environ.get("EPI_NOTARIZE", "").strip():
-        return None
+    import base64
+    from epi_core.time_utils import utc_now_iso
+    tsa_url = os.environ.get("EPI_TSA_URL", DEFAULT_TSA_URL)
     try:
         tsr = _submit_rfc3161(digest_hex)
         if tsr is None:
-            return None
-        import base64
-        from epi_core.time_utils import utc_now_iso
+            return {
+                "notarization_attempted": True,
+                "notarization_status": "tsa_unreachable",
+                "tsa_url": tsa_url,
+                "timestamp_utc": utc_now_iso(),
+            }
         return {
-            "tsa_url": os.environ.get("EPI_TSA_URL", DEFAULT_TSA_URL),
+            "notarization_attempted": True,
+            "notarization_status": "ok",
+            "tsa_url": tsa_url,
             "tsr_b64": base64.b64encode(tsr).decode("ascii"),
             "timestamp_utc": utc_now_iso(),
         }
-    except Exception:
-        return None
+    except Exception as e:
+        return {
+            "notarization_attempted": True,
+            "notarization_status": "tsa_error",
+            "tsa_url": tsa_url,
+            "error": str(e)[:200],
+            "timestamp_utc": utc_now_iso(),
+        }
 
 def notarize_manifest(manifest_json: str, manifest_hash: str) -> NotarizationResult:
     """

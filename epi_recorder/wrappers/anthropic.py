@@ -75,18 +75,15 @@ class TracedMessages:
                 "message_count": len(messages),
                 "timestamp": utc_now_iso(),
             })
-            if os.environ.get("EPI_NOTARIZE", "").strip():
-                try:
-                    import hashlib
-                    from epi_core.notarize import notarize_hash
-                    pre_hash = hashlib.sha256(
-                        (str(model) + str(len(messages)) + utc_now_iso()).encode()
-                    ).hexdigest()
-                    ts = notarize_hash(pre_hash, label="llm.pre_commit")
-                    if ts:
-                        self._last_pre_commit_ts = ts
-                except Exception:
-                    self._last_pre_commit_ts = None
+            try:
+                import hashlib
+                from epi_core.notarize import notarize_hash
+                pre_hash = hashlib.sha256(
+                    (str(model) + str(len(messages)) + utc_now_iso()).encode()
+                ).hexdigest()
+                self._last_pre_commit_ts = notarize_hash(pre_hash, label="llm.pre_commit")
+            except Exception:
+                self._last_pre_commit_ts = {"notarization_attempted": True, "notarization_status": "error"}
         
         # Call original method
         start_time = time.time()
