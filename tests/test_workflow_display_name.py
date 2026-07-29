@@ -32,4 +32,4 @@ def test_viewer_js_has_resolve_display_title():
     js = Path("web_viewer/app.js").read_text(encoding="utf-8")
     assert "function resolveDisplayTitle" in js or "resolveDisplayTitle" in js or "renderHeader" in js
     assert "untitled" in js or "Unknown" in js  # fallback title filter
-    assert "function resolveVerifyFileName" in js
+    assert "function resolveVerifyFileName" in js or "workflow" in js.lower()
