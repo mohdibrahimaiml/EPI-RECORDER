@@ -1117,14 +1117,19 @@ class EPIContainer:
                 compress_type=zipfile.ZIP_DEFLATED,
             )
 
-            zf.writestr(
-                "VERIFY.txt",
-                VERIFY_TXT_TEMPLATE % {
-                    "filename": manifest.workflow_id or "unknown",
-                    "steps_count": len(manifest.file_manifest),
-                },
-                compress_type=zipfile.ZIP_DEFLATED,
-            )
+            # Preserve original VERIFY.txt if it exists, otherwise write template
+            verify_path = source_dir / "VERIFY.txt"
+            if verify_path.exists():
+                zf.write(verify_path, "VERIFY.txt", compress_type=zipfile.ZIP_DEFLATED)
+            else:
+                zf.writestr(
+                    "VERIFY.txt",
+                    VERIFY_TXT_TEMPLATE % {
+                        "filename": manifest.workflow_id or "unknown",
+                        "steps_count": len(manifest.file_manifest),
+                    },
+                    compress_type=zipfile.ZIP_DEFLATED,
+                )
 
         return viewer_html
 
