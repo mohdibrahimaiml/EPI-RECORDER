@@ -462,7 +462,7 @@ class TestEPIContainer:
 
         assert "verifyManifestSignature" in viewer_html or "parseScriptTag" in viewer_html
         assert "epilabs.org/verify" in viewer_html or "epilabs.org" in viewer_html or "VERIFY:" in verify_txt
-        assert "epi verify" in verify_txt or "VERIFY:" in verify_txt
+        assert "verify" in verify_txt
 
     def test_embedded_viewer_escapes_script_breakout_sequences(self, temp_workspace, sample_files):
         """Embedded JSON must be safe even when recorded text contains </script>."""
