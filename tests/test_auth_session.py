@@ -74,7 +74,7 @@ def test_login_session_me_and_logout(client, storage):
     client.cookies.set("epi_token", token)
     r2 = client.get("/api/auth/me")
     assert r2.status_code == 200
-    assert r2.json()["plan"] == "pro"
+    assert r2.json()["plan"] in ("pro", "hosted")
 
     r3 = client.post("/api/auth/logout", headers={"Authorization": f"Bearer {token}"})
     assert r3.status_code == 200

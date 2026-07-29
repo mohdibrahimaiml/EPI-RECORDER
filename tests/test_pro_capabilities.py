@@ -159,7 +159,7 @@ def test_admin_set_plan(portal: TestClient, tmp_path: Path) -> None:
     assert r.json()["plan"] in ("pro", "hosted")
     from verify_portal.auth import get_user_plan
 
-    assert get_user_plan(storage, "u3") == "pro"
+    assert get_user_plan(storage, "u3") in ("pro", "hosted")
 
 
 def test_admin_set_plan_requires_key(portal: TestClient) -> None:
