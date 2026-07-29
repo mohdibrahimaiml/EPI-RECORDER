@@ -2,7 +2,7 @@
 import sys, os, tempfile, json, zipfile
 from pathlib import Path
 
-sys.path.insert(0, r"C:\Users\dell\epi-recorder")
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from epi_recorder.api import record
 
 # Simulate crash: pre_commit logged, but process "dies" before response
@@ -29,7 +29,7 @@ print("\n--- Running epi verify ---")
 import subprocess
 result = subprocess.run(
     ["python", "-m", "epi_cli.verify", test_path],
-    capture_output=True, text=True, cwd=r"C:\Users\dell\epi-recorder"
+    capture_output=True, text=True, cwd=str(Path(__file__).resolve().parent.parent)
 )
 
 # Check output for orphan detection
