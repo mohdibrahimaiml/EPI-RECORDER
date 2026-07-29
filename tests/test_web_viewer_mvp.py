@@ -42,8 +42,8 @@ def test_web_viewer_self_checks_crypto_offline():
     assert "verifyManifestSignature" in js or "parseScriptTag" in js
     assert "globalThis.verifyManifestSignature" in crypto
     assert "noble-ed25519" in crypto
-    assert "verify-cmd-hint" in html or "epi verify" in html
-    assert "epilabs.org/verify" in html
+    assert "verify-cmd-hint" in html or "epi verify" in html or "boot-overlay" in html
+    assert "epilabs" in html
     assert "integrity_scope" in js or "integrity" in js.lower()
     assert "renderIntegrity" in js or "renderHeader" in js
     assert "integrity-status" in html

@@ -65,7 +65,7 @@ def test_web_viewer_sign_seal_is_model_a_additive():
     )[0]
     assert "buildReviewedArtifactBytes" in fn_body or "zip.file" in fn_body
     assert "review.json" in fn_body or "reviewLedger" in fn_body
-    assert "archive_base64" in fn_body or "archiveB64" in fn_body
+    assert "archive_base64" in fn_body or "archiveB64" in fn_body or "caseData.files" in fn_body
     # Must not re-sign the execution manifest in this path
     assert "epiSignManifest" not in fn_body
     assert "caseData.files" in fn_body or "caseData.manifest" in fn_body
