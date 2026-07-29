@@ -225,8 +225,8 @@ function stepTone(step) {
       return { htClass: 'ht-tool', kindClass: 'ev-kind-tool' };
 
     case 'policy.check': {
-      const status = String(c.status || '').toLowerCase();
-      if (status === 'triggered' || status === 'failed' || status === 'fail') {
+      const status = String(c.status || c.result || '').toLowerCase();
+      if (status === 'triggered' || status === 'failed' || status === 'fail' || status === 'review_required') {
         return { htClass: 'ht-fail', kindClass: 'ev-kind-fail' };
       }
       return { htClass: 'ht-policy', kindClass: 'ev-kind-policy' };
@@ -234,10 +234,10 @@ function stepTone(step) {
 
     case 'agent.decision': {
       const dec = String(c.decision || c.verdict || '').toUpperCase();
-      if (dec === 'APPROVED' || dec === 'PASS' || dec === 'PASSED') {
+      if (dec.includes('APPROVED') || dec.includes('APPROVE') || dec.includes('PASS') || dec.includes('ACCEPT')) {
         return { htClass: 'ht-pass', kindClass: 'ev-kind-pass' };
       }
-      if (dec === 'REJECTED' || dec === 'FAIL' || dec === 'FAILED' || dec === 'DENY' || dec === 'DENIED') {
+      if (dec.includes('REJECT') || dec.includes('DENY') || dec.includes('FAIL') || dec.includes('DECLINE')) {
         return { htClass: 'ht-fail', kindClass: 'ev-kind-fail' };
       }
       return { htClass: 'ht-warn', kindClass: 'ev-kind-warn' };
@@ -661,12 +661,15 @@ function renderVerdict(caseData) {
 
   if (rawDecision) {
     systemVerdict = rawDecision;
-    if (['APPROVED', 'PASS', 'PASSED', 'ACCEPT', 'ACCEPTED'].includes(rawDecision)) {
+    if (['APPROVED', 'APPROVE', 'PASS', 'PASSED', 'ACCEPT', 'ACCEPTED'].some(v => rawDecision.includes(v))) {
       verdictClass = 'approved';
-    } else if (['REJECTED', 'REJECT', 'DENY', 'DENIED', 'FAIL', 'FAILED', 'DECLINE', 'DECLINED'].includes(rawDecision)) {
+      verdictDisplay = 'APPROVED';
+    } else if (['REJECTED', 'REJECT', 'DENY', 'DENIED', 'FAIL', 'FAILED', 'DECLINE', 'DECLINED'].some(v => rawDecision.includes(v))) {
       verdictClass = 'rejected';
+      verdictDisplay = 'REJECTED';
     } else {
       verdictClass = 'pending';
+      verdictDisplay = rawDecision.replace(/_/g, ' ');
     }
   } else if (analysis) {
     if (analysis.fault_detected === true) {
