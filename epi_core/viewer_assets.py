@@ -38,23 +38,25 @@ def load_viewer_assets(version: str = "1.0") -> dict[str, str | None]:
 def _escape_inline_script_source(script_source: str | None) -> str | None:
     if script_source is None:
         return None
-    # Replace </script> with <\/script> (escaped / - browser doesn't close <script>)
+    BS = chr(92)  # backslash character \
+    # Escape "</script>" -> "</" + BS + "x2fscript>"
     script_source = re.sub(
-        r"</(script)",
-        lambda m: "<\\/" + m.group(1),
+        r"</(script>)",
+        lambda m: "</" + BS + "x2f" + m.group(1),
         script_source,
         flags=re.IGNORECASE,
     )
-    # Replace <script with \<script (escaped < - browser doesn't open new block)
-    # The output string '\<' renders as '\<' in JS source, which evaluates to '<'
-    # but the browser's HTML parser only sees the literal characters, not a tag.
+    # Escape "<script" (followed by space, >, or word boundary) 
+    # -> BS + "x3c" + "script" + rest
     script_source = re.sub(
-        r"<(script\b)",
-        lambda m: "\\<" + m.group(1),
+        r"<(script[\b\s>])",
+        lambda m: BS + "x3c" + m.group(1),
         script_source,
         flags=re.IGNORECASE,
     )
     return script_source
+
+
 def inline_viewer_assets(
     template_html: str,
     *,
