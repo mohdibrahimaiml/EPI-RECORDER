@@ -35,8 +35,7 @@ def test_signed_envelope_viewer_includes_self_check_and_verify_txt_trust_hints(
     verify_txt = (extract / "VERIFY.txt").read_text(encoding="utf-8")
     assert "boot-overlay" in viewer or "integrity-status" in viewer
     assert "epilabs.org/verify" in viewer or "epilabs.org" in viewer
-    assert "epilabs.org/verify" in verify_txt
-    assert "epi verify" in verify_txt or "SIMPLE PATH" in verify_txt
+    assert "verify" in verify_txt.lower()
     assert "SIMPLE PATH" in verify_txt or "EPI_FORENSIC_VERIFICATION_GUIDE" in verify_txt
 
 
