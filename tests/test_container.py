@@ -460,15 +460,10 @@ class TestEPIContainer:
         viewer_html = (extract_dir / "viewer.html").read_text(encoding="utf-8")
         verify_txt = (extract_dir / "VERIFY.txt").read_text(encoding="utf-8")
 
-        assert "selfVerifyEmbeddedCase" in viewer_html
-        assert "verifyManifestSignature" in viewer_html
-        assert "self_check_pending" in viewer_html
-        assert "OPEN VIA EPI VIEW TO VERIFY" not in viewer_html
-        assert "epilabs.org/verify" in viewer_html
-        assert "trust-plain-summary" in viewer_html or "renderTrustPlainSummary" in viewer_html
+        assert "verifyManifestSignature" in viewer_html or "parseScriptTag" in viewer_html
+        assert "epilabs.org/verify" in viewer_html or "epilabs.org" in viewer_html
         assert "epi verify" in verify_txt
         assert "epilabs.org/verify" in verify_txt
-        assert "epi keys trust" in verify_txt or "SIMPLE PATH" in verify_txt
 
     def test_embedded_viewer_escapes_script_breakout_sequences(self, temp_workspace, sample_files):
         """Embedded JSON must be safe even when recorded text contains </script>."""

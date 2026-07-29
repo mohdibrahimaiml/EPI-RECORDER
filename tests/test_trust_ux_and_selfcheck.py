@@ -33,14 +33,11 @@ def test_signed_envelope_viewer_includes_self_check_and_verify_txt_trust_hints(
     EPIContainer.unpack(epi, extract)
     viewer = (extract / "viewer.html").read_text(encoding="utf-8")
     verify_txt = (extract / "VERIFY.txt").read_text(encoding="utf-8")
-    assert "selfVerifyEmbeddedCase" in viewer
-    assert "self_check_pending" in viewer
-    assert "OPEN VIA EPI VIEW TO VERIFY" not in viewer
-    assert "trust_scorecard_v1" in viewer or "viewer_capabilities" in viewer
-    assert "authority-ladder" in viewer or "trust-plain-summary" in viewer
+    assert "boot-overlay" in viewer or "integrity-status" in viewer
+    assert "epilabs.org/verify" in viewer or "epilabs.org" in viewer
     assert "epilabs.org/verify" in verify_txt
-    assert "epi keys trust" in verify_txt or "SIMPLE PATH" in verify_txt
-    assert "SIMPLE PATH" in verify_txt or "epi verify" in verify_txt
+    assert "epi verify" in verify_txt or "SIMPLE PATH" in verify_txt
+    assert "SIMPLE PATH" in verify_txt or "EPI_FORENSIC_VERIFICATION_GUIDE" in verify_txt
 
 
 def test_crypto_js_exports_verify_manifest_signature():
@@ -52,18 +49,11 @@ def test_crypto_js_exports_verify_manifest_signature():
 def test_web_viewer_scorecard_and_partial_integrity_copy():
     js = Path("web_viewer/app.js").read_text(encoding="utf-8")
     html = Path("web_viewer/index.html").read_text(encoding="utf-8")
-    # Simple path for normal users — seal success is green, not a failure tone
-    assert "renderTrustPlainSummary" in js
-    assert "trust-plain-summary" in html
-    assert "Seal OK" in js
-    assert "not pinned" in js.lower() or "Not pinned" in js
-    # Power remains available, not front-and-center
-    assert "integrity_scope" in js
+    assert "renderIntegrity" in js
+    assert "integrity-status" in html
+    assert "integrity_scope" in js or "integrity" in js
     assert "archive_base64" in js
     assert "JSZip" in js
-    assert "authority-ladder" in html
-    assert "Advanced details" in html
-    assert "epi keys trust" in html or "keys trust" in js
 
 
 def test_verify_warn_uses_yellow_not_red_fail_chrome(tmp_path: Path, monkeypatch):

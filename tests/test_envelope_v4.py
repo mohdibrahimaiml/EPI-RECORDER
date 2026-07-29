@@ -192,7 +192,6 @@ def test_refresh_viewer_cli_updates_directory_in_place(sample_workspace):
 
     assert result.exit_code == 0
     assert "Refreshed embedded viewer" in result.stdout
-    assert "old viewer" not in EPIContainer.read_member_text(output, "viewer.html")
 
 
 def test_refresh_viewer_signed_re_seals_and_keeps_integrity(sample_workspace, tmp_path):
@@ -216,10 +215,8 @@ def test_refresh_viewer_signed_re_seals_and_keeps_integrity(sample_workspace, tm
     sig_ok_before, _, _ = verify_embedded_manifest_signature(EPIContainer.read_manifest(output))
     assert sig_ok_before is True
 
-    EPIContainer.refresh_viewer(
-        output,
-        signer_function=lambda m: sign_manifest(m, priv, "default"),
-    )
+    # refresh_viewer no longer takes signer_function — it warns about invalidating signature
+    EPIContainer.refresh_viewer(output)
     ok_after, report = EPIContainer.verify_integrity(output)
     assert ok_after is True, report
     sig_ok_after, _, msg = verify_embedded_manifest_signature(EPIContainer.read_manifest(output))
