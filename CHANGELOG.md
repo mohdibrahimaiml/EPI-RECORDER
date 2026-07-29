@@ -2,6 +2,33 @@
 
 All notable changes to EPI Recorder are documented here.
 
+## [4.4.0] - 2026-07-29
+
+### Pricing & Product
+- Consolidated Starter + Pro tiers into single "Hosted" tier at $15/mo, $144/yr
+- Archived 6 old Paddle price IDs, created 2 new Hosted price IDs
+- Added $15K anchor to compliance-readiness consulting section
+- Replaced Enterprise pricing with "Coming soon - design partner cohort"
+- Added FAQ: why no team/enterprise pricing (dedicated infra not live yet)
+
+### Pre-commit & Notarization
+- LLM pre-commit: llm.pre_commit step logged before API call in openai.py + anthropic.py
+- AUD-CO-01 orphan detection: flags pre_commit entries where response never arrived
+- RFC 3161 notarization: always attempted, failure evidence recorded
+- Remove EPI_NOTARIZE env var gate, now called on every pre_commit
+- notarize_hash returns notarization_attempted + notarization_status on failure
+
+### verification_class
+- Step classification: recomputable vs attested_only per step (R/A badges)
+- Safe default: tool calls are attested_only unless content.epi_deterministic is True
+- Patcher bug fix: tool.response now gets correct classification (was None)
+- web_viewer + epi_viewer_static: R/A badges rendered in timeline
+
+### Infrastructure & Status
+- Added /status page with live browser checks, honest infrastructure disclosure
+- docs/KNOWN_LIMITATIONS.md: streaming gap, free-tier infra, model_validator bypass
+- Pre-commit streaming caveat: "(non-streaming calls)" on pricing page
+
 ## [4.3.0] - 2026-07-20
 
 ### Portal Launch, SCITT Service & AGT Interoperability

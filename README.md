@@ -25,7 +25,7 @@ epi demo --no-browser   # record → seal → verify (no API key)
 > When someone asks what your agent did six months ago,  
 > the answer should be a **`.epi` file** — not a dashboard login and a shrug.
 
-**EPI** (`epi-recorder`) **v4.3.0** captures agent runs into a **portable, signed, offline-verifiable** artifact.
+**EPI** (`epi-recorder`) **v4.4.0** captures agent runs into a **portable, signed, offline-verifiable** artifact.
 
 | You can… | Offline? | Notes |
 |----------|----------|--------|
