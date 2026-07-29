@@ -275,10 +275,16 @@ class StepModel(BaseModel):
                         data["source_type"] = "system"
                     else:
                         data["source_type"] = "reasoning"
+                elif kind in ("llm.request", "llm.response", "agent.decision"):
+                    data["source_type"] = "reasoning"
                 elif kind in ("tool.call", "tool.response", "shell.command", "python.call"):
                     is_deterministic = (data.get("content") or {}).get("epi_deterministic") is True
                     data["verification_class"] = "recomputable" if is_deterministic else "attested_only"
-                elif kind in ("llm.request", "llm.response", "llm.pre_commit", "agent.decision", "agent.approval.request", "agent.approval.response"):
+                elif kind in ("tool.call", "tool.response"):
+                    data["source_type"] = "tool"
+                elif kind in ("llm.request", "llm.response"):
+                    data["source_type"] = "reasoning"
+                elif kind in ("llm.pre_commit", "agent.decision", "agent.approval.request", "agent.approval.response"):
                     data["verification_class"] = "attested_only"
                 elif kind in ("agent.run.start",):
                     data["source_type"] = "user"

@@ -90,6 +90,7 @@ def get_canonical_hash(
     # backward compatibility with legacy artifacts that do not contain this field.
     if model.__class__.__name__ == "StepModel":
         model_dict.pop("source_type", None)
+        model_dict.pop("verification_class", None)
 
     # Normalize datetime and UUID fields to strings
     def normalize_value(value: Any) -> Any:
