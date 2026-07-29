@@ -37,7 +37,8 @@ def test_real_langchain_runnable_emits_chain_callbacks_when_installed(monkeypatc
     assert "chain.end" in kinds
 
 
-def test_real_litellm_callback_registration_when_installed():
+@pytest.mark.network
+async def test_real_litellm_callback_registration_when_installed():
     litellm = pytest.importorskip("litellm")
     original = {
         "callbacks": getattr(litellm, "callbacks", None),
