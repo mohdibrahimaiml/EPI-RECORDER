@@ -38,26 +38,23 @@ def load_viewer_assets(version: str = "1.0") -> dict[str, str | None]:
 def _escape_inline_script_source(script_source: str | None) -> str | None:
     if script_source is None:
         return None
-    # Escape </script> to prevent premature closing of parent <script> block.
-    # Output: <\x2fscript> — browser does not close <script> on this pattern.
+    # Replace </script> with <\/script> (escaped / - browser doesn't close <script>)
     script_source = re.sub(
         r"</(script)",
-        r"<\\\x2f\1",
+        lambda m: "<\\/" + m.group(1),
         script_source,
         flags=re.IGNORECASE,
     )
-    # Escape <script to prevent browser HTML parser from seeing 
-    # nested script blocks inside JS string/regex literals.
-    # Output: \x3cscript — browser does not open a new <script> on this pattern.
+    # Replace <script with \<script (escaped < - browser doesn't open new block)
+    # The output string '\<' renders as '\<' in JS source, which evaluates to '<'
+    # but the browser's HTML parser only sees the literal characters, not a tag.
     script_source = re.sub(
-        r"<(script\\b)",
-        r"\\\x3c\1",
+        r"<(script\b)",
+        lambda m: "\\<" + m.group(1),
         script_source,
         flags=re.IGNORECASE,
     )
     return script_source
-
-
 def inline_viewer_assets(
     template_html: str,
     *,
