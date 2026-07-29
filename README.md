@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/mohdibrahimaiml/epi-recorder/main/docs/assets/logo.png" alt="EPI Labs" width="160"/>
+  <img src="https://raw.githubusercontent.com/mohdibrahimaiml/epi-recorder/main/docs/assets/logo.png" alt="EPI Logo" width="200"/>
 
 # EPI — Evidence for AI agents
 
@@ -7,16 +7,16 @@
 
 [![PyPI](https://img.shields.io/pypi/v/epi-recorder?color=blue&label=PyPI)](https://pypi.org/project/epi-recorder/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://python.org)
+[![Version v4.4.0](https://img.shields.io/badge/version-v4.4.0-purple)](https://github.com/mohdibrahimaiml/epi-recorder/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](https://github.com/mohdibrahimaiml/epi-recorder/actions)
-[![Website](https://img.shields.io/badge/site-epilabs.org-0a84ff)](https://epilabs.org)
 
 ```bash
 pip install epi-recorder
-epi demo --no-browser   # record → seal → verify (no API key)
+epi demo --no-browser    # record → seal → verify (no API key)
 ```
 
-[60-second path](#-60-second-path) · [What’s a `.epi`?](#-whats-a-epi-file) · [OpenAI](#-with-openai) · [CLI](#-cli) · [Trust model](#-trust-model-be-honest) · [Docs](#-docs--standards)
+[60-second path](#-60-second-path) · [With OpenAI](#-with-openai) · [Integrations](#-integrations) · [CLI](#-cli) · [Standards](#-standards--compliance)
 
 </div>
 
@@ -25,53 +25,14 @@ epi demo --no-browser   # record → seal → verify (no API key)
 > When someone asks what your agent did six months ago,  
 > the answer should be a **`.epi` file** — not a dashboard login and a shrug.
 
-**EPI** (`epi-recorder`) **v4.4.0** captures agent runs into a **portable, signed, offline-verifiable** artifact.
-
-| You can… | Offline? | Notes |
-|----------|----------|--------|
-| **Record + seal** | Yes* | `*Seal may contact a TSA if `EPI_NOTARIZE=1` (default). Use `EPI_NOTARIZE=0` for air-gap. |
-| **Verify integrity + signature** | Yes | No upload required |
-| **View in the browser** | Yes | Self-contained embedded viewer (`epi view`) or https://epilabs.org/verify |
-| **Know who the sealer is** | Local trust store | First run often **WARN** until you `epi keys trust` |
-
-EPI produces evidence for audit trails. It is **not a compliance guarantee** and does not provide legal advice.
-
----
-
-## See a real `.epi` file
-
-Open a sealed artifact in any browser — this is the **embedded forensic viewer inside the `.epi` itself** (polyglot HTML+ZIP), not a remote dashboard:
-
-<p align="center">
-  <img
-    src="https://raw.githubusercontent.com/mohdibrahimaiml/epi-recorder/main/docs/assets/epi-file-viewer-full.png"
-    alt="EPI .epi forensic artifact viewer — integrity, verdict, evidence timeline, and attestation"
-    width="920"
-  />
-</p>
-
-<p align="center">
-  <em>Official forensic record from a sealed <code>.epi</code>: integrity, case context, verdict, chronological evidence log, and sign-off — all offline.</em>
-</p>
-
-Try it yourself:
-
-```bash
-# After any record/demo:
-epi view your-run.epi          # opens the .epi forensic viewer
-epi verify your-run.epi        # CLI integrity + signature
-
-# Or open the sample shipped with this repo:
-epi view docs/assets/readme-demo.epi
-```
-
-Or drop a file into the hosted verifier: **[epilabs.org/verify](https://epilabs.org/verify/)** (checks run in your browser).
+`epi-recorder` captures agent decisions into a portable, signed, **offline-verifiable** artifact.  
+No phone-home required to open or verify.
 
 ---
 
 ## 60-second path
 
-Works **without** an LLM API key:
+Works **without** any LLM API key:
 
 ```python
 # demo.py
@@ -90,59 +51,25 @@ epi verify demo.epi
 epi view demo.epi
 ```
 
-| Step | Command | Result |
-|------|---------|--------|
+| Step | Command | What you get |
+|------|---------|----------------|
 | **Record + seal** | `python demo.py` | Signed `demo.epi` (secrets redacted by default) |
-| **Verify** | `epi verify demo.epi` | Integrity + signature offline |
-| **View** | `epi view demo.epi` | Case UI in the browser (no server) |
+| **Verify** | `epi verify demo.epi` | Integrity + signature checks offline |
+| **View** | `epi view demo.epi` | Self-contained browser viewer (no server) |
 
-**First-run verify is often `WARN` on identity** — that is expected:
+Typical first-run verify:
 
-| Check | Typical first run |
-|-------|-------------------|
-| Integrity (SHA-256) | Pass |
-| Signature (Ed25519) | Pass |
-| Identity | **Unknown** until `epi keys trust <name>` |
-| Secrets | Redacted by default |
+| Check | Result |
+|-------|--------|
+| Integrity (SHA-256) | ✅ Valid |
+| Signature (Ed25519) | ✅ Valid |
+| Identity | ⚠ UNKNOWN until you `epi keys trust` your key |
+| Secrets | ✅ Redacted by default (`redact=True`) |
 
-```bash
-epi keys list
-epi keys trust default    # or your key name
-epi verify demo.epi       # identity can become KNOWN
-```
+> **DECISION: WARN** on first verify is normal — integrity and signature still pass.  
+> Trust identity with: `epi keys trust <name>` after `epi keys list`.
 
----
-
-## What’s a `.epi` file?
-
-A **polyglot Envelope v2** container (polyglot HTML+ZIP): valid **HTML + archive**, signed and hash-linked.
-
-```text
-demo.epi
-├── manifest.json      # Ed25519 signature + SHA-256 member hashes
-├── steps.jsonl        # Timeline (prev_hash chain)
-├── environment.json   # Runtime snapshot (sensitive env redacted)
-├── viewer.html        # Offline UI shell
-├── analysis.json      # Optional fault / policy analysis
-├── review.json        # Optional additive human review (Model A)
-└── VERIFY.txt         # Plain-text auditor notes
-```
-
-| Guarantee | How |
-|-----------|-----|
-| **Integrity** | SHA-256 over sealed members |
-| **Authenticity** | Ed25519 on the manifest |
-| **Timeline** | Hash-linked steps |
-| **Privacy** | Default redaction (API keys, tokens, common secrets) |
-| **Human review** | Additive bound review — does **not** rewrite the original seal |
-
-Sample artifacts (current seal shell): [`docs/assets/readme-demo.epi`](docs/assets/readme-demo.epi),
-[`sample-hello.epi`](docs/assets/sample-hello.epi) — see [`docs/assets/SAMPLES.md`](docs/assets/SAMPLES.md).
-`epi verify` on these samples is **WARN** (signature valid, signer not pinned) until
-`epi keys trust docs/assets/sample-hello.epi --name sample`.
-
-**Alignment proof** (CLI vs tamper vs hosted): [`docs/EVIDENCE-ALIGNMENT.md`](docs/EVIDENCE-ALIGNMENT.md) —
-run `python scripts/check_verify_alignment.py`.
+That’s the product. Everything below is optional depth.
 
 ---
 
@@ -162,45 +89,42 @@ with record("agent.epi", goal="Answer a user question"):
 ```
 
 ```bash
-python agent.py && epi verify agent.epi && epi view agent.epi
+python agent.py
+epi verify agent.epi
+epi view agent.epi
 ```
 
-Keys in prompts/headers are **redacted by default** before they land in the file.
+API keys in prompts/headers are **redacted automatically** before they land in the file.
 
 ---
 
-## Trust model (be honest)
+## What a `.epi` file is
 
-EPI separates three facts:
+Every `.epi` uses the **Envelope v2** container format — a **polyglot HTML+ZIP**
+binary that opens natively in any browser and can be extracted programmatically.
 
-1. **Integrity** — bytes match the seal  
-2. **Signature** — sealed under a given public key  
-3. **Identity** — whether *you* already trust that key  
+```text
+demo.epi
+├── manifest.json     # Ed25519 signature + SHA-256 file hashes
+├── steps.jsonl       # Timeline (hash-linked steps)
+├── environment.json  # Runtime snapshot (sensitive env redacted)
+├── viewer.html       # Offline forensic UI
+└── VERIFY.txt        # Plain-text auditor instructions
+```
 
-| Level | Meaning |
-|-------|---------|
-| **HIGH** | Integrity + valid sig + key in your local trust store |
-| **LOW / WARN** | Valid seal, key not yet trusted (common first run) |
-| **NONE / FAIL** | Tamper, bad signature, or failed checks |
-
-**EPI does not prove** that free-text names are real employees, or that the agent’s decision was *correct* — only that the recorded evidence was sealed and not altered.
-
-Enterprise playbook (one page): [docs/ENTERPRISE-EVIDENCE-PLAYBOOK.md](docs/ENTERPRISE-EVIDENCE-PLAYBOOK.md)
-
-Enterprise / org trust bundles:
-
-- Profile: [`docs/ENTERPRISE-TRUST-PROFILE.md`](docs/ENTERPRISE-TRUST-PROFILE.md)  
-- Bundles: `epi keys bundle-export` / `epi keys bundle-import` · [`docs/ENTERPRISE-TRUST-BUNDLE.md`](docs/ENTERPRISE-TRUST-BUNDLE.md)
-
-**Format contract:** [epi-spec SPEC v0.2](https://github.com/mohdibrahimaiml/epi-spec/blob/main/SPEC.md)  
-**Alignment proof:** [`docs/EVIDENCE-ALIGNMENT.md`](docs/EVIDENCE-ALIGNMENT.md) · `python scripts/check_verify_alignment.py`
+| Guarantee | How |
+|-----------|-----|
+| **Integrity** | SHA-256 over every sealed member |
+| **Authenticity** | Ed25519 signature on the manifest |
+| **Chain** | Each step’s `prev_hash` links the timeline |
+| **Privacy** | Default secret redaction (API keys, tokens, PII) |
 
 ---
 
 ## Integrations
 
-| Stack | Hook |
-|-------|------|
+| Stack | How |
+|-------|-----|
 | OpenAI | `wrap_openai(OpenAI())` |
 | Anthropic | `wrap_anthropic(Anthropic())` |
 | LangChain | `EPICallbackHandler` |
@@ -209,12 +133,14 @@ Enterprise / org trust bundles:
 | Microsoft AGT | `epi import agt <file>` |
 
 ```python
+# LangChain
 from epi_recorder.integrations.langchain import EPICallbackHandler
-# llm = ChatOpenAI(model="gpt-4o-mini", callbacks=[EPICallbackHandler()])
+llm = ChatOpenAI(model="gpt-4o-mini", callbacks=[EPICallbackHandler()])
 ```
 
 ```bash
-pytest --epi    # evidence attached to test runs
+# pytest — attach evidence to failing tests
+pytest --epi
 ```
 
 More: [docs/FRAMEWORK-INTEGRATIONS-5-MINUTES.md](docs/FRAMEWORK-INTEGRATIONS-5-MINUTES.md)
@@ -225,43 +151,43 @@ More: [docs/FRAMEWORK-INTEGRATIONS-5-MINUTES.md](docs/FRAMEWORK-INTEGRATIONS-5-M
 
 | Command | Purpose |
 |---------|---------|
-| `epi demo` | Guided record → seal → verify (no API key) |
-| `epi verify <file.epi>` | Offline integrity + signature |
-| `epi view <file.epi>` | Open browser case UI |
+| `epi verify <file.epi>` | Offline integrity + signature check |
+| `epi view <file.epi>` | Open offline viewer |
 | `epi run <script.py>` | Run a script under recording |
-| `epi keys generate / list / trust` | Local signing keys |
-| `epi keys bundle-export / import` | Org trust bundles |
-| `epi review <file.epi>` | Human review of faults / outcomes |
+| `epi keys generate` | Create a local signing key |
+| `epi keys list` / `trust` / `revoke` | Key management |
+| `epi demo` | Guided demo (alias of `epi dev`) |
 | `epi scitt register <file.epi>` | Optional transparency anchor |
 | `epi import agt <path>` | Import Microsoft AGT evidence |
-
-```bash
-epi verify agent.epi --json
-epi verify agent.epi --policy strict    # requires trusted sealer
-epi verify agent.epi --review           # check bound human review
-```
 
 ---
 
 ## Security defaults
 
-- **Redaction on** (`redact=True`) — prefer never `redact=False` in production  
-- **Verify is local** — no network for integrity/signature  
-- **Seal** may use RFC 3161 notarization when online (`EPI_NOTARIZE=0` to disable)  
-- First-run identity **WARN** is normal until you trust your key  
+- **Redaction is on** (`redact=True`). Keys/tokens/PII become `***REDACTED***:…` placeholders.
+- Prefer **not** using `redact=False` in production (it warns).
+- Verification is **local** — no network required for integrity/signature.
+- First-run identity WARN is expected until you trust your key.
 
 ---
 
-## Docs & standards
+## Standards & compliance
 
-| Topic | Link |
+EPI produces **evidence files** that help with audit trails. It is **not a compliance guarantee**
+and **does not provide legal advice**. Whether evidence satisfies a specific regulatory threshold
+is for the auditor or notified body to determine.
+
+| Topic | Docs |
 |-------|------|
 | EU AI Act Annex IV | [docs/ANNEX-IV.md](docs/ANNEX-IV.md) |
-| AIUC-1 | [docs/standards/aiuc-1-evidence.md](docs/standards/aiuc-1-evidence.md) |
+| AIUC-1 domains | [docs/standards/aiuc-1-evidence.md](docs/standards/aiuc-1-evidence.md) |
 | SCITT | [docs/standards/scitt-predicate.md](docs/standards/scitt-predicate.md) |
-| Auditors | [docs/AUDITORS-GUIDE.md](docs/AUDITORS-GUIDE.md) |
 | CLI deep dive | [docs/CLI.md](docs/CLI.md) |
-| Website | [epilabs.org](https://epilabs.org) |
+| Auditors guide | [docs/AUDITORS-GUIDE.md](docs/AUDITORS-GUIDE.md) |
+
+```bash
+epi verify agent.epi --aiuc1   # optional domain scoring
+```
 
 ---
 
@@ -269,25 +195,25 @@ epi verify agent.epi --review           # check bound human review
 
 | Symptom | Fix |
 |---------|-----|
-| `epi: command not found` | Same venv as `pip install`, or `python -m epi_cli` |
-| `DECISION: WARN` first verify | Integrity/sig OK — `epi keys trust …` for KNOWN identity |
-| `Integrity: FAILED` | File changed after seal — re-record |
-| Share / portal errors | Hosted extras need a backend; **local record/verify never do** |
+| `epi: command not found` | Activate the same venv where you `pip install`ed, or use `python -m epi_cli` |
+| `DECISION: WARN` first verify | Normal — integrity/signature OK. Run `epi keys trust …` for KNOWN identity |
+| `Integrity: FAILED` | File was modified after seal — re-record |
+| Share / portal fails | Hosted features need a live backend; local record/verify never depends on them |
 
 ---
 
-## Project layout
+## Project layout (contributors)
 
 | Path | Role |
 |------|------|
 | `epi_recorder/` | Python SDK (`record`, wrappers) |
 | `epi_core/` | Container, crypto, redaction, verify |
 | `epi_cli/` | `epi` command |
-| `website/` | **epilabs.org source of truth** |
-| `docs/assets/` | Logo + README screenshots + sample `.epi` |
-| `tests/` | Regression suite |
+| `website/` | **Public site source of truth** (`epilabs.org`) |
+| `verify_portal/` | Hosted verify/auth API (optional) |
+| `tests/test_core_loop_golden.py` | Golden path regression |
 
-Website edits: change only `website/`, then `python scripts/sync_website.py`.
+Website edits: only under `website/`, then `python scripts/sync_website.py`.
 
 ---
 
@@ -295,4 +221,4 @@ Website edits: change only `website/`, then `python scripts/sync_website.py`.
 
 MIT — see [LICENSE](LICENSE).
 
-**PyPI:** [epi-recorder](https://pypi.org/project/epi-recorder/) · **Site:** [epilabs.org](https://epilabs.org) · **Issues:** [GitHub Issues](https://github.com/mohdibrahimaiml/epi-recorder/issues)
+**Site:** [epilabs.org](https://epilabs.org) · **Issues:** [GitHub Issues](https://github.com/mohdibrahimaiml/epi-recorder/issues)

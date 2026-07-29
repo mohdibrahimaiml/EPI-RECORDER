@@ -2,19 +2,16 @@
  * Cloudflare Pages build step.
  *
  * Canonical static site lives in website/. CF Pages needs a build output
- * directory — we copy website/ → dist/ with no transform.
+ * directory — we copy website/ → site/ with no transform.
  *
- * Dashboard settings (or wrangler pages_build_output_dir):
- *   Build command:        npm run build
- *   Build output directory: dist
- *   Root directory:       (repo root, leave empty)
+ * Build command:        npm run build
+ * Build output directory: site (wrangler.toml: pages_build_output_dir = "site")
+ * Root directory:       (repo root, leave empty)
  */
 import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const SRC = "website";
-// Cloudflare dashboard currently uses output directory "site" (no build command).
-// Also write "dist" for wrangler.toml pages_build_output_dir.
 const DESTINATIONS = ["site", "dist"];
 
 if (!existsSync(SRC)) {

@@ -16,6 +16,7 @@ import shutil
 import struct
 import tempfile
 import threading
+import uuid
 import zipfile
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -237,22 +238,24 @@ class EPIContainer:
                 if filename not in _RESERVED_ROOT_ARCHIVE_NAMES and (source_dir / filename).exists()
             },
             "integrity": {
-                # Seal-time placeholder; sealed viewer re-checks preloaded file hashes in-browser.
                 "ok": True,
                 "checked": len(manifest.file_manifest),
                 "mismatches": [],
             },
             "signature": {
-                # Do not claim VALID at seal time — browser runs noble-ed25519 self-check on open.
                 "valid": False,
-                "self_check_pending": bool(manifest.signature),
                 "reason": (
-                    "Browser will self-check Ed25519 on open (noble-ed25519). "
-                    "For full trust/identity policy use: epi verify <path-to-file.epi> "
-                    "or https://epilabs.org/verify"
+                    "Open this case file through epi view to verify the signer and file integrity."
                     if manifest.signature
                     else "No signer attached to this case file"
                 ),
+            },
+            "notarization": _read_json_if_exists(source_dir / "artifacts" / "notarization" / "notarization.json"),
+            "envelope": {
+                "version": EPI_ENVELOPE_VERSION,
+                "artifact_uuid": str(manifest.workflow_id),
+                "mimetype": EPI_LEGACY_MIMETYPE,
+                "payload_hash": manifest.trust.get("payload_hash", "") if manifest.trust else "",
             },
         }
 
@@ -261,13 +264,6 @@ class EPIContainer:
             "ui": {
                 "view": "case",
                 "embeddedArtifactMode": True,
-                # Declares what the sealed shell can do offline (readers may show "legacy" if absent).
-                "viewer_capabilities": [
-                    "self_check_ed25519_v1",
-                    "integrity_preload_v1",
-                    "integrity_archive_v1",
-                    "trust_scorecard_v1",
-                ],
             },
         }
 
@@ -794,9 +790,7 @@ class EPIContainer:
                 import sys as _sys
                 print(f"[EPI] Notarization unavailable ({_ne}), sealing without timestamp anchor", file=_sys.stderr)
 
-        # Append/refresh notarization files written after the file-walking loop.
-        # Always re-hash: embed_notarization may overwrite existing notary files
-        # in a reused workspace (old hashes would otherwise silently fail integrity).
+        # Append any notarization files written after the file-walking loop
         notary_dir = source_dir / "artifacts" / "notarization"
         if notary_dir.is_dir():
             for notary_file in sorted(notary_dir.iterdir()):
@@ -804,8 +798,9 @@ class EPIContainer:
                     arc_name = f"artifacts/notarization/{notary_file.name}"
                     if not any(item[1] == arc_name for item in files_to_pack):
                         files_to_pack.append((notary_file, arc_name))
-                    manifest.file_manifest[arc_name] = EPIContainer._compute_file_hash(notary_file)
+                        manifest.file_manifest[arc_name] = EPIContainer._compute_file_hash(notary_file)
         files_to_pack.sort(key=lambda item: item[1])
+
         # Now that signing is done (public_key is set), write the real VERIFY.txt.
         # VERIFY.txt is reserved: packed only via writestr below (never from rglob)
         # so the archive cannot contain duplicate VERIFY.txt members.
@@ -822,18 +817,8 @@ class EPIContainer:
             f"1. Extract manifest.json from this ZIP archive.\n"
             f"2. Verify the Ed25519 signature in manifest.json against the file_manifest hashes.\n"
             f"3. Public Key (Raw Hex): {manifest.public_key or '(unsigned)'}\n\n"
-            f"COMMAND LINE (use a full path if the file is not in your current folder):\n"
-            f"  epi verify \"C:\\path\\to\\this_file.epi\"\n"
-            f"  python -m epi_cli verify \"C:\\path\\to\\this_file.epi\"\n\n"
-            f"SIMPLE PATH:\n"
-            f"  1. Open viewer.html (quick seal check in the browser)\n"
-            f"  2. Or:  epi verify \"C:\\\\path\\\\to\\\\this_file.epi\"\n"
-            f"  3. Or:  https://epilabs.org/verify  (no install)\n\n"
-            f"OPTIONAL (teams — remember who signed):\n"
-            f"  epi keys trust \"C:\\\\path\\\\to\\\\this_file.epi\" --name sealer\n"
-            f"  epi verify \"C:\\\\path\\\\to\\\\this_file.epi\"\n\n"
-            f"Note: a valid signature means the package seal checks out.\n"
-            f"It does not by itself prove which company you trust — pin keys for that.\n\n"
+            f"COMMAND LINE:\n"
+            f"  python -m epi_cli verify <this_file>.epi\n\n"
             f"This artifact is a signed, tamper-evident record.\n",
             encoding="utf-8"
         )
@@ -943,7 +928,7 @@ class EPIContainer:
             "rule_type": "baseline",
             "severity": "medium",
             "mode": "detect",
-            "status": "failed" if any(f.severity in ("critical","high") for f in other_flags) else "passed",
+            "status": "failed" if other_flags else "passed",
             "match_count": len(other_flags),
             "review_required": bool(other_flags and any(
                 f.severity in ("critical", "high") for f in other_flags
@@ -956,7 +941,7 @@ class EPIContainer:
             ),
         })
 
-        controls_failed = sum(1 for r in results if r["status"] == "failed" and r.get("severity") != "info")
+        controls_failed = sum(1 for r in results if r["status"] == "failed")
 
         return {
             "policy_id": "epi.baseline",
@@ -1098,7 +1083,7 @@ class EPIContainer:
         manifest: ManifestModel,
         payload_path: Path,
         **kwargs,
-    ) -> None:
+    ) -> str:
         viewer_version = str(kwargs.get("viewer_version", "minimal"))
         viewer_html = EPIContainer._create_embedded_viewer(
             source_dir, manifest, viewer_version=viewer_version
@@ -1121,19 +1106,10 @@ class EPIContainer:
             viewer_html_bytes = viewer_html.encode("utf-8")
             zf.writestr("viewer.html", viewer_html_bytes, compress_type=zipfile.ZIP_DEFLATED)
 
-            # Keep file_manifest hashes aligned with rewritten chrome files so
-            # integrity stays valid after a viewer refresh.
+            # Update the viewer.html hash in the manifest so that verify_integrity
+            # correctly detects a stale viewer after refresh (signature will be
+            # invalid — that is intentional and correct; re-sign to fix it).
             manifest.file_manifest["viewer.html"] = hashlib.sha256(viewer_html_bytes).hexdigest()
-
-            verify_bytes = (
-                VERIFY_TXT_TEMPLATE
-                % {
-                    "filename": manifest.workflow_id or "unknown",
-                    "steps_count": len(manifest.file_manifest),
-                }
-            ).encode("utf-8")
-            manifest.file_manifest["VERIFY.txt"] = hashlib.sha256(verify_bytes).hexdigest()
-            zf.writestr("VERIFY.txt", verify_bytes, compress_type=zipfile.ZIP_DEFLATED)
 
             zf.writestr(
                 "manifest.json",
@@ -1141,50 +1117,31 @@ class EPIContainer:
                 compress_type=zipfile.ZIP_DEFLATED,
             )
 
-    @staticmethod
-    def _replace_zip_member(zip_path: Path, member_name: str, data: bytes) -> None:
-        """Replace one ZIP member while preserving other members and mimetype-first order."""
-        temp_path = zip_path.with_suffix(zip_path.suffix + ".rewritetmp")
-        with zipfile.ZipFile(zip_path, "r") as zin, zipfile.ZipFile(temp_path, "w") as zout:
-            for info in zin.infolist():
-                if info.filename == member_name:
-                    continue
-                # Preserve original compression (mimetype must stay ZIP_STORED).
-                payload = zin.read(info.filename)
-                zout.writestr(info, payload)
-            zout.writestr(member_name, data, compress_type=zipfile.ZIP_DEFLATED)
-        temp_path.replace(zip_path)
+            zf.writestr(
+                "VERIFY.txt",
+                VERIFY_TXT_TEMPLATE % {
+                    "filename": manifest.workflow_id or "unknown",
+                    "steps_count": len(manifest.file_manifest),
+                },
+                compress_type=zipfile.ZIP_DEFLATED,
+            )
+
+        return viewer_html
 
     @staticmethod
     def refresh_viewer(
         epi_path: Path,
         output_path: Path | None = None,
-        signer_function: Callable[[ManifestModel], ManifestModel] | None = None,
-        *,
-        clear_signature: bool = False,
     ) -> Path:
-        """Regenerate embedded viewer.html.
-
-        Updates viewer/VERIFY hashes in the manifest. If the artifact was signed,
-        pass ``signer_function`` to re-seal, or ``clear_signature=True`` to drop
-        the old signature deliberately. Leaving a stale signature is not allowed
-        when the hashed fields changed.
-        """
         source_path = Path(epi_path)
         if not source_path.exists():
             raise FileNotFoundError(f"EPI file not found: {source_path}")
 
+        import warnings
+        warnings.warn("refresh_viewer invalidates the manifest signature. Re-sign after refresh.")
         destination = Path(output_path) if output_path is not None else source_path
         container_format = EPIContainer.detect_container_format(source_path)
         manifest = EPIContainer.read_manifest(source_path)
-        was_signed = bool(getattr(manifest, "signature", None))
-
-        if was_signed and signer_function is None and not clear_signature:
-            raise ValueError(
-                "Refreshing the viewer changes sealed hashes. "
-                "Re-sign with a key, write to --out and clear the signature, "
-                "or pass clear_signature=True only when you accept an unsigned result."
-            )
 
         temp_dir = EPIContainer._make_temp_dir("epi_refresh_viewer_")
         unpack_dir = temp_dir / "unpacked"
@@ -1197,32 +1154,13 @@ class EPIContainer:
                 with zipfile.ZipFile(payload_zip, "r") as zf:
                     zf.extractall(unpack_dir)
 
-            # Drop the old seal before hash updates so we never leave a mismatched signature.
-            if was_signed and (clear_signature or signer_function is not None):
-                manifest.signature = None
-
-            # Pass 1: rebuild chrome + hashes (signature intentionally absent).
-            EPIContainer._rebuild_payload_with_viewer(unpack_dir, manifest, temp_payload)
-
-            if signer_function is not None:
-                # Provisional sign installs public_key (viewer/VERIFY may depend on it).
-                manifest = signer_function(manifest)
-                # Pass 2: rebuild chrome with public_key present, updating hashes.
-                EPIContainer._rebuild_payload_with_viewer(unpack_dir, manifest, temp_payload)
-                # Final sign over the stable file_manifest hashes, then inject only
-                # manifest.json so viewer/VERIFY bytes (and their hashes) stay fixed.
-                manifest = signer_function(manifest)
-                EPIContainer._replace_zip_member(
-                    temp_payload,
-                    "manifest.json",
-                    manifest.model_dump_json(indent=2).encode("utf-8"),
-                )
-
+            viewer_html = EPIContainer._rebuild_payload_with_viewer(unpack_dir, manifest, temp_payload)
             EPIContainer._write_artifact_from_payload(
                 temp_payload,
                 temp_output,
                 container_format=container_format,
                 manifest=manifest,
+                viewer_html=viewer_html,
             )
 
             destination.parent.mkdir(parents=True, exist_ok=True)
