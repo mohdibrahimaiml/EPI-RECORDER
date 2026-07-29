@@ -1010,6 +1010,24 @@ def print_trust_report(report: dict, epi_file: Path, verbose: bool = False):
     f_color = "green" if (sequence_ok and completeness_ok and chain_ok) else "red"
     f_text = "PASS" if (sequence_ok and completeness_ok and chain_ok) else "FAIL"
     content_lines.append(f"  [{f_color}]- Forensic:     {f_text}[/{f_color}]")
+
+    # Notarization status — RFC 3161 timestamp evidence
+    notarization_status = "dim]Not available"
+    try:
+        epi_path = Path(epi_file) if isinstance(epi_file, str) else epi_file
+        from zipfile import ZipFile
+        with ZipFile(epi_path, "r") as zf:
+            if "artifacts/notarization/notarization.json" in zf.namelist():
+                notar_data = json.loads(zf.read("artifacts/notarization/notarization.json"))
+                provider = (notar_data.get("notarized_at") or {}).get("provider", "unknown")
+                tsa_url = (notar_data.get("notarized_at") or {}).get("url", "")
+                notarization_status = f"green]Timestamped ({provider})"
+                if tsa_url:
+                    notarization_status += f" via {tsa_url}"
+    except Exception:
+        pass
+    content_lines.append(f"  - Notarized:    [{notarization_status}")
+
     if not chain_ok:
         content_lines.append("  [red]- Chain:        BROKEN (prev_hash mismatch)[/red]")
 
