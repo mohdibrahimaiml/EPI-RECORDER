@@ -13,7 +13,7 @@
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon.ico">
 <link rel="apple-touch-icon" href="favicon.ico">
-<link rel="stylesheet" href="css/epi.css?v=30">
+<link rel="stylesheet" href="css/epi.css?v=24">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -53,38 +53,27 @@
 </head>
 <body>
 
-<!-- ═══ SITE NAV ═══ -->
+<!-- ═══ NAV ═══ -->
 <nav id="nav">
   <div class="nav-inner">
-    <a href="/" class="nav-logo"><img src="/assets/logo.png" alt="EPI Labs"></a>
+    <a href="#" class="nav-logo"><img src="assets/logo.png" alt="EPI Labs"></a>
     <ul class="nav-links" id="navLinks">
+      <li><a href="/how-it-works">How It Works</a></li>
       <li><a href="/verify/">Verify</a></li>
-      <li><a href="/#how">How it works</a></li>
-      <li><a href="/#use">How to use</a></li>
-      <li><a href="/enterprise">Enterprise</a></li>
       <li><a href="/pricing">Pricing</a></li>
-      <li class="nav-icon-item"><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener" class="nav-icon-link" aria-label="GitHub" title="GitHub">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.4-1.3-1.8-1.3-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.3.5-2.4 1.2-3.2 0-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.9 1.2 3.2 0 4.7-2.8 5.7-5.5 6 .4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3z"/></svg>
-      </a></li>
-      <li id="nav-auth-slot"></li>
+      <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
       <li><a href="/pricing" class="nav-link-cta">Get Started</a></li>
+      <li><button class="theme-toggle-nav" id="themeToggleNav" aria-label="Toggle dark mode" title="Toggle dark mode"></button></li>
     </ul>
-    <button type="button" class="nav-mob" id="mobBtn" aria-label="Open menu" aria-expanded="false" aria-controls="mobMenu">
-      <span></span><span></span><span></span>
-    </button>
+    <button class="nav-mob" id="mobBtn" aria-label="Menu"><span></span><span></span><span></span></button>
   </div>
 </nav>
-<div class="mob-menu" id="mobMenu" style="display:none">
-  <a href="/verify/">Verify</a>
-  <a href="/#how">How it works</a>
-  <a href="/#use">How to use</a>
-  <a href="/enterprise">Enterprise</a>
-  <a href="/how-it-works">Docs</a>
-  <a href="/pricing">Pricing</a>
+<div class="mob-menu" id="mobMenu">
+  <a href="/how-it-works">How It Works</a><a href="/verify/">Verify</a><a href="/pricing">Pricing</a>
   <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
-  <a href="/account">Sign in</a>
-  <a href="/pricing" class="nav-link-cta">Get Started</a>
+  <a href="#cta">Get Started</a>
 </div>
+
 <!-- ═══ HERO ═══ -->
 <section class="hero">
   <div class="hero-bg"></div>
@@ -124,7 +113,7 @@
           <div class="terminal-dot terminal-dot--y"></div>
           <div class="terminal-dot terminal-dot--g"></div>
         </div>
-        <span class="terminal-title">EPI_TERMINAL v4.3.0</span>
+        <span class="terminal-title">EPI_TERMINAL v4.4.0</span>
         <button class="terminal-title-replay" onclick="replayTerminal()" aria-label="Replay terminal">&#x21BA; Replay</button>
       </div>
       <div class="terminal-body" id="terminalBody">
@@ -267,19 +256,18 @@ pip install epi-recorder
     <div style="text-align:center;margin-bottom:48px">
       <div class="section-label reveal" style="justify-content:center">Trust Model</div>
       <h2 class="section-title reveal d1">Who signed it. What it proves.</h2>
-      <p class="section-desc reveal d2" style="margin:0 auto">Trust is three independent facts: integrity, signature, and identity. First-run <code>epi verify</code> often shows <strong>WARN</strong> (valid seal, unknown key) until you <code>epi keys trust</code> the sealer — that is correct, not a product bug.</p>
+      <p class="section-desc reveal d2" style="margin:0 auto">Every .epi carries a computed trust level based on cryptographic evidence — from HIGH to TAMPERED.</p>
     </div>
     <div class="trust-table reveal">
       <table class="tt">
-        <thead><tr><th>Level</th><th>Integrity</th><th>Signature</th><th>Identity</th><th>Meaning (matches <code>epi verify</code>)</th></tr></thead>
+        <thead><tr><th>Level</th><th>Integrity</th><th>Signature</th><th>Identity</th><th>Meaning</th></tr></thead>
         <tbody>
-          <tr><td><span class="tt-tag tt-tag--h">HIGH</span></td><td>Pass</td><td>Valid</td><td style="color:var(--verified)">Known</td><td>Signer public key is in your local trust store</td></tr>
-          <tr><td><span class="tt-tag tt-tag--m">MEDIUM</span></td><td>Pass</td><td>None / SCITT path</td><td>—</td><td>Unsigned but intact, or signed with SCITT upgrade path</td></tr>
-          <tr><td><span class="tt-tag" style="border:1px solid var(--border-str);color:var(--ink-muted)">LOW</span></td><td>Pass</td><td>Valid</td><td>Unknown</td><td>Valid seal; sealer not yet trusted (common first run)</td></tr>
-          <tr><td><span class="tt-tag tt-tag--t">NONE / FAIL</span></td><td style="color:var(--tamper)">Fail</td><td style="color:var(--tamper)">Invalid / mismatch</td><td>—</td><td>Do not trust — tamper or identity mismatch</td></tr>
+          <tr><td><span class="tt-tag tt-tag--h">HIGH</span></td><td>Pass</td><td>Valid</td><td style="color:var(--verified)">Known</td><td>Registry-verified signer identity</td></tr>
+          <tr><td><span class="tt-tag tt-tag--m">MEDIUM</span></td><td>Pass</td><td>Valid</td><td>Unknown</td><td>SCITT ledger-anchored · independently verifiable</td></tr>
+          <tr><td><span class="tt-tag" style="border:1px solid var(--border-str);color:var(--ink-muted)">LOW</span></td><td>Pass</td><td>Valid</td><td>Unknown</td><td>Valid signature, unverified identity</td></tr>
+          <tr><td><span class="tt-tag tt-tag--t">TAMPERED</span></td><td style="color:var(--tamper)">Fail</td><td style="color:var(--tamper)">Invalid</td><td>—</td><td>Integrity failure or signature mismatch</td></tr>
         </tbody>
       </table>
-      <p style="margin-top:1rem;font-size:0.85rem;color:var(--ink-muted);text-align:center;max-width:42rem;margin-left:auto;margin-right:auto">What EPI proves: the file bytes and who sealed them under a key. What it does not prove: free-text names are employees, or that the agent was “correct.” <a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/ENTERPRISE-TRUST-PROFILE.md">Enterprise Trust Profile</a> · <a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/ENTERPRISE-TRUST-BUNDLE.md">Trust bundle</a></p>
     </div>
   </div>
 </section>
@@ -483,14 +471,12 @@ pip install epi-recorder
       <span class="footer-copy">&copy; 2026 EPI LABS. MIT License. Built in India. Engineered for the world.</span>
     </div>
     <ul class="footer-links">
-      <li><a href="/how-it-works">Docs</a></li>
-      <li><a href="/verify/">Verify</a></li>
-      <li><a href="/pricing">Pricing</a></li>
-      <li><a href="/enterprise">Enterprise</a></li>
       <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
       <li><a href="https://pypi.org/project/epi-recorder/" target="_blank" rel="noopener">PyPI</a></li>
-      <li><a href="/terms">Terms</a></li>
-      <li><a href="/privacy">Privacy</a></li>
+      <li><a href="viewer/">Decision Ops</a></li>
+      <li><a href="/terms">Terms of Service</a></li>
+      <li><a href="/privacy">Privacy Policy</a></li>
+      <li><a href="/refund">Refund Policy</a></li>
       <li><a href="mailto:mohdibrahim@epilabs.org">Contact</a></li>
     </ul>
   </div></div>
@@ -512,7 +498,7 @@ function flip(){
   else{r.setAttribute('data-theme','dark');localStorage.setItem('epi-theme','dark')}
   updateToggles();
 }
-var _ttn=document.getElementById('themeToggleNav'); if(_ttn)_ttn.addEventListener('click',flip);
+document.getElementById('themeToggleNav').addEventListener('click',flip);
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',function(e){
   if(!localStorage.getItem('epi-theme')){e.matches?document.documentElement.setAttribute('data-theme','dark'):document.documentElement.removeAttribute('data-theme');updateToggles()}
 });
@@ -520,7 +506,9 @@ matchMedia('(prefers-color-scheme:dark)').addEventListener('change',function(e){
 /* ── NAV ── */
 var nav=document.getElementById('nav');
 window.addEventListener('scroll',function(){nav.classList.toggle('scrolled',scrollY>40)});
-/* mob menu handled by /js/nav.js */
+var mb=document.getElementById('mobBtn'),mm=document.getElementById('mobMenu');
+if(mb&&mm){mb.addEventListener('click',function(){var o=mm.classList.contains('open');mb.classList.toggle('open');mm.classList.toggle('open');mb.setAttribute('aria-expanded',String(!o));document.body.style.overflow=o?'':'hidden'});
+mm.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){mm.classList.remove('open');mb.classList.remove('open');mb.setAttribute('aria-expanded','false');document.body.style.overflow=''})})}
 document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener('click',function(e){mm.classList.remove('open');mb.classList.remove('open');mb.setAttribute('aria-expanded','false');document.body.style.overflow='';var t=document.querySelector(this.getAttribute('href'));if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'})}})});
 
 /* ── SCROLL REVEAL ── */
@@ -556,17 +544,9 @@ function reportDOM(report){
   chks.push('Chain: '+(f.chain_ok!==false?'intact':'<span style="color:var(--tamper)">broken</span>'));
   chks.push('Identity: '+i.status);
 
-  var intLabel=f.integrity_ok?'PASS':'FAIL';
-  var sigLabel=!f.has_signature?'NONE':(f.signature_valid===true?'VALID':(f.signature_valid===false?'INVALID':'UNVERIFIED'));
-  var idLabel=i.status||'UNKNOWN';
   return '<div style="font-size:0.82rem;margin-bottom:0.6rem"><strong style="font-size:1.05rem;color:'+trustColor+'">'+trustIcon+' '+report.trust_level+' TRUST</strong> <span style="color:var(--ink-muted);font-size:0.72rem">v'+m.spec_version+steps+'</span></div>'
-    +'<div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin:0.5rem 0 0.7rem;font-size:0.72rem">'
-    +'<span style="border:1px solid var(--border);padding:0.2rem 0.45rem;border-radius:4px">Integrity: <strong>'+intLabel+'</strong></span>'
-    +'<span style="border:1px solid var(--border);padding:0.2rem 0.45rem;border-radius:4px">Signature: <strong>'+sigLabel+'</strong></span>'
-    +'<span style="border:1px solid var(--border);padding:0.2rem 0.45rem;border-radius:4px">Identity: <strong>'+idLabel+'</strong></span>'
-    +'</div>'
     +chks.join('<br>')
-    +'<div style="margin-top:0.5rem;font-size:0.68rem;color:var(--ink-dim);border-top:1px solid var(--border);padding-top:0.5rem">'+report.trust_message+(i.status==='UNKNOWN'?' · Trust the sealer with <code>epi keys trust</code> for HIGH.':'')+'</div>'
+    +'<div style="margin-top:0.5rem;font-size:0.68rem;color:var(--ink-dim);border-top:1px solid var(--border);padding-top:0.5rem">'+report.trust_message+'</div>'
     +(i.detail?'<div style="margin-top:0.3rem;font-size:0.68rem;color:var(--ink-dim)">'+i.detail+'</div>':'');
 }
 
@@ -1013,10 +993,10 @@ var terminalSteps=[
   {text:'',delay:20},
   {text:'<span class="term-dim">$</span> <span class="term-kw">pip</span> <span class="term-fn">install</span> epi-recorder',delay:40},
   {text:'<span class="term-dim">Collecting epi-recorder</span>',delay:30},
-  {text:'<span class="term-dim">  Downloading epi_recorder-4.3.0-py3-none-any.whl (124 kB)</span>',delay:40},
+  {text:'<span class="term-dim">  Downloading epi_recorder-4.4.0-py3-none-any.whl (124 kB)</span>',delay:40},
   {text:'<span class="term-dim">Requirement already satisfied: openai&gt;=1.0.0 in ./venv</span>',delay:30},
   {text:'<span class="term-dim">Requirement already satisfied: cryptography&gt;=41.0.0 in ./venv</span>',delay:30},
-  {text:'<span class="term-green">Successfully installed epi-recorder-4.3.0</span>',delay:70},
+  {text:'<span class="term-green">Successfully installed epi-recorder-4.4.0</span>',delay:70},
   {text:'',delay:50},
 
   /* ── PHASE 2: WRITE THE CODE ── */
@@ -1082,7 +1062,7 @@ var terminalSteps=[
   {text:'',delay:20},
   {text:'<span class="term-dim">$</span> <span class="term-green">epi verify</span> loan-decision.epi',delay:40},
   {text:'',delay:30},
-  {text:'<span class="term-dim">  ── EPI VERIFIER v4.3.0 ──</span>',delay:40},
+  {text:'<span class="term-dim">  ── EPI VERIFIER v4.4.0 ──</span>',delay:40},
   {text:'',delay:20},
   {text:'<span class="term-dim">  [1/5]</span> Structure  <span class="term-dim">········</span> <span class="term-green">PASS</span>  <span class="term-dim">(valid polyglot ZIP+HTML)</span>',delay:50},
   {text:'<span class="term-dim">  [2/5]</span> Manifest     <span class="term-dim">······</span> <span class="term-green">PASS</span>  <span class="term-dim">(SHA-256: d4e2f1a8b3c7...)</span>',delay:50},
@@ -1124,6 +1104,5 @@ if(termEl)termObs.observe(termEl);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
 <script src="js/auth-ui.js"></script>
-<script src="/js/nav.js"></script>
 </body>
 </html>
