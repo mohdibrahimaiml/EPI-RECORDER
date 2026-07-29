@@ -96,7 +96,7 @@ class TestAssociateCommand:
         from epi_cli.main import associate
         mock_console = _mock_console()
         with patch("epi_cli.main.console", mock_console), \
-             patch("importlib.import_module", side_effect=_mock_import_module),
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics", return_value=_DIAG_STUB), \
              patch("epi_core.platform.associate._needs_registration", return_value=False), \
              _DIAG_PATCH:
@@ -107,7 +107,7 @@ class TestAssociateCommand:
         from epi_cli.main import associate
         mock_console = _mock_console()
         with patch("epi_cli.main.console", mock_console), \
-             patch("importlib.import_module", side_effect=_mock_import_module),
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics", return_value=_DIAG_STUB), \
              patch("epi_core.platform.associate._needs_registration", return_value=True), \
              patch("epi_core.platform.associate.register_file_association", return_value=True), \
@@ -119,7 +119,7 @@ class TestAssociateCommand:
         from epi_cli.main import associate
         mock_console = _mock_console()
         with patch("epi_cli.main.console", mock_console), \
-             patch("importlib.import_module", side_effect=_mock_import_module),
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics", return_value=_DIAG_STUB), \
              patch("epi_core.platform.associate._needs_registration", return_value=True), \
              patch("epi_core.platform.associate.register_file_association", return_value=False), \
@@ -131,7 +131,7 @@ class TestAssociateCommand:
         from epi_cli.main import associate
         mock_console = _mock_console()
         with patch("epi_cli.main.console", mock_console), \
-             patch("importlib.import_module", side_effect=_mock_import_module),
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics", return_value=_DIAG_STUB), \
              patch("epi_core.platform.associate.register_file_association", return_value=True), \
              _DIAG_PATCH:
@@ -147,7 +147,7 @@ class TestAssociateCommand:
             "issues": ["Registered open command does not match the current installation."],
         }
         with patch("epi_cli.main.console", mock_console), \
-             patch("importlib.import_module", side_effect=_mock_import_module),
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics", return_value=drift_diag), \
              patch("epi_core.platform.associate._needs_registration", return_value=False), \
              patch("epi_core.platform.associate.register_file_association", return_value=True) as mock_register, \
@@ -335,7 +335,7 @@ class TestDoctorCommand:
              patch("epi_cli.keys.generate_default_keypair_if_missing", return_value=False), \
              patch("shutil.which", return_value="/usr/bin/epi"), \
              patch("webbrowser.get"), \
-             patch("importlib.import_module", side_effect=_mock_import_module),
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics",
                    return_value={"status": "OK", "extension_progid": "EPIRecorder.File", "issues": []}):
             code = _call(doctor)
@@ -348,7 +348,7 @@ class TestDoctorCommand:
              patch("shutil.which", return_value=None), \
              patch("sys.platform", "linux"), \
              patch("webbrowser.get"), \
-             patch("importlib.import_module", side_effect=_mock_import_module),
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics",
                    return_value={"status": "OK", "extension_progid": "EPIRecorder.File", "issues": []}):
             code = _call(doctor)
@@ -360,7 +360,7 @@ class TestDoctorCommand:
              patch("epi_cli.keys.generate_default_keypair_if_missing", return_value=True), \
              patch("shutil.which", return_value="/usr/bin/epi"), \
              patch("webbrowser.get"), \
-             patch("importlib.import_module", side_effect=_mock_import_module),
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics",
                    return_value={"status": "OK", "extension_progid": "EPIRecorder.File", "issues": []}):
             code = _call(doctor)
@@ -372,7 +372,7 @@ class TestDoctorCommand:
              patch("epi_cli.keys.generate_default_keypair_if_missing", return_value=False), \
              patch("shutil.which", return_value="/usr/bin/epi"), \
              patch("webbrowser.get"), \
-             patch("importlib.import_module", side_effect=_mock_import_module),
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics",
                    return_value={"status": "OK", "extension_progid": None, "issues": []}):
             code = _call(doctor)
@@ -384,7 +384,7 @@ class TestDoctorCommand:
              patch("epi_cli.keys.generate_default_keypair_if_missing", return_value=False), \
              patch("shutil.which", return_value="/usr/bin/epi"), \
              patch("webbrowser.get"), \
-             patch("importlib.import_module", side_effect=_mock_import_module),
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics",
                    return_value={"status": "OVERRIDDEN", "extension_progid": None,
                                  "issues": ["Windows is forcing '.epi' to open with 'SomeApp'"]}):
@@ -397,7 +397,7 @@ class TestDoctorCommand:
              patch("epi_cli.keys.generate_default_keypair_if_missing", return_value=False), \
              patch("shutil.which", return_value="/usr/bin/epi"), \
              patch("webbrowser.get", side_effect=Exception("no browser")), \
-             patch("importlib.import_module", side_effect=_mock_import_module),
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics",
                    return_value={"status": "OK", "extension_progid": "EPIRecorder.File", "issues": []}):
             code = _call(doctor)
@@ -715,7 +715,7 @@ class TestAutoRepairWindowsAssociation:
              patch("sys.platform", "win32"), \
              patch("epi_cli.main._windows_association_probe_due", return_value=True), \
              patch("epi_core.platform.associate.register_file_association", return_value=False), \
-             patch("importlib.import_module", side_effect=_mock_import_module),
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics", return_value=diag):
             _auto_repair_windows_association(interactive=True, command_name="doctor")
         assert mock_console.print.call_count >= 3
@@ -728,7 +728,7 @@ class TestAutoRepairWindowsAssociation:
              patch("sys.platform", "win32"), \
              patch("epi_cli.main._windows_association_probe_due", return_value=True), \
              patch("epi_core.platform.associate.register_file_association", return_value=True), \
-             patch("importlib.import_module", side_effect=_mock_import_module),
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics", return_value=diag):
             _auto_repair_windows_association(interactive=True, command_name="doctor")
         mock_console.print.assert_called_once()
@@ -739,7 +739,7 @@ class TestAutoRepairWindowsAssociation:
         diag = {"status": "OK", "extension_progid": "EPIRecorder.File"}
         with patch("sys.platform", "win32"), \
              patch("epi_core.platform.associate._is_association_broken", return_value=True), \
-             patch("importlib.import_module", side_effect=_mock_import_module),
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics", return_value=diag) as mock_diag, \
              patch("epi_core.platform.associate.register_file_association") as mock_register:
             _auto_repair_windows_association(interactive=True, command_name="view")
