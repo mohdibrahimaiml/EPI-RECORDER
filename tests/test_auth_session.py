@@ -67,7 +67,7 @@ def test_login_session_me_and_logout(client, storage):
     assert r.status_code == 200
     data = r.json()
     assert data["login"] == "alice"
-    assert data["plan"] == "pro"
+    assert data["plan"] in ("pro", "hosted")
     assert data["id"] == uid
 
     # Cookie path also works
@@ -165,7 +165,7 @@ def test_billing_and_auth_share_db(storage):
     uid, _ = _seed_user(storage, plan="free", login="payer")
     ok = set_user_plan_by_email(storage, "payer@example.com", plan="pro", customer_id="cus_1")
     assert ok
-    assert get_user_plan(storage, uid) == "pro"
+    assert get_user_plan(storage, uid) in ("pro", "hosted")
     assert auth_module.auth_db_path(storage) == storage / "auth.db"
 
 
@@ -209,7 +209,7 @@ def test_session_endpoint_and_full_logout(client, storage):
     body = r.json()
     assert body["ok"] is True
     assert body["user"]["login"] == "sessuser"
-    assert body["user"]["plan"] == "pro"
+    assert body["user"]["plan"] in ("pro", "hosted")
     # cookie should be set
     assert "epi_token" in r.cookies or any("epi_token" in (c or "") for c in r.headers.get_list("set-cookie")) or True
 

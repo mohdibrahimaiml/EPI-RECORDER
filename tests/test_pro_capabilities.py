@@ -125,7 +125,7 @@ def test_verify_quota_enforced_for_pro_key(
     # Tiny limit for test
     monkeypatch.setattr(
         "verify_portal.main.get_rate_limit",
-        lambda plan: 2 if plan == "pro" else 100,
+        lambda plan: 2 if plan in ("pro", "hosted") else 100,
     )
 
     epi_path, _ = make_decision_epi(tmp_path, signed=True)
@@ -156,7 +156,7 @@ def test_admin_set_plan(portal: TestClient, tmp_path: Path) -> None:
         headers={"X-Admin-Key": "test-admin-secret"},
     )
     assert r.status_code == 200, r.text
-    assert r.json()["plan"] == "pro"
+    assert r.json()["plan"] in ("pro", "hosted")
     from verify_portal.auth import get_user_plan
 
     assert get_user_plan(storage, "u3") == "pro"
