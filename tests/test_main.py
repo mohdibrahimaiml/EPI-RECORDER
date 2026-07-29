@@ -91,6 +91,22 @@ _DIAG_STUB = {"status": "OK", "issues": [], "extension_progid": "EPIRecorder.Fil
                "registered_command": '"epi.exe" view "%1"', "user_choice": None}
 
 
+
+def _mock_tiktoken_read(blobpath, expected_hash=None):
+    """Mock tiktoken token data fetch to avoid external network call in tests."""
+    raise ConnectionError("External network access blocked in tests")
+
+# Save real importlib.import_module before any test patches it
+import importlib as _real_importlib
+_real_import_module = _real_importlib.import_module
+
+def _mock_import_module(name):
+    """Block litellm import in doctor/associate tests to avoid tiktoken CDN fetch."""
+    if name == "litellm":
+        raise ImportError("litellm not installed in test")
+    return _real_import_module(name)
+
+
 class TestAssociateCommand:
     def test_skips_when_not_needed(self):
         from epi_cli.main import associate
@@ -321,12 +337,7 @@ class TestKeysCommand:
 # ─────────────────────────────────────────────────────────────
 
 
-def _mock_import_module(name):
-    """Mock importlib.import_module to make litellm raise ImportError (skip tiktoken CDN fetch).
-    Uses _REAL_IMPORT_MODULE saved before the mock was applied, avoiding RecursionError."""
-    if name == "litellm":
-        raise ImportError("litellm not installed in test")
-    return _REAL_IMPORT_MODULE(name)
+
 
 class TestDoctorCommand:
     def test_healthy_system_no_crash(self):
