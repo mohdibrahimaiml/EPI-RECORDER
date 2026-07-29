@@ -2112,7 +2112,3 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {
   init();
-}
-.ev-vclass{display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;border-radius:50%;font-size:.65rem;font-weight:700;margin-left:4px;flex-shrink:0}
-.ev-vclass-recomputable{background:rgba(34,197,94,.15);color:#22c55e}
-.ev-vclass-attested_only{background:rgba(249,115,22,.15);color:#f97316}
