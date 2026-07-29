@@ -322,11 +322,11 @@ class TestKeysCommand:
 
 
 def _mock_import_module(name):
-    """Mock importlib.import_module to make litellm trigger tiktoken CDN fetch raise ConnectionError."""
+    """Mock importlib.import_module to make litellm raise ImportError (skip tiktoken CDN fetch).
+    Uses _REAL_IMPORT_MODULE saved before the mock was applied, avoiding RecursionError."""
     if name == "litellm":
         raise ImportError("litellm not installed in test")
-    import importlib
-    return importlib.import_module(name)
+    return _REAL_IMPORT_MODULE(name)
 
 class TestDoctorCommand:
     def test_healthy_system_no_crash(self):
