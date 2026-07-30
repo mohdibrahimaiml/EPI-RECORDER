@@ -561,7 +561,7 @@ const EPI_ENVELOPE_MAGIC = new Uint8Array([0x3c, 0x21, 0x2d, 0x2d]); // "<!--"
 const EPI_ENVELOPE_VERSION = 2;
 const EPI_PAYLOAD_FORMAT_ZIP_V1 = 0x01;
 const EPI_ENVELOPE_HEADER_SIZE = 128;
-const EPI_ZIP_MARKER_STR = '\n<!-- EPI_ZIP_PAYLOAD_START -->\n';
+const EPI_ZIP_MARKER_STR = '\n\x3c!-- EPI_ZI' + 'P_PAYLOAD_START --\x3e\n';
 const EPI_LEGACY_MIMETYPE = 'application/vnd.epi+zip';
 const EPI_BROWSER_SEED_STORAGE_KEY = 'epi.viewer.signingSeed.v1';
 
