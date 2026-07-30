@@ -660,11 +660,65 @@ class EPIContainer:
                                 json.dumps(auto_policy, indent=2, ensure_ascii=False),
                                 encoding="utf-8",
                             )
-                            # Build evaluation from matched policy.check results
+                            # Merge auto policy rules into the evaluation results
                             auto_eval = EPIContainer._build_baseline_policy_evaluation(analysis)
-                            auto_eval["policy_id"] = auto_policy["policy_id"]
+                            policy_id = auto_policy.get("policy_id", "epi.auto")
+                            auto_eval["policy_id"] = policy_id
                             auto_eval["baseline"] = False
                             auto_eval["note"] = auto_policy.get("note", "")
+                            # Add auto-extracted rule results alongside baseline ones
+                            # Suppress baseline heuristic results when auto policy exists
+                            auto_eval["results"] = []
+                            auto_eval["controls_evaluated"] = 0
+                            auto_eval["controls_failed"] = 0
+                            auto_eval["note"] = (auto_policy.get("note", "") + 
+                                " Baseline heuristics suppressed — auto-extracted policy rules take priority.")
+                            for rule in auto_policy.get("rules", []):
+                                rule_id = rule.get("id", "")
+                                rule_name = rule.get("name", "")
+                                rule_status = rule.get("status", "unknown")
+                                rule_severity = rule.get("severity", "medium")
+                                evidence = rule.get("evidence", {})
+                                # Check if a review.handoff step matches this rule
+                                has_handoff = False
+                                for line in steps_content.splitlines():
+                                    if not line.strip(): continue
+                                    try: s = json.loads(line.strip())
+                                    except: continue
+                                    if s.get("kind") == "review.handoff":
+                                        hc = s.get("content", {})
+                                        reason = hc.get("reason", "").lower()
+                                        # Multi-strategy match: rule name keywords, threshold amounts
+                                        if rule_name.lower() in reason or reason in rule_name.lower():
+                                            has_handoff = True; break
+                                        # Check numeric thresholds from evidence
+                                        for k, v in (evidence or {}).items():
+                                            if 'threshold' in k.lower() and str(v) in reason:
+                                                has_handoff = True; break
+                                            if k.endswith('_usd') and str(v) in reason:
+                                                has_handoff = True; break
+                                        if has_handoff: break
+                                # review_required + handoff = policy is working correctly
+                                actual_status = "passed" if (rule_status in ("passed","not_triggered") or (rule_status == "review_required" and has_handoff)) else "failed"
+                                auto_eval["results"].append({
+                                    "rule_id": rule_id,
+                                    "rule_name": rule_name,
+                                    "rule_type": "auto_policy_check",
+                                    "severity": rule_severity,
+                                    "mode": "detect",
+                                    "status": actual_status,
+                                    "match_count": 0 if actual_status == "passed" else 1,
+                                    "review_required": actual_status == "failed",
+                                    "step_numbers": [],
+                                    "plain_english": (
+                                        f"Agent recorded check: {rule_name} — result: {rule_status}."
+                                        + (" Handoff matched." if has_handoff else "")
+                                    ),
+                                })
+                                # Update controls count
+                                auto_eval["controls_evaluated"] = auto_eval.get("controls_evaluated", 0) + 1
+                                if actual_status == "failed":
+                                    auto_eval["controls_failed"] = auto_eval.get("controls_failed", 0) + 1
                             (source_dir / "policy_evaluation.json").write_text(
                                 json.dumps(auto_eval, indent=2, ensure_ascii=False),
                                 encoding="utf-8",

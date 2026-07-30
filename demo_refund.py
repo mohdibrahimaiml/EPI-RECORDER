@@ -80,6 +80,7 @@ def run_refund_agent():
         )
         session.log("policy.check",
             policy_name="high_value_refund_review",
+            rule_id="high_value_refund_review",
             rule="Refunds above $500 require human review before payout.",
             result="review_required",
             evidence={"order_id": "ORD-9001", "amount_usd": 900, "threshold_usd": 500},
