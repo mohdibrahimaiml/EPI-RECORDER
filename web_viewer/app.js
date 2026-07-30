@@ -661,10 +661,17 @@ function renderVerdict(caseData) {
 
   if (rawDecision) {
     systemVerdict = rawDecision;
-    if (['APPROVED', 'APPROVE', 'PASS', 'PASSED', 'ACCEPT', 'ACCEPTED'].some(v => rawDecision.includes(v))) {
+    // Negation prefixes: DISAPPROVE, UNAPPROVE, etc. are not approvals
+    const _approved_list = ['APPROVED', 'APPROVE', 'PASS', 'PASSED', 'ACCEPT', 'ACCEPTED'];
+    const _rejected_list = ['REJECTED', 'REJECT', 'DENY', 'DENIED', 'FAIL', 'FAILED', 'DECLINE', 'DECLINED'];
+    const is_approved = _approved_list.some(v => rawDecision.includes(v));
+    const is_rejected = _rejected_list.some(v => rawDecision.includes(v));
+    const has_negation = ['DIS', 'UN', 'NON', 'DE'].some(p => rawDecision.startsWith(p));
+
+    if (is_approved && !has_negation) {
       verdictClass = 'approved';
       verdictDisplay = 'APPROVED';
-    } else if (['REJECTED', 'REJECT', 'DENY', 'DENIED', 'FAIL', 'FAILED', 'DECLINE', 'DECLINED'].some(v => rawDecision.includes(v))) {
+    } else if (is_rejected || (is_approved && has_negation)) {
       verdictClass = 'rejected';
       verdictDisplay = 'REJECTED';
     } else {
