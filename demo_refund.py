@@ -155,6 +155,7 @@ def run_refund_agent():
         )
         session.log("review.handoff",
             queue="refund-managers",
+            rule_id="high_value_refund_review",
             reason="Human review required for refunds above $500.",
             requested_action="Approve or reject the payout.",
         )

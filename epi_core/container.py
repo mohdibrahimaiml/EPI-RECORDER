@@ -233,9 +233,24 @@ class EPIContainer:
             "stdout": _read_text_if_exists(source_dir / "stdout.log"),
             "stderr": _read_text_if_exists(source_dir / "stderr.log"),
             "files": {
-                filename: base64.b64encode((source_dir / filename).read_bytes()).decode("ascii")
-                for filename in sorted(manifest.file_manifest.keys())
-                if filename not in _RESERVED_ROOT_ARCHIVE_NAMES and (source_dir / filename).exists()
+                **{
+                    filename: base64.b64encode((source_dir / filename).read_bytes()).decode("ascii")
+                    for filename in sorted(manifest.file_manifest.keys())
+                    if filename not in {"mimetype", "VERIFY.txt"} and (source_dir / filename).exists()
+                },
+                # manifest.json and viewer.html are written directly to the ZIP
+                # archive during packing, not saved to the workspace directory.
+                # The browser viewer needs their raw bytes to preserve the
+                # cryptographic signature and file_manifest integrity during
+                # Sign & Seal (mirrors Python's add_review behavior).
+                "manifest.json": base64.b64encode(
+                    json.dumps(
+                        manifest.model_dump(mode="json"), indent=2, ensure_ascii=False,
+                    ).encode("utf-8")
+                ).decode("ascii"),
+                # viewer.html is generated after this function returns, so
+                # we can't include its bytes here. The browser Sign & Seal
+                # flow receives it from the separate viewer generation step.
             },
             "integrity": {
                 "ok": True,
@@ -455,16 +470,25 @@ class EPIContainer:
         written = 0
 
         with open(epi_path, "rb") as src, open(dest_zip_path, "wb") as dst:
-            # Polyglot-aware extraction: Scan for the unique ZIP marker
-            src.seek(EPI_ENVELOPE_HEADER_SIZE)
-            buffer = src.read(1024 * 1024) # Check first 1MB for marker
-            marker_idx = buffer.find(EPI_ZIP_MARKER)
-            
-            if marker_idx != -1:
-                src.seek(EPI_ENVELOPE_HEADER_SIZE + marker_idx + len(EPI_ZIP_MARKER))
-            else:
-                # Fallback to standard 128 offset for non-polyglot artifacts
-                src.seek(EPI_ENVELOPE_HEADER_SIZE)
+            # Seek to ZIP payload using length field from header rather than
+            # substring-scanning for the sentinel marker, which could produce
+            # false matches if the marker bytes appear in step content.
+            file_size = epi_path.stat().st_size
+            zip_start = file_size - header.payload_length
+
+            # Validate sentinel preceding the ZIP payload
+            marker_len = len(EPI_ZIP_MARKER)
+            if zip_start >= marker_len:
+                src.seek(zip_start - marker_len)
+                preceding = src.read(marker_len)
+                if preceding != EPI_ZIP_MARKER:
+                    raise ValueError(
+                        "EPI envelope integrity check failed: "
+                        "sentinel marker not found at expected offset. "
+                        "File may be truncated or have unexpected trailing data."
+                    )
+
+            src.seek(zip_start)
 
             remaining = header.payload_length
             while remaining > 0:
@@ -666,8 +690,9 @@ class EPIContainer:
                             auto_eval["policy_id"] = policy_id
                             auto_eval["baseline"] = False
                             auto_eval["note"] = auto_policy.get("note", "")
-                            # Add auto-extracted rule results alongside baseline ones
-                            auto_eval["controls_evaluated"] = 0
+                            # Append auto-extracted rule results alongside baseline ones.
+                            # Keep the existing controls_evaluated count from baseline results;
+                            # auto-policy rules increment it further below.
                             auto_eval["controls_failed"] = 0
                             auto_eval["note"] = (auto_policy.get("note", "") + 
                                 " Auto-extracted policy rules from this recording. Baseline heuristics are still evaluated alongside.")
@@ -695,13 +720,20 @@ class EPIContainer:
                                     except: continue
                                     if s.get("kind") == "review.handoff":
                                         hc = s.get("content", {})
+                                        handoff_rule_id = hc.get("rule_id") or hc.get("policy_check_id")
+                                        if handoff_rule_id and handoff_rule_id == rule_id:
+                                            has_handoff = True
+                                            break
+                                        # Fallback for legacy steps without rule_id:
+                                        # match by evidence value in reason text
                                         reason = hc.get("reason", "").lower()
-                                        for k, v in (evidence or {}).items():
-                                            if 'threshold' in k.lower() and str(v) in reason:
-                                                has_handoff = True; break
-                                            if k.endswith('_usd') and str(v) in reason:
-                                                has_handoff = True; break
-                                        if has_handoff: break
+                                        if not handoff_rule_id:
+                                            for k, v in (evidence or {}).items():
+                                                if 'threshold' in k.lower() and str(v) in reason:
+                                                    has_handoff = True; break
+                                                if k.endswith('_usd') and str(v) in reason:
+                                                    has_handoff = True; break
+                                            if has_handoff: break
                                 # Status resolution:
                                 # - PASSED: rule status is passed/not_triggered, OR actual human attestation signed
                                 # - PENDING: review_required with handoff logged but no attestation yet

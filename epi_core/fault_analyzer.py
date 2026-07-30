@@ -1071,7 +1071,7 @@ class FaultAnalyzer:
                                     rule_name = policy_rule.name
 
                         fault_type = "POLICY_VIOLATION" if rule_id else "HEURISTIC_OBSERVATION"
-                        severity = "critical" if rule_id else "high"
+                        severity = "critical" if rule_id else "medium"
 
                         flags.append(FaultFlag(
                             step_index=step_idx,
@@ -1376,7 +1376,7 @@ class FaultAnalyzer:
                 flags.append(FaultFlag(
                     step_index=step_idx,
                     fault_type="HEURISTIC_OBSERVATION",
-                    severity="high",
+                    severity="medium",
                     plain_english=(
                         f"At step {step_idx + 1}, action '{action}' executed while a prior approval "
                         f"request was still pending."
@@ -1403,7 +1403,7 @@ class FaultAnalyzer:
                 flags.append(FaultFlag(
                     step_index=step_idx,
                     fault_type="HEURISTIC_OBSERVATION",
-                    severity="high",
+                    severity="medium",
                     plain_english=(
                         f"At step {step_idx + 1}, action '{action}' executed after an approval response "
                         f"rejected that action."
