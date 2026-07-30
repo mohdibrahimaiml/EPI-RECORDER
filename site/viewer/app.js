@@ -661,10 +661,17 @@ function renderVerdict(caseData) {
 
   if (rawDecision) {
     systemVerdict = rawDecision;
-    if (['APPROVED', 'APPROVE', 'PASS', 'PASSED', 'ACCEPT', 'ACCEPTED'].some(v => rawDecision.includes(v))) {
+    // Negation prefixes: DISAPPROVE, UNAPPROVE, etc. are not approvals
+    const _approved_list = ['APPROVED', 'APPROVE', 'PASS', 'PASSED', 'ACCEPT', 'ACCEPTED'];
+    const _rejected_list = ['REJECTED', 'REJECT', 'DENY', 'DENIED', 'FAIL', 'FAILED', 'DECLINE', 'DECLINED'];
+    const is_approved = _approved_list.some(v => rawDecision.includes(v));
+    const is_rejected = _rejected_list.some(v => rawDecision.includes(v));
+    const has_negation = ['DIS', 'UN', 'NON', 'DE'].some(p => rawDecision.startsWith(p));
+
+    if (is_approved && !has_negation) {
       verdictClass = 'approved';
       verdictDisplay = 'APPROVED';
-    } else if (['REJECTED', 'REJECT', 'DENY', 'DENIED', 'FAIL', 'FAILED', 'DECLINE', 'DECLINED'].some(v => rawDecision.includes(v))) {
+    } else if (is_rejected || (is_approved && has_negation)) {
       verdictClass = 'rejected';
       verdictDisplay = 'REJECTED';
     } else {
@@ -754,6 +761,9 @@ function renderVerdict(caseData) {
     const hasFaultType = (type) => allFlags.some(f =>
       f.fault_type === type || f.category === type
     );
+    const isHeuristicFault = (type) => allFlags.some(f =>
+      (f.fault_type === type || f.category === type) && f.category === 'heuristic_observation'
+    );
 
     const checks = [
       { label: 'P1: Error_Continuation',  key: 'ERROR_CONTINUATION' },
@@ -764,20 +774,13 @@ function renderVerdict(caseData) {
 
     diagEl.innerHTML = checks.map(ch => {
       const flagged = hasFaultType(ch.key);
-      const flag_label = flagged ? 'FLAGGED' : 'OK';
-      const label_class = flagged ? 'flagged' : 'ok';
-      // Check if flagged fault is heuristic
-      let heuristic_hint = '';
-      if (flagged) {
-        const fault = allFlags.find(f => f.fault_type === ch.key || f.category === ch.key);
-        if (fault && fault.category === 'heuristic_observation') {
-          heuristic_hint = ' (heuristic)';
-        }
-      }
+      const isHeuristic = isHeuristicFault(ch.key);
+      const label = flagged ? (isHeuristic ? 'PATTERN NOTED' : 'FLAGGED') : 'OK';
+      const cls = flagged ? (isHeuristic ? 'warn' : 'flagged') : 'ok';
       return `
         <div class="diag-item">
-          <span class="diag-label">${esc(ch.label)}${esc(heuristic_hint)}</span>
-          <span class="diag-status ${label_class}">${flag_label}</span>
+          <span class="diag-label">${esc(ch.label)}</span>
+          <span class="diag-status ${cls}">${label}</span>
         </div>`;
     }).join('');
   }
@@ -1018,16 +1021,12 @@ function renderAnalysis(caseData) {
 
     html += `<div class="analysis-diag-matrix">` + checks.map(ch => {
       const flagged = allFlags.some(f => f.fault_type === ch.key || f.category === ch.key);
-      const label = flagged ? 'FLAGGED' : 'OK';
-      const cls = flagged ? 'flagged' : 'ok';
-      let hint = '';
-      if (flagged) {
-        const f = allFlags.find(ff => ff.fault_type === ch.key || ff.category === ch.key);
-        if (f && f.category === 'heuristic_observation') hint = ' (heuristic)';
-      }
+      const isHeuristic = allFlags.some(f => (f.fault_type === ch.key || f.category === ch.key) && f.category === 'heuristic_observation');
+      const label = flagged ? (isHeuristic ? 'PATTERN NOTED' : 'FLAGGED') : 'OK';
+      const cls = flagged ? (isHeuristic ? 'warn' : 'flagged') : 'ok';
       return `
         <div class="diag-item">
-          <span class="diag-label">${esc(ch.label)}${esc(hint)}</span>
+          <span class="diag-label">${esc(ch.label)}</span>
           <span class="diag-status ${cls}">${label}</span>
         </div>`;
     }).join('') + '</div>';
