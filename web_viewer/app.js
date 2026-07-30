@@ -852,59 +852,90 @@ function renderEvidence(caseData) {
 function renderGovernance(caseData) {
   const policy = caseData.policy;
   const pe = caseData.policy_evaluation || {};
+  const results = pe.results || [];
 
-  if (!policy?.rules || policy.rules.length === 0) return;
+  // Always show governance if we have ANY evaluation data
+  if (!policy?.rules && results.length === 0) return;
 
   showSection('governance-basis', 'nav-governance');
 
-  const html = policy.rules.map(rule => {
-    // Handle both object rules and legacy string rules
-    const ruleId = typeof rule === 'string' ? rule : (rule.id || rule.name || 'unnamed');
-    const ruleName = typeof rule === 'string' ? rule : (rule.name || rule.id || 'Unnamed rule');
-    const ruleDesc = typeof rule === 'string' ? '' : (rule.description || '');
+  let html = '';
 
-    // Match evaluation result by rule_id, control_id, or name
-    const res = (pe.results || []).find(r =>
-      (r.rule_id && r.rule_id === ruleId) ||
-      (r.control_id && r.control_id === ruleId) ||
-      (r.name && r.name === ruleName) ||
-      (r.rule_name && r.rule_name === ruleName)
-    );
+  // Show a note when using baseline/heuristic evaluation
+  if (!policy?.rules && pe.baseline) {
+    html += '<div style="margin-bottom:16px;padding:10px 14px;background:var(--accent-glow);border:1px solid var(--accent-line);border-radius:8px;font-size:11px;color:var(--ink-soft)">';
+    html += '<strong>Baseline Evaluation</strong> — No epi_policy.json configured.<br>';
+    html += 'Run <code>epi policy init</code> to create domain-specific rules for your workflow.';
+    html += '</div>';
+  }
 
-    // Determine severity from evaluation result, fallback to rule severity or medium
-    let ruleSeverity = res?.severity || (typeof rule === 'string' ? 'medium' : (rule.severity || 'medium'));
-    ruleSeverity = String(ruleSeverity).toLowerCase();
-    const status = res?.status || 'unknown';
-    const isPassed = status === 'passed' || status === 'pass';
-    const isFailed = status === 'failed' || status === 'fail';
+  // Render formal policy rules when present
+  if (policy?.rules && policy.rules.length > 0) {
+    html += policy.rules.map(rule => {
+      const ruleId = typeof rule === 'string' ? rule : (rule.id || rule.name || 'unnamed');
+      const ruleName = typeof rule === 'string' ? rule : (rule.name || rule.id || 'Unnamed rule');
+      const ruleDesc = typeof rule === 'string' ? '' : (rule.description || '');
 
-    // Build condition / threshold detail line
-    let detailHtml = '';
-    if (typeof rule === 'object' && rule.condition) {
-      const cond = rule.condition;
-      detailHtml += `<div class="policy-item-desc">Condition: ${esc(cond.field || '?')} ${esc(cond.operator || '?')} ${esc(String(cond.value ?? ''))}</div>`;
-    }
-    if (typeof rule === 'object' && rule.threshold != null) {
-      detailHtml += `<div class="policy-item-desc">Threshold: ${esc(String(rule.threshold))}</div>`;
-    }
-    if (ruleDesc) {
-      detailHtml += `<div class="policy-item-desc">${esc(ruleDesc)}</div>`;
-    }
+      const res = results.find(r =>
+        (r.rule_id && r.rule_id === ruleId) ||
+        (r.control_id && r.control_id === ruleId) ||
+        (r.name && r.name === ruleName) ||
+        (r.rule_name && r.rule_name === ruleName)
+      );
 
-    return `
-      <div class="policy-item ${isPassed ? 'passed' : isFailed ? 'failed' : ''}">
-        <div class="policy-item-header">
-          <span class="policy-item-name">
-            ${esc(ruleId)}: ${esc(ruleName)}
-            <span class="risk-badge ${ruleSeverity}">${esc(ruleSeverity.toUpperCase())}</span>
-          </span>
-          <span class="policy-item-status ${isPassed ? 'passed' : isFailed ? 'failed' : ''}">
-            ${esc(status.toUpperCase())}
-          </span>
-        </div>
-        ${detailHtml}
-      </div>`;
-  }).join('');
+      let ruleSeverity = res?.severity || (typeof rule === 'string' ? 'medium' : (rule.severity || 'medium'));
+      ruleSeverity = String(ruleSeverity).toLowerCase();
+      const status = res?.status || 'unknown';
+      const isPassed = status === 'passed' || status === 'pass';
+      const isFailed = status === 'failed' || status === 'fail';
+
+      let detailHtml = '';
+      if (typeof rule === 'object' && rule.condition) {
+        const cond = rule.condition;
+        detailHtml += '<div class="policy-item-desc">Condition: ' + esc(cond.field || '?') + ' ' + esc(cond.operator || '?') + ' ' + esc(String(cond.value ?? '')) + '</div>';
+      }
+      if (typeof rule === 'object' && rule.threshold != null) {
+        detailHtml += '<div class="policy-item-desc">Threshold: ' + esc(String(rule.threshold)) + '</div>';
+      }
+      if (ruleDesc) {
+        detailHtml += '<div class="policy-item-desc">' + esc(ruleDesc) + '</div>';
+      }
+
+      return '<div class="policy-item ' + (isPassed ? 'passed' : isFailed ? 'failed' : '') + '">' +
+        '<div class="policy-item-header">' +
+        '<span class="policy-item-name">' + esc(ruleId) + ': ' + esc(ruleName) +
+        '<span class="risk-badge ' + ruleSeverity + '">' + esc(ruleSeverity.toUpperCase()) + '</span>' +
+        '</span>' +
+        '<span class="policy-item-status ' + (isPassed ? 'passed' : isFailed ? 'failed' : '') + '">' +
+        esc(status.toUpperCase()) + '</span>' +
+        '</div>' +
+        detailHtml +
+        '</div>';
+    }).join('');
+  }
+
+  // Always append baseline evaluation results when no formal rules matched
+  const baselineResults = results.filter(r => r.rule_id && r.rule_id.startsWith('baseline.'));
+  if (baselineResults.length > 0) {
+    html += '<div style="margin-top:16px;border-top:1px solid var(--border-color);padding-top:16px;">';
+    html += '<div style="font-size:10px;font-weight:900;text-transform:uppercase;color:var(--text-faint);margin-bottom:10px;letter-spacing:1px;">Heuristic Checks</div>';
+    html += baselineResults.map(r => {
+      const isPassed = r.status === 'passed' || r.status === 'pass';
+      const isFailed = r.status === 'failed' || r.status === 'fail';
+      const sev = (r.severity || 'medium').toLowerCase();
+      return '<div class="policy-item ' + (isPassed ? 'passed' : isFailed ? 'failed' : '') + '">' +
+        '<div class="policy-item-header">' +
+        '<span class="policy-item-name">' + esc(r.rule_name || r.rule_id) +
+        '<span class="risk-badge ' + sev + '">' + esc(sev.toUpperCase()) + '</span>' +
+        '</span>' +
+        '<span class="policy-item-status ' + (isPassed ? 'passed' : isFailed ? 'failed' : '') + '">' +
+        esc((r.status || 'unknown').toUpperCase()) + '</span>' +
+        '</div>' +
+        (r.plain_english ? '<div class="policy-item-desc">' + esc(r.plain_english) + '</div>' : '') +
+        '</div>';
+    }).join('');
+    html += '</div>';
+  }
 
   document.getElementById('rulebook-content').innerHTML = html;
 }
