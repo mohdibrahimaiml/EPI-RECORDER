@@ -653,14 +653,29 @@ class EPIContainer:
                                 encoding="utf-8",
                             )
                     else:
-                        # No explicit policy — generate a minimal baseline evaluation
-                        # from heuristic fault detection so every artifact has
-                        # policy_evaluation.json for the viewer to display.
-                        baseline_eval = EPIContainer._build_baseline_policy_evaluation(analysis)
-                        (source_dir / "policy_evaluation.json").write_text(
-                            json.dumps(baseline_eval, indent=2, ensure_ascii=False),
-                            encoding="utf-8",
-                        )
+                        # No explicit policy — try to auto-extract from policy.check steps
+                        auto_policy = EPIContainer._extract_policy_from_steps(steps_content)
+                        if auto_policy:
+                            (source_dir / "policy.json").write_text(
+                                json.dumps(auto_policy, indent=2, ensure_ascii=False),
+                                encoding="utf-8",
+                            )
+                            # Build evaluation from matched policy.check results
+                            auto_eval = EPIContainer._build_baseline_policy_evaluation(analysis)
+                            auto_eval["policy_id"] = auto_policy["policy_id"]
+                            auto_eval["baseline"] = False
+                            auto_eval["note"] = auto_policy.get("note", "")
+                            (source_dir / "policy_evaluation.json").write_text(
+                                json.dumps(auto_eval, indent=2, ensure_ascii=False),
+                                encoding="utf-8",
+                            )
+                        else:
+                            # No auto-policy either — baseline heuristic
+                            baseline_eval = EPIContainer._build_baseline_policy_evaluation(analysis)
+                            (source_dir / "policy_evaluation.json").write_text(
+                                json.dumps(baseline_eval, indent=2, ensure_ascii=False),
+                                encoding="utf-8",
+                            )
 
                     manifest.analysis_status = "complete"
                     # AUD-CO-02: Attest the step count in the manifest so that
@@ -877,6 +892,48 @@ class EPIContainer:
             zf.writestr("manifest.json", manifest_json, compress_type=zipfile.ZIP_DEFLATED)
 
         return viewer_html
+
+    @staticmethod
+    def _extract_policy_from_steps(steps_content: str) -> dict | None:
+        """Auto-extract policy rules from policy.check steps in the recording."""
+        import json as _json
+        rules = []
+        seen_ids = set()
+        for line in steps_content.splitlines():
+            if not line.strip():
+                continue
+            try:
+                step = _json.loads(line)
+            except Exception:
+                continue
+            if step.get("kind") != "policy.check":
+                continue
+            content = step.get("content", {})
+            rule_id = content.get("rule_id") or content.get("policy_name")
+            if not rule_id or rule_id in seen_ids:
+                continue
+            seen_ids.add(rule_id)
+            rule_name = content.get("rule") or content.get("policy_name") or rule_id
+            status = content.get("result") or content.get("status") or "unknown"
+            evidence = content.get("evidence") or {}
+            rule = {
+                "id": str(rule_id),
+                "name": str(rule_name)[:120],
+                "severity": str(content.get("severity", "medium")),
+                "status": str(status),
+            }
+            if evidence:
+                rule["evidence"] = evidence
+            rules.append(rule)
+        if not rules:
+            return None
+        return {
+            "policy_id": "epi.auto",
+            "policy_version": "1.0",
+            "auto_generated": True,
+            "note": "Auto-extracted from policy.check steps in the recording. Run epi policy init for custom rules.",
+            "rules": rules,
+        }
 
     @staticmethod
     def _build_baseline_policy_evaluation(analysis) -> dict:
