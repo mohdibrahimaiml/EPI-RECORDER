@@ -69,6 +69,8 @@ installer/windows/Output/
 *.epi
 # Allow documented sample artifacts in docs/
 !docs/assets/*.epi
+# Allow deterministic test vectors
+!tests/test_vectors/*.epi
 .epi/
 temp_epi_*/
 epi-recordings/

@@ -73,14 +73,17 @@
       var view = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
       var payloadLength = view.getUint32(8, true) + view.getUint32(12, true) * 4294967296;
 
-      var zipStart = u8.length - payloadLength;
-
       var markerBytes = new TextEncoder().encode(EPI_ZIP_MARKER);
-      if (zipStart >= markerBytes.length) {
+      var zipStart = HEADER_SIZE;
+      var scanEnd = Math.min(u8.length, HEADER_SIZE + 4 * 1024 * 1024);
+      for (var i = HEADER_SIZE; i + markerBytes.length <= scanEnd; i++) {
+        var match = true;
         for (var j = 0; j < markerBytes.length; j++) {
-          if (u8[zipStart - markerBytes.length + j] !== markerBytes[j]) {
-            throw new Error('EPI envelope integrity check failed: sentinel marker not at expected offset');
-          }
+          if (u8[i + j] !== markerBytes[j]) { match = false; break; }
+        }
+        if (match) {
+          zipStart = i + markerBytes.length;
+          break;
         }
       }
 
