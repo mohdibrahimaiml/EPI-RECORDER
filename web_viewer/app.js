@@ -179,10 +179,9 @@ function summarizeStep(step) {
       }
 
       case 'policy.check': {
-        const ruleId = c.rule_id || c.id || c.matched_rule || (c.agt_data && c.agt_data.policy_name) || '?';
-        const status = c.status || c.policy_decision || '?';
-        const note = c.note || c.message || '';
-        return `Rule ${ruleId}: ${status}${note ? ' — ' + trunc(note, 120) : ''}`;
+        const ruleId = c.rule_id || c.id || c.matched_rule || c.policy_name || (c.agt_data && c.agt_data.policy_name) || '?';
+        const status = (c.result || c.status || c.policy_decision || '?').toUpperCase();
+        return `Rule ${ruleId}: ${status}${note ? ' \u2014 ' + trunc(note, 120) : ''}`;
       }
 
       case 'source.record.loaded': {
