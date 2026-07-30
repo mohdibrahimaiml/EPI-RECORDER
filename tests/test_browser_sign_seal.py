@@ -69,7 +69,9 @@ def test_web_viewer_sign_seal_is_model_a_additive():
     # Must not re-sign the execution manifest in this path
     assert "epiSignManifest" not in fn_body
     assert "caseData.files" in fn_body or "caseData.manifest" in fn_body
-    assert "viewer.html" in fn_body or "download" in fn_body
+    # Fallback must preserve all original files including viewer.html —
+    # it iterates caseData.files generically (skip mimetype and review.json only)
+    assert "name === 'review.json'" in fn_body or "\"review.json\"" in fn_body or "reviewLedger" in fn_body
 
 
 def test_crypto_js_exports_sign_and_envelope_helpers():

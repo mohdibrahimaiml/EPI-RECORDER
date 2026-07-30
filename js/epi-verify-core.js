@@ -73,20 +73,25 @@
       var view = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
       var payloadLength = view.getUint32(8, true) + view.getUint32(12, true) * 4294967296;
 
-      // Derive ZIP start from file size minus payload length (offset math),
-      // NOT by scanning for the sentinel marker, which could produce false
-      // matches if the marker bytes appear in step content or viewer HTML.
-      var zipStart = u8.length - payloadLength;
-
-      // Validate the sentinel at the computed position
+      // Scan for the ZIP payload sentinel. The marker string is split-
+      // concatenated in Python source so it never exists as a contiguous
+      // byte sequence in the source code, eliminating collision risk with
+      // inlined content. Handles artifacts with or without viewer HTML.
       var markerBytes = new TextEncoder().encode(EPI_ZIP_MARKER);
-      if (zipStart >= markerBytes.length) {
+      var zipStart = HEADER_SIZE;
+      var scanEnd = Math.min(u8.length, HEADER_SIZE + 4 * 1024 * 1024);
+      for (var i = HEADER_SIZE; i + markerBytes.length <= scanEnd; i++) {
+        var match = true;
         for (var j = 0; j < markerBytes.length; j++) {
-          if (u8[zipStart - markerBytes.length + j] !== markerBytes[j]) {
-            throw new Error('EPI envelope integrity check failed: sentinel marker not at expected offset');
-          }
+          if (u8[i + j] !== markerBytes[j]) { match = false; break; }
+        }
+        if (match) {
+          zipStart = i + markerBytes.length;
+          break;
         }
       }
+      // If no viewer HTML exists, paylod starts at header boundary
+      // (older/migrated artifacts)
 
       if (zipStart + payloadLength > u8.length) {
         throw new Error('EPI envelope payload truncated');

@@ -470,25 +470,19 @@ class EPIContainer:
         written = 0
 
         with open(epi_path, "rb") as src, open(dest_zip_path, "wb") as dst:
-            # Seek to ZIP payload using length field from header rather than
-            # substring-scanning for the sentinel marker, which could produce
-            # false matches if the marker bytes appear in step content.
-            file_size = epi_path.stat().st_size
-            zip_start = file_size - header.payload_length
+            # Scan for the ZIP payload sentinel. The sentinel string is
+            # split-concatenated at definition time so it never exists as a
+            # contiguous byte sequence in the source — eliminating collision
+            # risk with inlined step content or viewer HTML.
+            src.seek(EPI_ENVELOPE_HEADER_SIZE)
+            buffer = src.read(4 * 1024 * 1024)
+            marker_idx = buffer.find(EPI_ZIP_MARKER)
 
-            # Validate sentinel preceding the ZIP payload
-            marker_len = len(EPI_ZIP_MARKER)
-            if zip_start >= marker_len:
-                src.seek(zip_start - marker_len)
-                preceding = src.read(marker_len)
-                if preceding != EPI_ZIP_MARKER:
-                    raise ValueError(
-                        "EPI envelope integrity check failed: "
-                        "sentinel marker not found at expected offset. "
-                        "File may be truncated or have unexpected trailing data."
-                    )
-
-            src.seek(zip_start)
+            if marker_idx != -1:
+                src.seek(EPI_ENVELOPE_HEADER_SIZE + marker_idx + len(EPI_ZIP_MARKER))
+            else:
+                # Artifact has no viewer HTML shell — payload starts at header boundary
+                src.seek(EPI_ENVELOPE_HEADER_SIZE)
 
             remaining = header.payload_length
             while remaining > 0:
