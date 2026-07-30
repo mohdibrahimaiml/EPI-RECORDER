@@ -764,10 +764,20 @@ function renderVerdict(caseData) {
 
     diagEl.innerHTML = checks.map(ch => {
       const flagged = hasFaultType(ch.key);
+      const flag_label = flagged ? 'FLAGGED' : 'OK';
+      const label_class = flagged ? 'flagged' : 'ok';
+      // Check if flagged fault is heuristic
+      let heuristic_hint = '';
+      if (flagged) {
+        const fault = allFlags.find(f => f.fault_type === ch.key || f.category === ch.key);
+        if (fault && fault.category === 'heuristic_observation') {
+          heuristic_hint = ' (heuristic)';
+        }
+      }
       return `
         <div class="diag-item">
-          <span class="diag-label">${esc(ch.label)}</span>
-          <span class="diag-status ${flagged ? 'flagged' : 'ok'}">${flagged ? 'FLAGGED' : 'OK'}</span>
+          <span class="diag-label">${esc(ch.label)}${esc(heuristic_hint)}</span>
+          <span class="diag-status ${label_class}">${flag_label}</span>
         </div>`;
     }).join('');
   }
@@ -1008,10 +1018,17 @@ function renderAnalysis(caseData) {
 
     html += `<div class="analysis-diag-matrix">` + checks.map(ch => {
       const flagged = allFlags.some(f => f.fault_type === ch.key || f.category === ch.key);
+      const label = flagged ? 'FLAGGED' : 'OK';
+      const cls = flagged ? 'flagged' : 'ok';
+      let hint = '';
+      if (flagged) {
+        const f = allFlags.find(ff => ff.fault_type === ch.key || ff.category === ch.key);
+        if (f && f.category === 'heuristic_observation') hint = ' (heuristic)';
+      }
       return `
         <div class="diag-item">
-          <span class="diag-label">${esc(ch.label)}</span>
-          <span class="diag-status ${flagged ? 'flagged' : 'ok'}">${flagged ? 'FLAGGED' : 'OK'}</span>
+          <span class="diag-label">${esc(ch.label)}${esc(hint)}</span>
+          <span class="diag-status ${cls}">${label}</span>
         </div>`;
     }).join('') + '</div>';
   }
