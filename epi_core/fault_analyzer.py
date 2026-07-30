@@ -1788,11 +1788,17 @@ class FaultAnalyzer:
         if len(steps) < 8:
             return flags
 
+        # Steps that naturally drop entity context — no false positive needed
+        _TERMINAL_KINDS = {
+            "review.handoff", "agent.run.end", "session.end",
+            "environment.captured", "agent.run.start",
+        }
+
         split_a = max(1, len(steps) // 3)
         split_b = len(steps) - split_a
 
         early_steps = steps[:split_a]
-        late_steps = steps[split_b:]
+        late_steps = [s for s in steps[split_b:] if (s.get("kind") or "") not in _TERMINAL_KINDS]
 
         # Determine exempt fields: policy-declared + global defaults
         exempt_fields = set(_ENTITY_ID_EXEMPT_KEYS)
