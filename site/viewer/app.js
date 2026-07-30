@@ -179,10 +179,10 @@ function summarizeStep(step) {
       }
 
       case 'policy.check': {
-        const ruleId = c.rule_id || c.id || c.matched_rule || (c.agt_data && c.agt_data.policy_name) || '?';
-        const status = c.status || c.policy_decision || '?';
-        const note = c.note || c.message || '';
-        return `Rule ${ruleId}: ${status}${note ? ' — ' + trunc(note, 120) : ''}`;
+        const ruleId = c.rule_id || c.control_id || c.id || c.matched_rule || c.policy_name || (c.agt_data && c.agt_data.policy_name) || c.rule || 'policy';
+        const status = (c.result || c.status || c.policy_decision || c.outcome || '').toUpperCase() || 'NOTED';
+        const ruleText = c.rule || c.message || c.plain_english || '';
+        return `Rule ${ruleId}: ${status}${ruleText ? ' — ' + trunc(ruleText, 120) : ''}`;
       }
 
       case 'source.record.loaded': {
@@ -534,12 +534,13 @@ function renderIntegrity(caseData, context) {
       uuidEl.title = envelope.artifact_uuid;
     }
 
-    // Payload Hash
+    // Payload Hash — check both baked (payload_hash) and context (payload_sha256) field names
     const phEl = document.getElementById('diag-payload-hash');
-    if (envelope?.payload_hash) {
-      phEl.textContent = envelope.payload_hash.slice(0, 16) + '...';
+    const payloadHash = envelope?.payload_hash || envelope?.payload_sha256;
+    if (payloadHash) {
+      phEl.textContent = payloadHash.slice(0, 16) + '...';
       phEl.className = 'diag-status ok';
-      phEl.title = envelope.payload_hash;
+      phEl.title = payloadHash;
     }
   }
 }
@@ -712,10 +713,15 @@ function renderVerdict(caseData) {
   // Compliance stats + risk level
   if (pe) {
     const total = pe.controls_evaluated || 0;
-    const failed = pe.controls_failed || 0;
-    const passed = total - failed;
-    document.getElementById('compliance-stats').textContent =
-      `${passed}/${total} GOVERNANCE CONTROL${total !== 1 ? 'S' : ''} SATISFIED`;
+    const results = pe.results || [];
+    const passed = results.filter(r => r.status === 'passed' || r.status === 'pass').length;
+    const failed = results.filter(r => r.status === 'failed' || r.status === 'fail').length;
+    const pendingCount = results.length - passed - failed;
+    let statsText = `${passed}/${total} GOVERNANCE CONTROL${total !== 1 ? 'S' : ''} SATISFIED`;
+    if (pendingCount > 0) {
+      statsText += ` (${pendingCount} PENDING)`;
+    }
+    document.getElementById('compliance-stats').textContent = statsText;
 
     const riskLevel = pe.risk_level || analysis?.risk_level || null;
     const riskEl = document.getElementById('risk-level-badge');
@@ -964,23 +970,34 @@ function renderAnalysis(caseData) {
 
   // Headline / no-fault indicator
   const headline = analysis.summary?.headline || '';
+  const pf = analysis.primary_fault;
+  const flags = analysis.secondary_flags || [];
+  const allFlags = [
+    ...(pf ? [pf] : []),
+    ...flags
+  ];
+  const isHeuristicOnly = allFlags.length > 0 && allFlags.every(f =>
+    f.category === 'heuristic_observation' || f.fault_type === 'HEURISTIC_OBSERVATION'
+  );
   if (analysis.fault_detected === false) {
     html += `<div class="no-fault-block">&#10003; ${esc(headline || 'No faults detected.')}</div>`;
   } else if (analysis.fault_detected === true) {
+    const title = isHeuristicOnly ? 'Pattern Noted' : 'Fault Detected';
     html += `<div class="fault-block">
-      <div class="fault-block-title">Fault Detected</div>
+      <div class="fault-block-title">${title}</div>
       <div class="fault-detail">${esc(headline)}</div>
     </div>`;
   }
 
   // Primary fault
-  const pf = analysis.primary_fault;
   if (pf) {
+    const isHeuristic = pf.category === 'heuristic_observation' || pf.fault_type === 'HEURISTIC_OBSERVATION';
+    const sevLabel = isHeuristic ? 'ADVISORY' : String(pf.severity || '?').toUpperCase();
     html += `
       <div class="fault-block" style="margin-top:14px;">
-        <div class="fault-block-title">Primary Fault: ${esc(pf.fault_type || '?')}</div>
+        <div class="fault-block-title">${isHeuristicOnly ? 'Pattern: ' : 'Primary Fault: '}${esc(pf.fault_type || '?')}</div>
         <div class="fault-detail">
-          Severity: <strong>${esc(String(pf.severity || '?').toUpperCase())}</strong>
+          Severity: <strong>${esc(sevLabel)}</strong>
           ${pf.step_index != null ? ` · At step index: ${esc(pf.step_index)}` : ''}
           ${pf.category ? ` · Category: ${esc(pf.category)}` : ''}
           ${pf.description ? `<br>${esc(pf.description)}` : ''}
@@ -989,15 +1006,16 @@ function renderAnalysis(caseData) {
   }
 
   // Secondary flags
-  const flags = analysis.secondary_flags || [];
   if (flags.length > 0) {
     html += `<div class="secondary-flags">
       <div style="font-size:10px; font-weight:900; text-transform:uppercase; color:var(--text-faint); margin-bottom:8px; letter-spacing:1px;">Secondary Flags (${flags.length})</div>`;
     flags.forEach(f => {
+      const isH = f.category === 'heuristic_observation' || f.fault_type === 'HEURISTIC_OBSERVATION';
+      const sev = isH ? 'ADVISORY' : (f.severity || '').toUpperCase();
       html += `
         <div class="flag-item">
           <strong>${esc(f.fault_type || f.type || '?')}</strong>
-          ${f.severity ? ` <span class="risk-badge ${f.severity.toLowerCase()}">${esc(f.severity.toUpperCase())}</span>` : ''}
+          ${sev ? ` <span class="risk-badge ${isH ? 'low' : (f.severity || 'medium').toLowerCase()}">${esc(sev)}</span>` : ''}
           ${f.step_index != null ? ` · Step ${esc(f.step_index)}` : ''}
           ${f.description ? `<br><span style="font-size:10px; color:#555;">${esc(f.description)}</span>` : ''}
         </div>`;
@@ -1006,12 +1024,8 @@ function renderAnalysis(caseData) {
   }
 
   // 4-pass analysis diagnostic matrix
-  const allFlags = [
-    ...(pf ? [pf] : []),
-    ...flags
-  ];
-
   if (allFlags.length > 0) {
+
     const checks = [
       { label: 'P1: Error_Continuation',  key: 'ERROR_CONTINUATION' },
       { label: 'P2: Constraint_Violation', key: 'CONSTRAINT_VIOLATION' },
@@ -1260,27 +1274,28 @@ async function buildReviewedArtifactBytes(caseData, reviewRecord) {
     throw new Error('JSZip is not available. Cannot build artifact in browser.');
   }
 
-  const zip = new JSZip();
+  // If we have the full original artifact, load it and only swap review.json.
+  // This preserves every byte the manifest was signed over.
+  if (caseData.archive_base64) {
+    return buildReviewedFromOriginal(caseData.archive_base64, reviewRecord);
+  }
 
-  // mimetype must be first and uncompressed
+  // Fallback: rebuild from individual files (legacy path for older viewers).
+  const zip = new JSZip();
   zip.file('mimetype', 'application/vnd.epi+zip', { compression: 'STORE' });
 
-  // Original files (base64 decode → binary)
   const files = caseData.files || {};
   for (const [name, b64] of Object.entries(files)) {
-    if (name === 'mimetype' || name === 'viewer.html' || name === 'manifest.json' || name === 'review.json') {
-      continue;
-    }
+    if (name === 'mimetype' || name === 'review.json') continue;
     zip.file(name, base64ToUint8Array(b64));
   }
 
-  // Review in ledger format
   const outcomeMap = {
     approved: 'dismissed',
     rejected: 'confirmed_fault',
     escalated: 'skipped',
   };
-  const reviewLedger = {
+  zip.file('review.json', JSON.stringify({
     reviewed_by: reviewRecord.reviewed_by,
     reviewed_at: reviewRecord.reviewed_at,
     reviews: [{
@@ -1289,29 +1304,35 @@ async function buildReviewedArtifactBytes(caseData, reviewRecord) {
       reviewed_at: reviewRecord.reviewed_at,
     }],
     review_version: '1.0.0',
+  }, null, 2));
+
+  return await zip.generateAsync({ type: 'blob' });
+}
+
+async function buildReviewedFromOriginal(archiveBase64, reviewRecord) {
+  // Load the original signed artifact, swap only review.json.
+  // Mirrors Python's add_review() — preserves all cryptographic hashes.
+  var zip = new JSZip();
+  var originalBytes = base64ToUint8Array(archiveBase64);
+  await zip.loadAsync(originalBytes);
+
+  var outcomeMap = {
+    approved: 'dismissed',
+    rejected: 'confirmed_fault',
+    escalated: 'skipped',
   };
-  zip.file('review.json', JSON.stringify(reviewLedger, null, 2));
+  zip.file('review.json', JSON.stringify({
+    reviewed_by: reviewRecord.reviewed_by,
+    reviewed_at: reviewRecord.reviewed_at,
+    reviews: [{
+      outcome: outcomeMap[reviewRecord.status] || 'skipped',
+      notes: reviewRecord.notes || '',
+      reviewed_at: reviewRecord.reviewed_at,
+    }],
+    review_version: '1.0.0',
+  }, null, 2));
 
-  // Rebuilt viewer HTML with review embedded
-  const viewerHtml = buildEmbeddedViewerHtml(caseData, reviewRecord);
-  zip.file('viewer.html', viewerHtml);
-
-  // Recompute viewer hash and update manifest
-  const viewerHtmlBytes = new TextEncoder().encode(viewerHtml);
-  const newViewerHash = await sha256Hex(viewerHtmlBytes.buffer);
-
-  const manifest = JSON.parse(JSON.stringify(caseData.manifest || {}));
-  manifest.container_format = 'legacy-zip';
-  if (!manifest.file_manifest) {
-    manifest.file_manifest = {};
-  }
-  manifest.file_manifest['viewer.html'] = newViewerHash;
-  delete manifest.signature;
-  zip.file('manifest.json', JSON.stringify(manifest, null, 2));
-
-  // Generate ZIP bytes as Blob
-  const blob = await zip.generateAsync({ type: 'blob' });
-  return blob;
+  return await zip.generateAsync({ type: 'blob' });
 }
 
 async function downloadReviewedArtifact(caseData, reviewRecord) {

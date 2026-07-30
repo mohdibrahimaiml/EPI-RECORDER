@@ -504,6 +504,17 @@ def _build_preloaded_case_payload(extracted_dir: Path, resolved_path: Path) -> d
             fp = extracted_dir / filename
             if fp.exists() and fp.is_file():
                 _files[filename] = base64.b64encode(fp.read_bytes()).decode("ascii")
+        # manifest.json is written directly to the ZIP during packing and is not
+        # listed in file_manifest. The browser viewer needs its raw bytes to
+        # preserve the cryptographic signature during Sign & Seal.
+        mf_path = extracted_dir / "manifest.json"
+        if mf_path.exists() and mf_path.is_file():
+            _files["manifest.json"] = base64.b64encode(mf_path.read_bytes()).decode("ascii")
+        # Same for viewer.html — it's a generated file not tracked in file_manifest
+        # but needed by the browser to rebuild the full artifact.
+        vh_path = extracted_dir / "viewer.html"
+        if vh_path.exists() and vh_path.is_file():
+            _files["viewer.html"] = base64.b64encode(vh_path.read_bytes()).decode("ascii")
     except Exception:
         pass
 
@@ -795,6 +806,24 @@ def export_html(
 
     # Try to extract embedded viewer from polyglot envelope first
     viewer_html = EPIContainer.extract_embedded_viewer(resolved_path)
+
+    if viewer_html is not None:
+        # Polyglot path: inject the inner ZIP payload bytes so the browser
+        # can load the original signed archive and only swap review.json.
+        import base64 as _b64, re as _re, tempfile as _temp, shutil as _shutil
+        _tmp = Path(_temp.mkdtemp())
+        try:
+            _payload = _tmp / "payload.zip"
+            EPIContainer.extract_inner_payload(resolved_path, _payload)
+            payload_b64 = _b64.b64encode(_payload.read_bytes()).decode("ascii")
+        finally:
+            _shutil.rmtree(_tmp, ignore_errors=True)
+        # Replace the archive_base64 null value with the real payload bytes.
+        # The baked HTML has "archive_base64": null — patch just that key.
+        viewer_html = viewer_html.replace(
+            '"archive_base64": null',
+            f'"archive_base64": "{payload_b64}"'
+        )
 
     if viewer_html is None:
         # Fallback: legacy format or no embedded viewer — generate fresh

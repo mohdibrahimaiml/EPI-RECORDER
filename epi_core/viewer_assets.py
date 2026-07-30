@@ -26,13 +26,83 @@ def _read_text(package_dir: str, filename: str) -> str | None:
 
 
 def load_viewer_assets(version: str = "1.0") -> dict[str, str | None]:
-    return {
+    assets = {
         "template_html": _read_text("web_viewer", "index.html"),
         "jszip_js": _read_text("web_viewer", "jszip.min.js"),
         "app_js": _read_text("web_viewer", "app.js"),
         "css_styles": _read_text("web_viewer", "styles.css"),
         "crypto_js": _read_text("epi_viewer_static", "crypto.js"),
     }
+    _validate_app_js(assets["app_js"])
+    return assets
+
+
+def _validate_app_js(app_js: str | None) -> None:
+    """Validate app.js before it gets inlined into any viewer.
+    
+    Catches syntax errors (like doubled braces) and missing critical functions
+    at build time instead of at browser runtime.
+    """
+    if not app_js:
+        return
+    
+    import sys
+    
+    errors: list[str] = []
+    
+    # 1. Brace balance check for every key function
+    functions_to_check = [
+        "buildReviewedArtifactBytes",
+        "buildReviewedFromOriginal",
+        "summarizeStep",
+        "renderVerdict",
+        "renderAnalysis",
+        "renderGovernance",
+        "renderIntegrity",
+    ]
+    for func_name in functions_to_check:
+        idx = app_js.find(f"function {func_name}")
+        if idx < 0:
+            idx = app_js.find(f"async function {func_name}")
+        if idx < 0:
+            continue
+        # Find next function or end of script
+        next_func = len(app_js)
+        for marker in ["function ", "async function "]:
+            pos = app_js.find(marker, idx + len(func_name) + 20)
+            if pos > 0 and pos < next_func:
+                next_func = pos
+        body = app_js[idx:next_func]
+        opens = body.count("{")
+        closes = body.count("}")
+        if opens != closes:
+            errors.append(
+                f"Brace mismatch in {func_name}: {opens} open, {closes} close"
+            )
+    
+    # 2. Critical: old bug pattern must not return
+    if "delete manifest.signature" in app_js:
+        errors.append(
+            "FATAL: 'delete manifest.signature' found in app.js — "
+            "this destroys cryptographic integrity during Sign & Seal"
+        )
+    
+    # 3. Critical: new function must exist
+    if "buildReviewedFromOriginal" not in app_js:
+        errors.append(
+            "FATAL: 'buildReviewedFromOriginal' missing from app.js — "
+            "Sign & Seal will produce corrupted artifacts"
+        )
+    
+    if "buildReviewedArtifactBytes" not in app_js:
+        errors.append(
+            "FATAL: 'buildReviewedArtifactBytes' missing from app.js"
+        )
+    
+    if errors:
+        msg = "app.js validation failed:\n  " + "\n  ".join(errors)
+        print(f"[EPI] {msg}", file=sys.stderr)
+        raise RuntimeError(msg)
 
 
 def _escape_inline_script_source(script_source: str | None) -> str | None:
