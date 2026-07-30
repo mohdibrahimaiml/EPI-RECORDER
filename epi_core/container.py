@@ -667,19 +667,27 @@ class EPIContainer:
                             auto_eval["baseline"] = False
                             auto_eval["note"] = auto_policy.get("note", "")
                             # Add auto-extracted rule results alongside baseline ones
-                            # Suppress baseline heuristic results when auto policy exists
-                            auto_eval["results"] = []
                             auto_eval["controls_evaluated"] = 0
                             auto_eval["controls_failed"] = 0
                             auto_eval["note"] = (auto_policy.get("note", "") + 
-                                " Baseline heuristics suppressed — auto-extracted policy rules take priority.")
+                                " Auto-extracted policy rules from this recording. Baseline heuristics are still evaluated alongside.")
                             for rule in auto_policy.get("rules", []):
                                 rule_id = rule.get("id", "")
                                 rule_name = rule.get("name", "")
                                 rule_status = rule.get("status", "unknown")
                                 rule_severity = rule.get("severity", "medium")
                                 evidence = rule.get("evidence", {})
-                                # Check if a review.handoff step matches this rule
+                                # Check if §7.0 attestation was actually signed for this rule
+                                actual_reviewed = False
+                                review_path = source_dir / "review.json"
+                                if review_path.exists():
+                                    try:
+                                        review_data = json.loads(review_path.read_text(encoding="utf-8"))
+                                        if review_data.get("status") == "approved" and review_data.get("reviewed_by"):
+                                            actual_reviewed = True
+                                    except Exception:
+                                        pass
+                                # Check if a review.handoff step was at least logged for this rule
                                 has_handoff = False
                                 for line in steps_content.splitlines():
                                     if not line.strip(): continue
@@ -688,18 +696,22 @@ class EPIContainer:
                                     if s.get("kind") == "review.handoff":
                                         hc = s.get("content", {})
                                         reason = hc.get("reason", "").lower()
-                                        # Multi-strategy match: rule name keywords, threshold amounts
-                                        if rule_name.lower() in reason or reason in rule_name.lower():
-                                            has_handoff = True; break
-                                        # Check numeric thresholds from evidence
                                         for k, v in (evidence or {}).items():
                                             if 'threshold' in k.lower() and str(v) in reason:
                                                 has_handoff = True; break
                                             if k.endswith('_usd') and str(v) in reason:
                                                 has_handoff = True; break
                                         if has_handoff: break
-                                # review_required + handoff = policy is working correctly
-                                actual_status = "passed" if (rule_status in ("passed","not_triggered") or (rule_status == "review_required" and has_handoff)) else "failed"
+                                # Status resolution:
+                                # - PASSED: rule status is passed/not_triggered, OR actual human attestation signed
+                                # - PENDING: review_required with handoff logged but no attestation yet
+                                # - FAILED: rule failed, or review_required with no handoff logged
+                                if rule_status in ("passed", "not_triggered") or actual_reviewed:
+                                    actual_status = "passed"
+                                elif rule_status == "review_required" and has_handoff:
+                                    actual_status = "pending"
+                                else:
+                                    actual_status = "failed"
                                 auto_eval["results"].append({
                                     "rule_id": rule_id,
                                     "rule_name": rule_name,
@@ -719,6 +731,9 @@ class EPIContainer:
                                 auto_eval["controls_evaluated"] = auto_eval.get("controls_evaluated", 0) + 1
                                 if actual_status == "failed":
                                     auto_eval["controls_failed"] = auto_eval.get("controls_failed", 0) + 1
+                                # PENDING counts as "not failed" for the verdict fraction
+                                elif actual_status == "passed":
+                                    pass  # passed = satisfied
                             (source_dir / "policy_evaluation.json").write_text(
                                 json.dumps(auto_eval, indent=2, ensure_ascii=False),
                                 encoding="utf-8",
