@@ -153,4 +153,5 @@ Fill in with the pilot sponsor:
 ## 7. Related
 
 - Full journeys and tier matrix: [COMPLETE-PRODUCT-GUIDE.md](./COMPLETE-PRODUCT-GUIDE.md)  
-- CLI reference: [CLI.md](./CLI.md)
+- CLI reference: [CLI.md](./CLI.md)  
+- Policy + fault analyzer (users): [POLICY-AND-FAULT-ANALYZER.md](./POLICY-AND-FAULT-ANALYZER.md)

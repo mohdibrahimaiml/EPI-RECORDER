@@ -1,5 +1,8 @@
 # EPI Policy Guide
 
+**User how-to (normal workflow):** [POLICY-AND-FAULT-ANALYZER.md](./POLICY-AND-FAULT-ANALYZER.md)  
+**Docs map:** [README.md](./README.md)
+
 `epi_policy.json` is the rulebook for an AI workflow.
 
 It tells EPI what the system was supposed to do. The fault analyzer then compares the recorded run against those rules and writes the result into `analysis.json`.
