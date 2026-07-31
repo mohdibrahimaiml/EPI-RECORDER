@@ -161,7 +161,8 @@ See [ENTERPRISE-15-MINUTES.md](./ENTERPRISE-15-MINUTES.md).
 
 | Doc | Topic |
 |-----|--------|
+| [POLICY-AND-FAULT-ANALYZER.md](./POLICY-AND-FAULT-ANALYZER.md) | Policy rulebook + fault analyzer for normal users |
 | [CLI.md](./CLI.md) | Full command reference |
 | [KNOWN_LIMITATIONS.md](./KNOWN_LIMITATIONS.md) | Product boundaries |
-| [POLICY.md](./POLICY.md) | Policy rules |
+| [POLICY.md](./POLICY.md) | Policy schema detail |
 | [PILOT.md](./PILOT.md) | Guided pilot pack |

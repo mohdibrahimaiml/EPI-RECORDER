@@ -13,6 +13,7 @@ Product version in this repo: **4.4.0**. PyPI may lag — check with `pip index 
 | You are… | Read first | Then |
 |----------|------------|------|
 | **New developer** | Root [README.md](../README.md) (60-second path) | [USAGE_GUIDE.md](./USAGE_GUIDE.md), [CLI.md](./CLI.md) |
+| **Policy & fault analysis** | **[POLICY-AND-FAULT-ANALYZER.md](./POLICY-AND-FAULT-ANALYZER.md)** | [POLICY.md](./POLICY.md) |
 | **Enterprise / customer pilot** | **[PILOT.md](./PILOT.md)** | [ENTERPRISE-15-MINUTES.md](./ENTERPRISE-15-MINUTES.md), [ENTERPRISE-CAPABILITY.md](./ENTERPRISE-CAPABILITY.md) |
 | **Auditor / independent verifier** | [AUDITORS-GUIDE.md](./AUDITORS-GUIDE.md) | [VERIFICATION_CONTRACT.md](./VERIFICATION_CONTRACT.md), [THREAT_MODEL.md](./THREAT_MODEL.md) |
 | **EPI Labs operator** (hosted plans) | [OPERATOR-RUNBOOK.md](./OPERATOR-RUNBOOK.md) | [KNOWN_LIMITATIONS.md](./KNOWN_LIMITATIONS.md) |
@@ -41,9 +42,10 @@ Full narrative (internal / investor): [COMPLETE-PRODUCT-GUIDE.md](./COMPLETE-PRO
 | Doc | Purpose |
 |-----|---------|
 | [USAGE_GUIDE.md](./USAGE_GUIDE.md) | Day-to-day install, record, verify |
+| [POLICY-AND-FAULT-ANALYZER.md](./POLICY-AND-FAULT-ANALYZER.md) | How users use policy + fault analysis |
 | [CLI.md](./CLI.md) | Command reference (v4.4.0) |
 | [KNOWN_LIMITATIONS.md](./KNOWN_LIMITATIONS.md) | Honest product boundaries |
-| [POLICY.md](./POLICY.md) | Policy files and guards |
+| [POLICY.md](./POLICY.md) | Policy schema and authoring detail |
 | [ANNEX-IV.md](./ANNEX-IV.md) | Annex IV tooling |
 | [ACTIONS.md](./ACTIONS.md) | GitHub Actions |
 | [ENTERPRISE-TRUST-BUNDLE.md](./ENTERPRISE-TRUST-BUNDLE.md) | Org trust bundles |
