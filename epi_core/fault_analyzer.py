@@ -1688,7 +1688,7 @@ class FaultAnalyzer:
                 flags.append(FaultFlag(
                     step_index=0,
                     fault_type="time_gap_tamper",
-                    severity="high",
+                    severity="high",  # deliberate: clock rollback is not advisory
                     plain_english=(
                         f"Manifest created_at ({created_at}) is {days:.0f} days away from "
                         f"SCITT registered_at ({registered_at}). "

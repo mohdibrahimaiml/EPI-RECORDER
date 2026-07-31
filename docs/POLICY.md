@@ -79,6 +79,17 @@ But:
 
 So EPI still works without a policy file, but it behaves more like evidence recording plus heuristic analysis.
 
+## Auto-Extracted Policies (from policy.check steps)
+
+If your agent code logs `policy.check` steps during execution (many AGT and framework integrations do this automatically), EPI will auto-extract those checks into a synthetic policy during packing.
+
+This is a **fallback mechanism**, not a substitute for a formal `epi_policy.json`:
+
+- Auto-extracted rules appear in the viewer with a warning banner: "These rules were derived from policy.check steps, not from a formal epi_policy.json"
+- The `policy_evaluation.json` carries `"auto_extracted": true`
+- Baseline heuristics still run alongside auto-extracted rules
+- Run `epi policy init` to replace auto-extracted rules with authoritative, domain-specific policy rules
+
 ## What Happens If The File Is Invalid
 
 EPI warns and continues packing.
