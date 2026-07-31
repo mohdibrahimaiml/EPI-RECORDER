@@ -1,6 +1,7 @@
 # EPI Labs operator runbook (internal)
 
-**Customers never need this.** Hosted ops only.
+**Customers never need this.** Hosted ops only.  
+Customer/pilot docs: [PILOT.md](./PILOT.md) · [README.md](./README.md).
 
 ## Promote a user plan (no Paddle)
 

@@ -1,8 +1,9 @@
 # EPI — Complete product guide  
 ### User paths that stay simple · Pro & Enterprise pitch that stays honest
 
-**Last aligned with product:** post dual-mode Verify, enterprise kit CLI, honest pricing (repo `main`).  
-**Package version at time of writing:** still **v4.3.0** on PyPI until a later bump.  
+**Last aligned with product:** dual-mode Verify, enterprise kit CLI, honest pricing (repo `main`).  
+**Source version:** **4.4.0** in this repository. **PyPI may lag** (confirm with `pip index versions epi-recorder`). Prefer a git pin for pilots — see [PILOT.md](./PILOT.md).  
+**Docs map:** [README.md](./README.md).  
 **Spine of the product:** a portable sealed **`.epi` file** — same bytes, same cryptographic answer offline, in CI, and on the hosted path.
 
 Use this document for:

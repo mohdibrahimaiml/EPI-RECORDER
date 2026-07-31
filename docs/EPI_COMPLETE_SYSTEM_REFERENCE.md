@@ -1,8 +1,10 @@
 # EPI System Reference Manual
 
-**Version:** 4.0.1
-**Last Updated:** 2026-04-12
-**Status:** Production Ready
+> **Status: historical snapshot — not the current install or pilot guide.**  
+> Current: [README.md](./README.md) · Pilot: [PILOT.md](./PILOT.md)
+
+**Version note:** This file is outdated relative to source **4.4.0**.  
+**Last Updated (file):** 2026-04-12
 
 ---
 

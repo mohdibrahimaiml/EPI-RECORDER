@@ -7,7 +7,18 @@
 
 ## Start Here
 
+**Docs map:** [README.md](./README.md) · **Pilot:** [PILOT.md](./PILOT.md)
+
 Start with `epi demo` if you want to capture one AI run from Python, open it in the browser, and verify the resulting `.epi` artifact in minutes. The first browser screen is case-first: it leads with decision, review state, trust, and the evidence trail instead of a setup dashboard.
+
+For an enterprise customer pilot (org kit + auditor pack), use:
+
+```bash
+epi enterprise setup
+epi enterprise pack your-run.epi
+```
+
+See [ENTERPRISE-15-MINUTES.md](./ENTERPRISE-15-MINUTES.md).
 
 If you already have exported Microsoft Agent Governance Toolkit evidence, start with:
 
@@ -37,6 +48,7 @@ If you prefer zero local setup, use the Colab notebook linked from [README.md](.
 | Command | Purpose |
 | --- | --- |
 | `epi demo` | Start the sample refund workflow and open the case-first investigation flow in the browser. Recommended first run. |
+| `epi enterprise setup` / `pack` / `capabilities` | Enterprise evidence kit (org trust scaffold + auditor pack). See [ENTERPRISE-15-MINUTES.md](./ENTERPRISE-15-MINUTES.md). |
 | `epi import agt <input> --out <file.epi>` | Convert exported AGT evidence into a portable `.epi` case file from a bundle JSON, evidence directory, or AGT import manifest. |
 | `epi run <script.py>` | Record a Python workflow that already emits EPI steps. |
 | `epi record --out <file.epi> -- <cmd...>` | Record an arbitrary command with an explicit output path. |
@@ -328,7 +340,7 @@ epi doctor
 
 Creates and validates `epi_policy.json` files that define acceptable agent behavior.
 
-In the current `v4.3.0` line, `epi policy init` is the guided front door for
+In the current **v4.4.0** line, `epi policy init` is the guided front door for
 policy. It asks a small number of business-language questions and writes the
 machine-readable rulebook for you.
 It now shares the same starter rule shapes as the browser Rules editor, and the custom starter path can be pinned with repeated `--starter-rule` options.

@@ -2,7 +2,9 @@
 
 ## Canonical tree
 
-**`website/`** is the only tree you should edit for the public marketing site and `/verify/`.
+**`website/`** is the only tree you should edit for the **production** public marketing site and `/verify/`.
+
+**`website-v2/`** is an experimental redesign sandbox. Do **not** point deploy/sync at it unless you intentionally promote it.
 
 Deployed by `.github/workflows/deploy-website.yml` → **GitHub Pages** with:
 

@@ -1,5 +1,8 @@
 # EPI Enterprise Pivot: Master Project Documentation
 
+> **Status: historical / internal strategy — not the current install or pilot guide.**  
+> Current docs: [README.md](./README.md) · Pilot: [PILOT.md](./PILOT.md) · Capability: [ENTERPRISE-CAPABILITY.md](./ENTERPRISE-CAPABILITY.md)
+
 ## 1. Executive Summary: The "Trust Layer"
 **EPI (Evidence Packaged Infrastructure)** has evolved from a developer utility ("The PDF for AI") into an **Enterprise Trust Platform**.
 
