@@ -329,6 +329,74 @@ class TestFix9PostSignatureStatusFlip:
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+class TestPolicySource:
+    """Single source of truth: policy_source in policy_evaluation.json."""
+
+    def test_no_policy_source_is_no_policy(self):
+        """Zero policy file and zero policy.check steps → policy_source=no_policy."""
+        from epi_core.policy import load_policy
+        steps = [{"index": 0, "timestamp": "2025-01-01T00:00:00Z",
+                  "kind": "agent.decision", "content": {"decision": "approved"},
+                  "prev_hash": "CHAIN_START"}]
+        ws = _make_workspace(Path(tempfile.mkdtemp()), steps)
+        epi = _pack_epi(ws, Path(tempfile.mkdtemp()), generate_analysis=True)
+        with zipfile.ZipFile(epi) as zf:
+            if "policy_evaluation.json" in zf.namelist():
+                pe = json.loads(zf.read("policy_evaluation.json"))
+                assert pe.get("policy_source") == "no_policy", (
+                    f"Expected no_policy, got {pe.get('policy_source')}")
+                assert "No policy configured" in pe.get("policy_label", "")
+        shutil.rmtree(ws.parent, ignore_errors=True)
+
+    def test_auto_extracted_policy_source(self):
+        """policy.check steps present, no epi_policy.json → auto_extracted."""
+        steps = [
+            {"index": 0, "timestamp": "2025-01-01T00:00:00Z",
+             "kind": "policy.check", "prev_hash": "CHAIN_START",
+             "content": {"rule_id": "auto_rule", "result": "passed",
+                         "evidence": {"threshold_usd": 500}}},
+        ]
+        ws = _make_workspace(Path(tempfile.mkdtemp()), steps)
+        epi = _pack_epi(ws, Path(tempfile.mkdtemp()), generate_analysis=True)
+        with zipfile.ZipFile(epi) as zf:
+            if "policy_evaluation.json" in zf.namelist():
+                pe = json.loads(zf.read("policy_evaluation.json"))
+                assert pe.get("policy_source") == "auto_extracted", (
+                    f"Expected auto_extracted, got {pe.get('policy_source')}")
+                assert "auto-extracted" in pe.get("policy_label", "").lower()
+        shutil.rmtree(ws.parent, ignore_errors=True)
+
+    def test_formal_policy_source_with_profile(self):
+        """Real epi_policy.json with a proper EPIPolicy → formal_policy."""
+        import json as _json
+        from epi_core.policy import EPIPolicy, POLICY_PROFILES
+
+        profile = POLICY_PROFILES["finance.refund-agent"]
+        pol = EPIPolicy(
+            system_name="test",
+            system_version="1.0",
+            policy_version="1.0",
+            profile_id="finance.refund-agent",
+            rules=profile["rules"],
+        )
+        steps = [
+            {"index": 0, "timestamp": "2025-01-01T00:00:00Z",
+             "kind": "agent.decision", "content": {"decision": "approved"},
+             "prev_hash": "CHAIN_START"},
+        ]
+        ws = _make_workspace(Path(tempfile.mkdtemp()), steps)
+        (ws / "epi_policy.json").write_text(pol.model_dump_json(indent=2))
+
+        epi = _pack_epi(ws, Path(tempfile.mkdtemp()), generate_analysis=True)
+        with zipfile.ZipFile(epi) as zf:
+            if "policy_evaluation.json" in zf.namelist():
+                pe = json.loads(zf.read("policy_evaluation.json"))
+                assert pe.get("policy_source") == "formal_policy", (
+                    f"Expected formal_policy, got {pe.get('policy_source')}")
+                assert "finance.refund-agent" in pe.get("policy_label", "")
+        shutil.rmtree(ws.parent, ignore_errors=True)
+
+
 class TestFix10OutOfVocabularyAction:
     """Missing test: out-of-vocabulary action doesn't get substring-matched to APPROVED."""
 

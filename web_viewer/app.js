@@ -881,7 +881,31 @@ function renderGovernance(caseData) {
 
   let html = '';
 
-  // Show a note when using baseline/heuristic evaluation
+  // Single-source policy label: read from policy_evaluation.policy_label
+  if (pe.policy_label) {
+    const labelStyles = 'margin-bottom:20px;padding:12px 16px;border-radius:8px;font-size:14px;font-weight:600;line-height:1.5;';
+    let labelBg, labelBorder, labelColor, labelIcon;
+    
+    if (pe.policy_source === 'no_policy') {
+      labelBg = 'var(--surface-dim)';
+      labelBorder = 'var(--border-soft)';
+      labelColor = 'var(--ink-soft)';
+      labelIcon = '—';
+    } else if (pe.policy_source === 'auto_extracted') {
+      labelBg = '#fef3c7';
+      labelBorder = '#f59e0b';
+      labelColor = '#92400e';
+      labelIcon = '⚠';
+    } else {
+      labelBg = '#d1fae5';
+      labelBorder = '#10b981';
+      labelColor = '#065f46';
+      labelIcon = '✓';
+    }
+    html += `<div style="${labelStyles}background:${labelBg};border:2px solid ${labelBorder};color:${labelColor};">${labelIcon} ${esc(pe.policy_label)}</div>`;
+  }
+
+  // Show a note when using baseline/heuristic evaluation (legacy path)
   if (!policy?.rules && pe.baseline) {
     html += '<div style="margin-bottom:16px;padding:10px 14px;background:var(--accent-glow);border:1px solid var(--accent-line);border-radius:8px;font-size:11px;color:var(--ink-soft)">';
     html += '<strong>Baseline Evaluation</strong> — No epi_policy.json configured.<br>';
