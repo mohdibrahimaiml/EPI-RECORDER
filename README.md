@@ -200,6 +200,8 @@ epi verify agent.epi --aiuc1   # optional domain scoring
 | `Integrity: FAILED` | File was modified after seal — re-record |
 | Share / portal fails | Hosted features need a live backend; local record/verify never depends on them |
 
+**Trust-model note:** Integrity verification measures whether the sealed record has been altered since sealing — it does not verify that the recording process captured every action the agent actually took.
+
 ---
 
 ## Project layout (contributors)

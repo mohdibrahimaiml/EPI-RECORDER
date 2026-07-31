@@ -405,6 +405,7 @@ function renderIntegrity(caseData, context) {
   if (intOk) {
     intEl.textContent = 'VERIFIED';
     intEl.className = 'indicator verified';
+    intEl.title = 'File integrity verified — this measures whether the sealed record has been altered since sealing. It does not verify that the recording process captured every action the agent actually took.';
   } else {
     intEl.textContent = 'COMPROMISED';
     intEl.className = 'indicator failed';
