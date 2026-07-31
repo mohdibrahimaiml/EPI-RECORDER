@@ -44,16 +44,26 @@ classification is computed inline via `_compute_verification_class()` in
 
 ---
 
-## Starter tier in $1 vs $10
+## Hosted billing (Paddle) vs operator set-plan
 
-**The Paddle catalog was seeded with $10 Starter prices first, then replaced
-with $1 prices.** The Render env vars must be kept in sync manually — if someone
-pushes the old `PADDLE_STARTER_PRICE_ID_MONTHLY=pri_01kyg26d8sf...` (the $10
-price), the Starter tier on the pricing page will show $10. There's no automated
-sync between the Paddle dashboard and Render env vars.
+**Self-serve Subscribe is only live when Paddle env vars are configured** on the
+hosted API (client token, price IDs, webhook secret, etc.). If those are empty,
+pricing CTAs should fall back to sign-in / contact — not a working checkout.
+
+**Pilot / invoice path (works without Paddle):** user signs in once at
+`/account`, then EPI Labs promotes the plan with the admin **set-plan** endpoint
+(see [OPERATOR-RUNBOOK.md](./OPERATOR-RUNBOOK.md) — operators only).
+
+Public tiers (product gates): Free (low hosted cap) · **Pro** (~10k hosted
+checks/mo) · **Team** (higher volume) · **Enterprise** (custom). Offline CLI
+verify is unlimited free. Hosted PDF API is **not** implemented (HTTP 501);
+use CLI Annex PDF.
+
+There is **no automated sync** between the Paddle dashboard and Render env vars —
+ops must keep them aligned when self-serve is enabled.
 
 ---
 
 ## Last updated
 
-2026-07-27 — created after the pre-commit + notarization + verification_class build session.
+2026-07-31 — pricing/billing note aligned with Pro/Team/Enterprise + set-plan path.

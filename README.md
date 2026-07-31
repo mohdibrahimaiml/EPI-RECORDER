@@ -179,6 +179,11 @@ is for the auditor or notified body to determine.
 
 | Topic | Docs |
 |-------|------|
+| **Docs map (start here)** | [docs/README.md](docs/README.md) |
+| **Guided pilot pack** | [docs/PILOT.md](docs/PILOT.md) |
+| Enterprise in 15 minutes | [docs/ENTERPRISE-15-MINUTES.md](docs/ENTERPRISE-15-MINUTES.md) |
+| Enterprise capability (honest) | [docs/ENTERPRISE-CAPABILITY.md](docs/ENTERPRISE-CAPABILITY.md) |
+| Known limitations | [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md) |
 | EU AI Act Annex IV | [docs/ANNEX-IV.md](docs/ANNEX-IV.md) |
 | AIUC-1 domains | [docs/standards/aiuc-1-evidence.md](docs/standards/aiuc-1-evidence.md) |
 | SCITT | [docs/standards/scitt-predicate.md](docs/standards/scitt-predicate.md) |
@@ -212,10 +217,12 @@ epi verify agent.epi --aiuc1   # optional domain scoring
 | `epi_core/` | Container, crypto, redaction, verify |
 | `epi_cli/` | `epi` command |
 | `website/` | **Public site source of truth** (`epilabs.org`) |
+| `website-v2/` | Sandbox redesign only (not production deploy) |
 | `verify_portal/` | Hosted verify/auth API (optional) |
+| `docs/` | Documentation — start at [docs/README.md](docs/README.md) |
 | `tests/test_core_loop_golden.py` | Golden path regression |
 
-Website edits: only under `website/`, then `python scripts/sync_website.py`.
+Website edits: only under `website/`, then `python scripts/sync_website.py`. See [docs/SITE.md](docs/SITE.md).
 
 ---
 

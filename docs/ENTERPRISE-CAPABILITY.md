@@ -48,6 +48,8 @@ Online (Pro/Team/Enterprise): sign in → [Verify a file](https://epilabs.org/ve
 epi enterprise capabilities
 ```
 
-See [ENTERPRISE-15-MINUTES.md](./ENTERPRISE-15-MINUTES.md). Also: [ENTERPRISE-EVIDENCE-PLAYBOOK.md](./ENTERPRISE-EVIDENCE-PLAYBOOK.md), [SELF-HOSTED-RUNBOOK.md](./SELF-HOSTED-RUNBOOK.md).  
+See [PILOT.md](./PILOT.md) · [ENTERPRISE-15-MINUTES.md](./ENTERPRISE-15-MINUTES.md).  
+Also: [ENTERPRISE-EVIDENCE-PLAYBOOK.md](./ENTERPRISE-EVIDENCE-PLAYBOOK.md), [SELF-HOSTED-RUNBOOK.md](./SELF-HOSTED-RUNBOOK.md).  
 **Full user + investor guide:** [COMPLETE-PRODUCT-GUIDE.md](./COMPLETE-PRODUCT-GUIDE.md).  
+**Docs map:** [README.md](./README.md).  
 Operators only: [OPERATOR-RUNBOOK.md](./OPERATOR-RUNBOOK.md).

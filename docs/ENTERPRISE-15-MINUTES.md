@@ -46,4 +46,4 @@ API keys are only for **CI/scripts** (Advanced on the account page).
 epi enterprise capabilities
 ```
 
-See also: [ENTERPRISE-CAPABILITY.md](./ENTERPRISE-CAPABILITY.md) · full guide: [COMPLETE-PRODUCT-GUIDE.md](./COMPLETE-PRODUCT-GUIDE.md).
+See also: [PILOT.md](./PILOT.md) · [ENTERPRISE-CAPABILITY.md](./ENTERPRISE-CAPABILITY.md) · [COMPLETE-PRODUCT-GUIDE.md](./COMPLETE-PRODUCT-GUIDE.md) · [docs index](./README.md).

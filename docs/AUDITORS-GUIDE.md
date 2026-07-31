@@ -1,39 +1,54 @@
 # EPI Auditor's Guide — Independent Verification of .epi Evidence
 
-**Version:** 1.0 | **Last updated:** 2026-07-02
+**Version:** 1.1 | **Last updated:** 2026-07-31
 
 This guide is for auditors, notified bodies, and reviewers who receive a `.epi` file and need to independently verify its cryptographic integrity without contacting the vendor.
 
+**Docs map:** [README.md](./README.md) · **Pilot pack:** [PILOT.md](./PILOT.md)
+
 ## Before You Begin
 
-**You do NOT need to install any software.** You can verify at https://epilabs.org/verify using your browser, which runs all checks client-side. Nothing is uploaded.
+You can verify **without installing software** in the browser, or with the CLI offline.
 
-**Optionally**, you can install the CLI:
+**Browser modes at https://epilabs.org/verify/ :**
+
+| Mode | What happens to the file | Use when |
+|------|---------------------------|----------|
+| **Private check** (default) | File is read **in the browser tab only** — **not uploaded** to EPI servers | Air-gap preference, sensitive evidence |
+| **Full report** (`?mode=server`) | File is **uploaded** to EPI for a deeper hosted report | Org has a hosted plan and accepts upload |
+
+For most independent audits, prefer **Private check** or **CLI offline**.
+
+**CLI (fully offline):**
+
 ```bash
 pip install epi-recorder
+epi verify <file.epi>
 ```
 
 **You need:**
 - The `.epi` file provided by the organization
-- The public key fingerprint (provided by the organization, typically 16 hex characters)
+- Optionally: org **trust bundle** / public keys if identity must be KNOWN under strict policy
 
 ---
 
 ## Step 1: Open the File
 
-### Option A: Browser (recommended — no install required)
+### Option A: Browser private check (no upload)
 
-1. Go to https://epilabs.org/verify
+1. Go to https://epilabs.org/verify/ (default mode — private)
 2. Drag the `.epi` file into the drop zone, or click to browse
-3. Verification runs immediately — nothing is uploaded, everything is client-side
+3. Checks run in the browser; the file is **not** sent to EPI servers
 
-### Option B: CLI
+### Option B: CLI (offline)
 
 ```bash
-epi verify <file.epi> --verbose
+epi verify <file.epi>
+# optional:
+epi verify <file.epi> --policy strict   # requires trusted sealer pin
 ```
 
-Both produce identical results. They are two interfaces to the same cryptographic verification logic.
+CLI and browser private checks both evaluate the sealed artifact. Hosted “full report” may include additional server-side context and **does** upload the file.
 
 ---
 
