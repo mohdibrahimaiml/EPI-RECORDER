@@ -905,6 +905,24 @@ class FaultAnalyzer:
         except Exception:
             pass
 
+        # Pass 11b: Orphaned Tool Calls (always)
+        try:
+            flags.extend(self._pass11b_tool_gaps(steps))
+        except Exception:
+            pass
+
+        # Pass 11c: Unmatched LLM Requests (always)
+        try:
+            flags.extend(self._pass11c_llm_gaps(steps))
+        except Exception:
+            pass
+
+        # Pass 11d: Anomalous Time Gaps (always)
+        try:
+            flags.extend(self._pass11d_time_gaps(steps))
+        except Exception:
+            pass
+
         # Deduplicate: same step_index + same rule/type keeps the highest severity
         flags = _deduplicate_flags(flags)
 
@@ -1656,6 +1674,123 @@ class FaultAnalyzer:
             review_required=True,
             category="heuristic_observation",
         ))
+        return flags
+
+    def _pass11b_tool_gaps(self, steps: list[dict]) -> list[FaultFlag]:
+        """P11b: Flag tool.call steps with no matching tool.response."""
+        flags: list[FaultFlag] = []
+        tool_calls: dict[str, int] = {}
+        tool_responses: set[str] = set()
+
+        for i, step in enumerate(steps):
+            kind = step.get("kind", "")
+            content = step.get("content", {})
+            tool_name = content.get("name") or content.get("tool") or content.get("tool_name") or ""
+            if kind == "tool.call":
+                key = f"{tool_name}:{i}"
+                if tool_name:
+                    tool_calls[tool_name] = i
+            elif kind == "tool.response":
+                resp_tool = content.get("tool") or content.get("name") or ""
+                if resp_tool:
+                    tool_responses.add(resp_tool)
+
+        for tool_name, step_idx in tool_calls.items():
+            if tool_name not in tool_responses:
+                flags.append(FaultFlag(
+                    step_index=step_idx,
+                    fault_type="HEURISTIC_OBSERVATION",
+                    severity="low",
+                    plain_english=(
+                        f"Tool '{tool_name}' was called at step {step_idx + 1} "
+                        "but no matching tool.response was recorded before the run ended."
+                    ),
+                    rule_id="P11b",
+                    rule_name="Orphaned Tool Call",
+                    category="heuristic_observation",
+                ))
+
+        return flags
+
+    def _pass11c_llm_gaps(self, steps: list[dict]) -> list[FaultFlag]:
+        """P11c: Flag llm.request steps with no matching llm.response."""
+        flags: list[FaultFlag] = []
+        request_count = 0
+        response_count = 0
+
+        for i, step in enumerate(steps):
+            kind = step.get("kind", "")
+            if kind == "llm.request":
+                request_count += 1
+            elif kind == "llm.response":
+                response_count += 1
+
+        if request_count > response_count:
+            most_recent_request = None
+            for i, step in enumerate(steps):
+                if step.get("kind") == "llm.request":
+                    most_recent_request = i
+            flags.append(FaultFlag(
+                step_index=most_recent_request or 0,
+                fault_type="HEURISTIC_OBSERVATION",
+                severity="low",
+                plain_english=(
+                    f"{request_count} llm.request event(s) but only "
+                    f"{response_count} llm.response event(s) — "
+                    "some LLM calls may have completed without being captured."
+                ),
+                rule_id="P11c",
+                rule_name="Unmatched LLM Request",
+                category="heuristic_observation",
+            ))
+
+        return flags
+
+    def _pass11d_time_gaps(self, steps: list[dict]) -> list[FaultFlag]:
+        """P11d: Flag anomalously large timestamp gaps between consecutive steps."""
+        flags: list[FaultFlag] = []
+        if len(steps) < 4:
+            return flags
+
+        from datetime import datetime
+        gaps: list[tuple[int, float]] = []
+        prev_ts = None
+
+        for i, step in enumerate(steps):
+            ts_str = step.get("timestamp")
+            if not ts_str:
+                continue
+            try:
+                ts = datetime.fromisoformat(str(ts_str).replace("Z", "+00:00"))
+            except (ValueError, TypeError):
+                continue
+            if prev_ts is not None:
+                gap = abs((ts - prev_ts).total_seconds())
+                gaps.append((i, gap))
+            prev_ts = ts
+
+        if not gaps:
+            return flags
+
+        median_gap = sorted(g[1] for g in gaps)[len(gaps) // 2]
+        threshold = max(median_gap * 10, 60.0)
+
+        for step_idx, gap in gaps:
+            if gap > threshold:
+                flags.append(FaultFlag(
+                    step_index=step_idx,
+                    fault_type="HEURISTIC_OBSERVATION",
+                    severity="low",
+                    plain_english=(
+                        f"Anomalous time gap of {gap:.1f}s between steps "
+                        f"{step_idx} and {step_idx + 1} (median gap: {median_gap:.1f}s, "
+                        f"threshold: {threshold:.1f}s).  This may indicate an "
+                        "unrecorded action between these steps."
+                    ),
+                    rule_id="P11d",
+                    rule_name="Anomalous Time Gap",
+                    category="heuristic_observation",
+                ))
 
         return flags
 
