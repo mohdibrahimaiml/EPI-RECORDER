@@ -1,0 +1,22 @@
+# Cloudflare Pages _redirects
+#
+# IMPORTANT: Cloudflare Pages does NOT allow proxy (status 200) rules that
+# point at absolute external URLs (e.g. https://…onrender.com/…).
+# Those lines are rejected with:
+#   "Proxy (200) redirects can only point to relative paths."
+#
+# API proxying is implemented with Cloudflare Pages Functions:
+#   functions/api/[[path]].js
+#   functions/scitt/[[path]].js
+#   functions/well-known/[[path]].js
+#
+# Static pages use pretty URLs natively (account.html → /account).
+# Do NOT add /account /account.html 200 (causes infinite 308 loops).
+#
+# Hosted Decision Ops (/viewer/) removed — send old links to verify.
+/viewer /verify/ 301
+/viewer/ /verify/ 301
+/viewer/* /verify/ 301
+#
+# Optional: force apex (uncomment if needed and not handled in CF dashboard)
+# https://www.epilabs.org/* https://epilabs.org/:splat 301
