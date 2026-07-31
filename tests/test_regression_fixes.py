@@ -149,8 +149,7 @@ class TestFix4HeuristicSeverity:
     """Fix #4: heuristic observations → Pattern Noted, ADVISORY severity."""
 
     def test_heuristic_observation_not_high(self):
-        """FaultFlags with category=heuristic_observation should not have severity=high/critical,
-        except for time_gap_tamper (P10) which is a genuine clock-rollback signal."""
+        """FaultFlags with category=heuristic_observation should not have severity=high/critical."""
         flags = [
             FaultFlag(step_index=0, fault_type="HEURISTIC_OBSERVATION",
                       severity="medium", plain_english="Standard heuristic",
@@ -158,26 +157,49 @@ class TestFix4HeuristicSeverity:
             FaultFlag(step_index=1, fault_type="POLICY_VIOLATION",
                       severity="critical", plain_english="Real violation",
                       rule_id="R1"),
-            # P10 is deliberately high — clock rollback is not advisory
-            FaultFlag(step_index=0, fault_type="time_gap_tamper",
-                      severity="high", plain_english="Time gap tamper",
-                      category="heuristic_observation", rule_id="P10"),
         ]
-        heuristic = [f for f in flags
-                     if f.category == "heuristic_observation"
-                     and f.rule_id != "P10"]
+        heuristic = [f for f in flags if f.category == "heuristic_observation"]
         policy = [f for f in flags if f.category == "policy_violation"]
-        p10 = [f for f in flags if f.rule_id == "P10"]
-        
         for f in heuristic:
             assert f.severity not in ("critical", "high"), \
                 f"Heuristic observation should not have severity {f.severity}"
         for f in policy:
             assert f.severity in ("critical", "high", "medium"), \
                 f"Policy violation can have elevated severity, got {f.severity}"
-        # P10 is the one exception — time-gap tamper IS genuinely high-priority
-        assert len(p10) == 1
-        assert p10[0].severity == "high", "P10 must remain 'high'"
+
+
+class TestFix4bP10RealFunction:
+    """P10 severity must be verified against the actual _pass10_time_gap_tamper function."""
+
+    def test_p10_returns_high_severity_on_real_gap(self):
+        """Build a trace with an 8-day gap, run the real P10 function, check output."""
+        from epi_core.fault_analyzer import FaultAnalyzer
+
+        steps = [{"kind": "session.start", "timestamp": "2025-01-01T00:00:00Z", "index": 0}]
+        manifest = {
+            "created_at": "2025-01-01T00:00:00Z",
+            "governance": {"scitt": {"registered_at": "2025-01-09T00:00:00Z"}},
+        }
+        analyzer = FaultAnalyzer(policy=None, manifest_meta=manifest)
+        result = analyzer._pass10_time_gap_tamper(steps)
+        assert len(result) == 1, f"Expected 1 flag for 8-day gap, got {len(result)}"
+        assert result[0].severity == "high", (
+            f"P10 must stay 'high' for clock rollback signals, got '{result[0].severity}'"
+        )
+        assert result[0].fault_type == "time_gap_tamper"
+
+    def test_p10_returns_empty_when_no_gap(self):
+        """No flags when timestamps are within threshold."""
+        from epi_core.fault_analyzer import FaultAnalyzer
+
+        steps = [{"kind": "session.start", "timestamp": "2025-01-01T00:00:00Z", "index": 0}]
+        manifest = {
+            "created_at": "2025-01-01T00:00:00Z",
+            "governance": {"scitt": {"registered_at": "2025-01-01T00:05:00Z"}},
+        }
+        analyzer = FaultAnalyzer(policy=None, manifest_meta=manifest)
+        result = analyzer._pass10_time_gap_tamper(steps)
+        assert len(result) == 0, f"Expected 0 flags for 5-min gap, got {len(result)}"
 
 
 class TestFix5PolicyCheckSummary:
