@@ -888,6 +888,15 @@ function renderGovernance(caseData) {
     html += '</div>';
   }
 
+  // Show a note when rules were auto-extracted from policy.check steps
+  if (pe.auto_extracted) {
+    html += '<div style="margin-bottom:16px;padding:10px 14px;background:var(--accent-glow);border:1px solid var(--accent-line);border-radius:8px;font-size:11px;color:var(--ink-soft)">';
+    html += '<strong>Auto-Extracted Rules</strong> — These rules were derived from <code>policy.check</code> steps recorded by the agent, ';
+    html += 'not from a formal <code>epi_policy.json</code>. They may not cover all risks.<br>';
+    html += 'Run <code>epi policy init</code> for authoritative domain-specific rules.';
+    html += '</div>';
+  }
+
   // Render formal policy rules when present
   if (policy?.rules && policy.rules.length > 0) {
     html += policy.rules.map(rule => {
