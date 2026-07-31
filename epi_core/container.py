@@ -666,8 +666,20 @@ class EPIContainer:
                         )
                         policy_evaluation_json = analysis.to_policy_evaluation_json()
                         if policy_evaluation_json:
+                            # Inject single source of truth for policy source
+                            pe_dict = json.loads(policy_evaluation_json)
+                            profile_id = getattr(policy, "profile_id", None)
+                            if profile_id:
+                                pe_dict["policy_source"] = "formal_policy"
+                                pe_dict["policy_label"] = f"Policy: {profile_id}"
+                            elif getattr(policy, "policy_id", None):
+                                pe_dict["policy_source"] = "formal_policy"
+                                pe_dict["policy_label"] = f"Policy: {policy.policy_id}"
+                            else:
+                                pe_dict["policy_source"] = "formal_policy"
+                                pe_dict["policy_label"] = "Policy: custom"
                             (source_dir / "policy_evaluation.json").write_text(
-                                policy_evaluation_json,
+                                json.dumps(pe_dict, indent=2, ensure_ascii=False),
                                 encoding="utf-8",
                             )
                     else:
@@ -691,6 +703,8 @@ class EPIContainer:
                             auto_eval["note"] = (auto_policy.get("note", "") + 
                                 " Auto-extracted policy rules from this recording. Baseline heuristics are still evaluated alongside.")
                             auto_eval["auto_extracted"] = True
+                            auto_eval["policy_source"] = "auto_extracted"
+                            auto_eval["policy_label"] = "Policy auto-extracted from steps — not a formally authored policy"
                             for rule in auto_policy.get("rules", []):
                                 rule_id = rule.get("id", "")
                                 rule_name = rule.get("name", "")
@@ -768,6 +782,8 @@ class EPIContainer:
                         else:
                             # No auto-policy either — baseline heuristic
                             baseline_eval = EPIContainer._build_baseline_policy_evaluation(analysis)
+                            baseline_eval["policy_source"] = "no_policy"
+                            baseline_eval["policy_label"] = "No policy configured — showing baseline heuristics only"
                             (source_dir / "policy_evaluation.json").write_text(
                                 json.dumps(baseline_eval, indent=2, ensure_ascii=False),
                                 encoding="utf-8",
