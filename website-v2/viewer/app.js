@@ -351,13 +351,16 @@ function renderHeader(caseData, context) {
   const sigPill = document.createElement('span');
   if (sigValid == null) {
     sigPill.className = 'pill gray';
-    sigPill.innerHTML = `<span class="pill-dot"></span>SIGNATURE UNVERIFIED`;
+    sigPill.innerHTML = `<span class="pill-dot"></span>SIGNATURE NOT VERIFIED`;
   } else if (sigVerified) {
     sigPill.className = 'pill pass';
-    sigPill.innerHTML = `<span class="pill-dot"></span>SIGNED`;
+    sigPill.innerHTML = `<span class="pill-dot"></span>SIGNATURE VALID`;
   } else {
-    sigPill.className = 'pill warn';
-    sigPill.innerHTML = `<span class="pill-dot"></span>UNSIGNED`;
+    const hasManifestSig = !!(caseData.manifest && caseData.manifest.signature);
+    sigPill.className = hasManifestSig ? 'pill fail' : 'pill warn';
+    sigPill.innerHTML = hasManifestSig
+      ? `<span class="pill-dot"></span>SIGNATURE INVALID`
+      : `<span class="pill-dot"></span>UNSIGNED`;
   }
   pillsEl.appendChild(sigPill);
 
@@ -393,15 +396,107 @@ function renderHeader(caseData, context) {
   }
 }
 
+/**
+ * Client-side verification for standalone / export-html viewers.
+ * Uses embedded archive_base64 (when present) + verifyManifestSignature from crypto.js.
+ * Never punts with a message telling users to open a different tool.
+ */
+async function verifyCaseInBrowser(caseData) {
+  const result = {
+    signature_valid: null,
+    integrity_ok: null,
+    signature_reason: null,
+    integrity_reason: null,
+    client_verified: false,
+  };
+  if (!caseData || typeof caseData !== 'object') return result;
+
+  const manifest = caseData.manifest || {};
+  const hasSig = !!(manifest.signature || (caseData.signature && caseData.signature.present));
+
+  // ── Signature (Ed25519 over canonical manifest hash) ──
+  if (typeof globalThis.verifyManifestSignature === 'function' && manifest.signature) {
+    try {
+      const vr = await globalThis.verifyManifestSignature(manifest);
+      result.signature_valid = vr && vr.valid === true;
+      result.signature_reason = (vr && vr.reason) || null;
+      result.client_verified = true;
+    } catch (e) {
+      result.signature_valid = false;
+      result.signature_reason = e && e.message ? e.message : String(e);
+      result.client_verified = true;
+    }
+  } else if (!manifest.signature && !hasSig) {
+    result.signature_valid = false;
+    result.signature_reason = 'No signature in manifest';
+    result.client_verified = true;
+  }
+
+  // ── Integrity (member hashes from archive_base64 or files{}) ──
+  try {
+    const fm = manifest.file_manifest || {};
+    const names = Object.keys(fm);
+    if (names.length > 0 && typeof JSZip !== 'undefined') {
+      let zip = null;
+      if (caseData.archive_base64) {
+        zip = await JSZip.loadAsync(base64ToUint8Array(caseData.archive_base64));
+      }
+      const mismatches = [];
+      for (const name of names) {
+        const expected = String(fm[name] || '').toLowerCase();
+        if (!expected) continue;
+        let bytes = null;
+        if (zip) {
+          const entry = zip.file(name);
+          if (!entry) {
+            mismatches.push(name);
+            continue;
+          }
+          bytes = await entry.async('uint8array');
+        } else if (caseData.files && caseData.files[name]) {
+          bytes = base64ToUint8Array(caseData.files[name]);
+        } else {
+          continue; // cannot check this member offline
+        }
+        const got = await sha256Hex(bytes);
+        if (got !== expected) mismatches.push(name);
+      }
+      if (mismatches.length > 0) {
+        result.integrity_ok = false;
+        result.integrity_reason = 'Hash mismatch: ' + mismatches.slice(0, 5).join(', ');
+        result.client_verified = true;
+      } else if (zip || (caseData.files && Object.keys(caseData.files).length > 0)) {
+        result.integrity_ok = true;
+        result.client_verified = true;
+      }
+    }
+  } catch (e) {
+    // Non-fatal — leave integrity_ok null if we cannot check
+    result.integrity_reason = e && e.message ? e.message : String(e);
+  }
+
+  // Prefer payload integrity if client could not re-hash
+  if (result.integrity_ok == null && caseData.integrity && typeof caseData.integrity.ok === 'boolean') {
+    result.integrity_ok = caseData.integrity.ok;
+  }
+
+  return result;
+}
+
 /** § 1  Trust & Integrity */
 function renderIntegrity(caseData, context) {
   const m = caseData.manifest || {};
   const integrity = caseData.integrity || {};
   const sig = caseData.signature || {};
 
-  // Integrity indicator
+  // Integrity indicator — prefer live client context
   const intEl = document.getElementById('ind-integrity');
-  const intOk = integrity.ok !== false && (context ? context.integrity_ok !== false : true);
+  let intOk;
+  if (context && typeof context.integrity_ok === 'boolean') {
+    intOk = context.integrity_ok;
+  } else {
+    intOk = integrity.ok !== false;
+  }
   if (intOk) {
     intEl.textContent = 'VERIFIED';
     intEl.className = 'indicator verified';
@@ -409,25 +504,37 @@ function renderIntegrity(caseData, context) {
   } else {
     intEl.textContent = 'COMPROMISED';
     intEl.className = 'indicator failed';
+    if (context && context.integrity_reason) intEl.title = context.integrity_reason;
   }
 
-  // Signature indicator — prefer live context, fall back to case payload sig
+  // Signature indicator — prefer live client crypto; never punt to another tool
   const sigEl = document.getElementById('ind-signature');
-  const resolvedSigValid = context != null ? context.signature_valid : sig.valid;
+  let resolvedSigValid;
+  if (context && Object.prototype.hasOwnProperty.call(context, 'signature_valid')) {
+    resolvedSigValid = context.signature_valid;
+  } else if (sig && typeof sig.valid === 'boolean') {
+    resolvedSigValid = sig.valid;
+  } else {
+    resolvedSigValid = null;
+  }
+
   if (resolvedSigValid === true) {
     sigEl.textContent = 'VALID';
     sigEl.className = 'indicator verified';
-  } else if (resolvedSigValid === false && sig.valid === false && !context) {
-    // Baked viewer — can't verify without epi view
-    sigEl.textContent = 'OPEN VIA EPI VIEW TO VERIFY';
-    sigEl.className = 'indicator unverified';
-    sigEl.style.fontSize = '11px';
+    sigEl.style.fontSize = '';
+    if (context && context.signature_reason) sigEl.title = context.signature_reason;
   } else if (resolvedSigValid === false) {
-    sigEl.textContent = 'INVALID';
+    const unsigned = !m.signature && !(sig && (sig.signer || sig.reason));
+    sigEl.textContent = unsigned ? 'UNSIGNED' : 'INVALID';
     sigEl.className = 'indicator failed';
+    sigEl.style.fontSize = '';
+    if (context && context.signature_reason) sigEl.title = context.signature_reason;
+    else if (sig && sig.reason) sigEl.title = sig.reason;
   } else {
     sigEl.textContent = 'NOT VERIFIED';
     sigEl.className = 'indicator unverified';
+    sigEl.style.fontSize = '';
+    sigEl.title = 'Client-side signature verification was not available in this environment.';
   }
 
   // Identity
@@ -1488,7 +1595,7 @@ function setupSidebarHighlight() {
 
 // ── Main Entry Point ──────────────────────────────────────────
 
-function init() {
+async function init() {
   const data = loadData();
 
   if (!data || data.cases.length === 0) {
@@ -1502,7 +1609,26 @@ function init() {
 
   // Render first case (single-case viewer)
   const caseData = data.cases[0];
-  const context = data.context;
+  let context = data.context ? Object.assign({}, data.context) : {};
+
+  // Always attempt real client-side crypto for standalone / export-html delivery.
+  // This is the zero-install share path: must show VALID/INVALID, never a punt string.
+  try {
+    const live = await verifyCaseInBrowser(caseData);
+    if (live && live.client_verified) {
+      if (live.signature_valid !== null && live.signature_valid !== undefined) {
+        context.signature_valid = live.signature_valid;
+      }
+      if (live.integrity_ok !== null && live.integrity_ok !== undefined) {
+        context.integrity_ok = live.integrity_ok;
+      }
+      if (live.signature_reason) context.signature_reason = live.signature_reason;
+      if (live.integrity_reason) context.integrity_reason = live.integrity_reason;
+      context.client_verified = true;
+    }
+  } catch (e) {
+    console.warn('[epi] client-side verification failed:', e);
+  }
 
   // Mobile nav toggle
   const navToggle = document.getElementById('nav-toggle');
@@ -1538,7 +1664,7 @@ function init() {
 // ── Bootstrap ─────────────────────────────────────────────────
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', () => { init(); });
 } else {
   init();
 }
