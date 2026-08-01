@@ -5,9 +5,16 @@
 <meta http-equiv="refresh" content="0;url=/verify/">
 <link rel="canonical" href="https://epilabs.org/verify/">
 <title>Redirecting to EPI Verify</title>
+<script>
+(function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();
+</script>
 </head>
 <body>
 <p>The hosted Decision Ops viewer was removed.</p>
 <p>To check a sealed <code>.epi</code> file, use <a href="/verify/">EPI Verify</a> or run <code>epi verify file.epi</code> / <code>epi view file.epi</code> locally.</p>
+
+<script src="js/theme.js"></script>
+<script src="js/instrument-nav.js"></script>
+<script src="js/auth-ui.js"></script>
 </body>
 </html>

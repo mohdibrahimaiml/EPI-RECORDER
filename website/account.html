@@ -8,7 +8,7 @@
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon.ico">
 <link rel="stylesheet" href="css/epi.css?v=26">
-<link rel="stylesheet" href="css/epi-v2.css?v=5">
+<link rel="stylesheet" href="css/epi-v2.css?v=6">
 <style>
 .acct-main{max-width:700px;margin:0 auto;padding:120px 24px 80px}
 .acct-main h1{font-size:1.8rem;color:var(--ink);margin:0 0 4px}
@@ -30,16 +30,21 @@
 .acct-loading{color:var(--ink-dim);font-style:italic;font-size:.9rem;text-align:center;padding:40px 0}
 .plan-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
 .plan-badge.free{background:var(--accent-glow);color:var(--accent)}
-.plan-badge.pro{background:var(--verified-bg);color:var(--verified)}
-.plan-badge.enterprise{background:rgba(139,105,20,.1);color:var(--warn)}
+.plan-badge.hosted,.plan-badge.pro{background:var(--verified-bg);color:var(--verified)}
+.plan-badge.team{background:var(--signal-glow);color:var(--signal)}
+.plan-badge.enterprise{background:var(--warn-bg);color:var(--warn)}
 .signin-hero{text-align:center;padding:80px 0 0}
-.signin-btn{padding:16px 40px;font-size:1.05rem;font-weight:600;background:var(--accent);color:#fff;border:none;border-radius:12px;cursor:pointer;transition:all .15s}
-.signin-btn:hover{background:var(--accent-lt);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.15)}
-.signin-footer{text-align:center;margin-top:16px;color:var(--ink-dim);font-size:.8rem}
+.signin-btn{padding:16px 40px;font-size:1.05rem;font-weight:600;background:var(--accent);color:#04120C;border:none;border-radius:12px;cursor:pointer;transition:all .15s}
+.signin-btn:hover{background:var(--accent-lt);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.12)}
+.signin-btn:disabled{opacity:.7;cursor:wait;transform:none}
+.signin-footer{text-align:center;margin-top:16px;color:var(--ink-dim);font-size:.8rem;line-height:1.45}
 .error-msg{background:var(--tamper-bg);border:1px solid rgba(181,38,38,0.3);border-radius:8px;padding:14px 20px;margin-top:20px;color:var(--tamper);font-size:.88rem;display:none}
 </style>
+<script>
+(function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();
+</script>
 </head>
-<body class="epi-instrument" data-theme="dark">
+<body class="epi-instrument">
 <nav id="nav">
   <div class="nav-inner">
     <a href="/" class="nav-logo"><img src="assets/logo.png" alt="EPI Labs"></a>
@@ -50,7 +55,8 @@
       <li><a href="/enterprise">Enterprise</a></li>
       <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
       <li id="nav-auth-slot"></li>
-      <li><a href="/account" class="nav-link-cta">Sign in</a></li>
+      <li><button type="button" class="theme-toggle-nav" id="themeToggleNav" data-theme-toggle aria-label="Toggle color theme" title="Toggle theme">&#9788;</button></li>
+
     </ul>
     <button type="button" class="nav-mob" id="mobBtn" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
   </div>
@@ -61,8 +67,7 @@
   <a href="/pricing">Pricing</a>
   <a href="/enterprise">Enterprise</a>
   <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
-  <a href="/account">Sign in</a>
-</div>
+  </div>
 <main class="acct-main">
   <noscript><p style="text-align:center;padding:40px;color:var(--tamper)">JavaScript is required to sign in and manage your account.</p></noscript>
 
@@ -73,11 +78,18 @@
 
   <div id="state-signin" style="display:none">
     <div class="signin-hero">
-      <h2 style="font-size:1.6rem;color:var(--ink);margin-bottom:8px">Sign in to manage your account</h2>
-      <p style="color:var(--ink-soft);margin-bottom:28px;font-size:.95rem">Use GitHub to sign in. We only ask for your public profile and email.</p>
-      <button class="signin-btn" id="btn-signin" onclick="startLogin()">Sign in with GitHub</button>
-      <p class="signin-footer">No password. No email verification. Just your GitHub account.</p>
+      <h1 style="font-size:1.75rem;color:var(--ink);margin:0 0 10px">Sign in or create an account</h1>
+      <p style="color:var(--ink-soft);margin-bottom:12px;font-size:.98rem;max-width:28rem;margin-left:auto;margin-right:auto;line-height:1.55">
+        Continue with GitHub. <strong style="color:var(--ink)">First visit creates a free account</strong> — no separate sign-up form, no password.
+      </p>
+      <p style="color:var(--ink-muted);margin-bottom:28px;font-size:.88rem">We only request your public profile and email.</p>
+      <button class="signin-btn" id="btn-signin" type="button" onclick="startLogin()">Continue with GitHub</button>
+      <p class="signin-footer">Same button for sign in and sign up · Free offline CLI forever</p>
       <p id="signin-status" style="display:none;margin-top:16px;color:var(--ink-dim);font-size:.85rem"></p>
+      <p style="margin-top:28px;font-size:.85rem;color:var(--ink-muted)">
+        <a href="/pricing" style="color:var(--accent);font-weight:600">Pricing</a>
+        · <a href="/verify/" style="color:var(--signal);font-weight:600">Verify without account</a>
+      </p>
     </div>
   </div>
 
@@ -133,7 +145,7 @@
 </footer>
 
 <script>
-/* EPI Account — production login/logout for Free / Pro / Team(Advanced) / Enterprise */
+/* EPI Account — GitHub OAuth (sign in + first-time sign up) · Free / Hosted / Team / Enterprise */
 // On epilabs.org / pages.dev use same-origin /api (Cloudflare Pages Functions proxy).
 // Elsewhere fall back to Render absolute URL (e.g. local file:// or GitHub Pages-only).
 var API_BASE = (function () {
@@ -145,7 +157,7 @@ var TOKEN_KEY = 'epi_token';
 var USER_KEY = 'epi_user';
 var userData = null;
 var lastPlainApiKey = null;
-var PLAN_LABELS = { free: 'Free', pro: 'Pro', team: 'Team / Advanced', advanced: 'Team / Advanced', enterprise: 'Enterprise' };
+var PLAN_LABELS = { free: 'Free', hosted: 'Hosted', pro: 'Hosted', starter: 'Hosted', team: 'Team', advanced: 'Team', enterprise: 'Enterprise' };
 
 // Wake free-tier Render immediately on page open (before user clicks Sign in)
 (function wakeApiEarly() {
@@ -177,6 +189,7 @@ function planLabel(p) {
 function normalizePlan(p) {
   p = (p || 'free').toLowerCase();
   if (p === 'advanced' || p === 'advance') return 'team';
+  if (p === 'pro' || p === 'starter') return 'hosted';
   return p;
 }
 function b64urlDecode(s) {
@@ -349,13 +362,13 @@ async function loadPlan() {
   var badge = document.getElementById('plan-badge');
   if (badge) {
     badge.textContent = planLabel(plan);
-    badge.className = 'plan-badge ' + (plan === 'team' ? 'pro' : plan);
+    badge.className = 'plan-badge ' + plan;
   }
   var up = document.getElementById('upgrade-link');
   if (up) {
     if (plan === 'enterprise') {
       up.style.display = 'none';
-    } else if (plan === 'pro' || plan === 'team') {
+    } else if (plan === 'hosted' || plan === 'team') {
       up.textContent = 'Manage plan';
       up.style.display = 'inline-block';
     } else {
@@ -513,12 +526,37 @@ function startLogin() {
 }
 
 function updateNav(isLoggedIn) {
-  var nav = document.getElementById('nav-auth');
-  if (!nav) return;
-  if (isLoggedIn && userData) {
-    nav.innerHTML = '<a href="/account">' + (userData.login || 'Account') + '</a>';
+  var slot = document.getElementById('nav-auth-slot');
+  var label = isLoggedIn && userData ? (userData.login || 'Account') : 'Sign in';
+  if (slot) {
+    slot.innerHTML = '';
+    var a = document.createElement('a');
+    a.href = '/account';
+    a.id = 'nav-auth';
+    a.textContent = label;
+    a.className = isLoggedIn ? 'nav-auth-link' : 'nav-link-cta';
+    slot.appendChild(a);
   } else {
-    nav.innerHTML = '<a href="/account" class="nav-link-cta">Sign In</a>';
+    var nav = document.getElementById('nav-auth');
+    if (nav) {
+      nav.textContent = label;
+      nav.href = '/account';
+      nav.className = isLoggedIn ? 'nav-auth-link' : 'nav-link-cta';
+    }
+  }
+  var mm = document.getElementById('mobMenu');
+  if (mm) {
+    var existing = mm.querySelector('[data-auth-link]');
+    if (existing) {
+      existing.textContent = label;
+      existing.href = '/account';
+    } else {
+      var m = document.createElement('a');
+      m.href = '/account';
+      m.setAttribute('data-auth-link', '1');
+      m.textContent = label;
+      mm.appendChild(m);
+    }
   }
 }
 
@@ -557,8 +595,6 @@ window.addEventListener('pageshow', function(ev) {
 loadAccount();
 </script>
 <script src="js/theme.js"></script>
-<script src="js/nav.js"></script>
-
 <footer>
   <div class="container"><div class="footer-inner">
     <div class="footer-left">

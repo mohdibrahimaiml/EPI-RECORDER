@@ -7,7 +7,7 @@
 <meta name="description" content="Check a sealed .epi file. One page, two choices: never upload the file (private browser check), or upload for a full plan-backed report.">
 <link rel="icon" href="/favicon.ico">
 <link rel="stylesheet" href="/css/epi.css?v=26">
-<link rel="stylesheet" href="/css/epi-v2.css?v=5">
+<link rel="stylesheet" href="/css/epi-v2.css?v=6">
 <style>
 body.epi-instrument{background:var(--bg);color:var(--ink-soft)}
 .verify-main{max-width:800px;margin:0 auto;padding:120px 24px 80px}
@@ -44,8 +44,11 @@ body.epi-instrument{background:var(--bg);color:var(--ink-soft)}
 .loading{display:none;text-align:center;padding:24px;color:var(--ink-muted);font-size:.9rem}
 .loading.active{display:block}
 </style>
+<script>
+(function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();
+</script>
 </head>
-<body class="epi-instrument" data-theme="dark">
+<body class="epi-instrument">
 <nav id="nav">
   <div class="nav-inner">
     <a href="/" class="nav-logo"><img src="../assets/logo.png" alt="EPI Labs"></a>
@@ -56,7 +59,8 @@ body.epi-instrument{background:var(--bg);color:var(--ink-soft)}
       <li><a href="/enterprise">Enterprise</a></li>
       <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
       <li id="nav-auth-slot"></li>
-      <li><a href="/account" class="nav-link-cta">Sign in</a></li>
+      <li><button type="button" class="theme-toggle-nav" id="themeToggleNav" data-theme-toggle aria-label="Toggle color theme" title="Toggle theme">&#9788;</button></li>
+
     </ul>
     <button type="button" class="nav-mob" id="mobBtn" aria-label="Open menu" aria-expanded="false" aria-controls="mobMenu">
       <span></span><span></span><span></span>
@@ -69,8 +73,7 @@ body.epi-instrument{background:var(--bg);color:var(--ink-soft)}
   <a href="/pricing">Pricing</a>
   <a href="/enterprise">Enterprise</a>
   <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
-  <a href="/account">Sign in</a>
-</div>
+  </div>
 <main class="verify-main">
   <div class="section-label">Verify</div>
   <h1 style="font-size:1.9rem;color:var(--ink);margin:0 0 8px">Check a .epi file</h1>
@@ -355,6 +358,9 @@ body.epi-instrument{background:var(--bg);color:var(--ink-soft)}
 })();
 </script>
 <script src="/js/auth-ui.js"></script>
-<script src="/js/nav.js"></script>
+
+<script src="../js/theme.js"></script>
+<script src="../js/instrument-nav.js"></script>
+<script src="../js/auth-ui.js"></script>
 </body>
 </html>

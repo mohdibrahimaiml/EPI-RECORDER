@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon.ico">
 <link rel="apple-touch-icon" href="favicon.ico">
 <link rel="stylesheet" href="css/epi.css?v=26">
-<link rel="stylesheet" href="css/epi-v2.css?v=5">
+<link rel="stylesheet" href="css/epi-v2.css?v=6">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"Organization","name":"EPI Labs","url":"https://epilabs.org","logo":"https://epilabs.org/assets/logo.png","description":"Portable sealed .epi evidence files for AI agent runs. Offline verify. MIT open source.","sameAs":["https://github.com/mohdibrahimaiml/epi-recorder","https://pypi.org/project/epi-recorder/"]}
 </script>
@@ -22,8 +22,11 @@
 {"@context":"https://schema.org","@type":"SoftwareApplication","name":"EPI Recorder","applicationCategory":"DeveloperApplication","operatingSystem":"Cross-platform","description":"Record AI agent runs into sealed .epi files. Ed25519, SHA-256, offline verify.","url":"https://epilabs.org","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Organization","name":"EPI Labs","url":"https://epilabs.org"}}
 </script>
 <script defer data-domain="epilabs.org" src="https://plausible.io/js/script.js"></script>
+<script>
+(function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();
+</script>
 </head>
-<body class="v2-home epi-instrument" data-theme="dark">
+<body class="v2-home epi-instrument">
 <a class="v2-skip" href="#proof">Skip to verify</a>
 
 <!-- 1 · NAV -->
@@ -37,7 +40,8 @@
       <li><a href="/enterprise">Enterprise</a></li>
       <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
       <li id="nav-auth-slot"></li>
-      <li><a href="/account" class="nav-link-cta">Sign in</a></li>
+      <li><button type="button" class="theme-toggle-nav" id="themeToggleNav" data-theme-toggle aria-label="Toggle color theme" title="Toggle theme">&#9788;</button></li>
+
     </ul>
     <button class="nav-mob" id="mobBtn" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
   </div>
@@ -48,7 +52,6 @@
   <a href="/pricing">Pricing</a>
   <a href="/enterprise">Enterprise</a>
   <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
-  <a href="/account">Sign in</a>
   <a href="#proof">Try sample</a>
 </div>
 
@@ -308,8 +311,7 @@
 
 <script>
 (function(){
-  document.documentElement.setAttribute('data-theme','dark');
-  document.body.setAttribute('data-theme','dark');
+  
   var nav=document.getElementById('nav');
   if(nav) window.addEventListener('scroll',function(){nav.classList.toggle('scrolled',scrollY>40)});
   var mb=document.getElementById('mobBtn'),mm=document.getElementById('mobMenu');
@@ -355,6 +357,10 @@
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
 <script src="js/home-verify.js?v=1"></script>
+<script src="js/auth-ui.js"></script>
+
+<script src="js/theme.js"></script>
+<script src="js/instrument-nav.js"></script>
 <script src="js/auth-ui.js"></script>
 </body>
 </html>

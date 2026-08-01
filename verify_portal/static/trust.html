@@ -7,9 +7,12 @@
 <meta name="description" content="Seal, identity, and policy are three different questions in EPI. SCITT and notarization are optional layers. Offline verify stays free.">
 <link rel="icon" href="favicon.ico">
 <link rel="stylesheet" href="css/epi.css?v=26">
-<link rel="stylesheet" href="css/epi-v2.css?v=5">
+<link rel="stylesheet" href="css/epi-v2.css?v=6">
+<script>
+(function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();
+</script>
 </head>
-<body class="epi-instrument" data-theme="dark">
+<body class="epi-instrument">
 <nav id="nav">
   <div class="nav-inner">
     <a href="/" class="nav-logo"><img src="assets/logo.png" alt="EPI Labs"></a>
@@ -20,15 +23,16 @@
       <li><a href="/enterprise">Enterprise</a></li>
       <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
       <li id="nav-auth-slot"></li>
-      <li><a href="/account" class="nav-link-cta">Sign in</a></li>
+      <li><button type="button" class="theme-toggle-nav" id="themeToggleNav" data-theme-toggle aria-label="Toggle color theme" title="Toggle theme">&#9788;</button></li>
+
     </ul>
     <button type="button" class="nav-mob" id="mobBtn" aria-label="Menu"><span></span><span></span><span></span></button>
   </div>
 </nav>
 <div class="mob-menu" id="mobMenu" style="display:none">
   <a href="/verify/">Verify</a><a href="/how-it-works">Docs</a><a href="/pricing">Pricing</a>
-  <a href="/enterprise">Enterprise</a><a href="/account">Sign in</a>
-</div>
+  <a href="/enterprise">Enterprise</a>
+  </div>
 
 <main class="page-main">
   <div class="section-label">Trust</div>
@@ -91,6 +95,10 @@
     </ul>
   </div></div>
 </footer>
+<script src="js/instrument-nav.js"></script>
+<script src="js/auth-ui.js"></script>
+
+<script src="js/theme.js"></script>
 <script src="js/instrument-nav.js"></script>
 <script src="js/auth-ui.js"></script>
 </body>
