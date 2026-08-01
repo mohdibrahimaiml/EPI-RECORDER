@@ -687,12 +687,22 @@ body.v2-home .btn:focus-visible {
   }
 }
 
-/* Logo on dark */
+/* Logo on dark instrument (home + all epi-instrument pages) */
 body.v2-home .nav-logo img,
-body.v2-home .footer-logo {
+body.v2-home .footer-logo,
+body.epi-instrument .nav-logo img,
+body.epi-instrument .footer-logo {
   filter: brightness(0) invert(1);
   opacity: 0.92;
   height: 48px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+body.epi-instrument .nav-logo,
+body.v2-home .nav-logo {
+  display: flex;
+  align-items: center;
 }
 
 /* Social proof strip */
