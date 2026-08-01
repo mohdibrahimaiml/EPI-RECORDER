@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/mohdibrahimaiml/epi-recorder/main/docs/assets/logo.png" alt="EPI Logo" width="200"/>
+  <img src="docs/assets/logo.png" alt="EPI Logo" width="180"/>
 
 # EPI — Evidence for AI agents
 
@@ -16,7 +16,11 @@ pip install epi-recorder
 epi demo --no-browser    # record → seal → verify (no API key)
 ```
 
-[60-second path](#-60-second-path) · [With OpenAI](#-with-openai) · [Integrations](#-integrations) · [CLI](#-cli) · [Standards](#-standards--compliance)
+[60-second path](#60-second-path) ·
+[What a .epi is](#what-a-epi-file-is) ·
+[CLI](#cli) ·
+[Docs & pilot](#docs--pilot) ·
+[Standards](#standards--compliance)
 
 </div>
 
@@ -27,6 +31,16 @@ epi demo --no-browser    # record → seal → verify (no API key)
 
 `epi-recorder` captures agent decisions into a portable, signed, **offline-verifiable** artifact.  
 No phone-home required to open or verify.
+
+<div align="center">
+  <p><strong>Open a sealed <code>.epi</code> offline</strong> — <code>epi view run.epi</code></p>
+  <img
+    src="docs/assets/epi-file-viewer-full.png"
+    alt="EPI offline viewer showing a sealed .epi evidence file — timeline, integrity, and decision context"
+    width="900"
+  />
+  <p><em>Forensic case view of a sealed run. Sample artifact: <a href="docs/assets/readme-demo.epi"><code>docs/assets/readme-demo.epi</code></a></em></p>
+</div>
 
 ---
 
@@ -55,19 +69,20 @@ epi view demo.epi
 |------|---------|----------------|
 | **Record + seal** | `python demo.py` | Signed `demo.epi` (secrets redacted by default) |
 | **Verify** | `epi verify demo.epi` | Integrity + signature checks offline |
-| **View** | `epi view demo.epi` | Self-contained browser viewer (no server) |
+| **View** | `epi view demo.epi` | Self-contained browser viewer (screenshot above) |
 
 Typical first-run verify:
 
 | Check | Result |
 |-------|--------|
-| Integrity (SHA-256) | ✅ Valid |
-| Signature (Ed25519) | ✅ Valid |
-| Identity | ⚠ UNKNOWN until you `epi keys trust` your key |
-| Secrets | ✅ Redacted by default (`redact=True`) |
+| Integrity (SHA-256) | Valid |
+| Signature (Ed25519) | Valid |
+| Identity | Often LOCAL / UNKNOWN until you pin trust |
+| Secrets | Redacted by default (`redact=True`) |
 
-> **DECISION: WARN** on first verify is normal — integrity and signature still pass.  
-> Trust identity with: `epi keys trust <name>` after `epi keys list`.
+> **First-run WARN / LOCAL identity is normal** — seal integrity and signature can still pass.  
+> Identity is separate from seal. Pin with `epi keys trust <name>` when you mean it.  
+> Policy / “did the run break our rules?” is separate again: `epi analyze` — see [docs/POLICY-AND-FAULT-ANALYZER.md](docs/POLICY-AND-FAULT-ANALYZER.md).
 
 That’s the product. Everything below is optional depth.
 
@@ -108,6 +123,7 @@ demo.epi
 ├── manifest.json     # Ed25519 signature + SHA-256 file hashes
 ├── steps.jsonl       # Timeline (hash-linked steps)
 ├── environment.json  # Runtime snapshot (sensitive env redacted)
+├── analysis.json     # Fault / policy analysis (when generated at seal)
 ├── viewer.html       # Offline forensic UI
 └── VERIFY.txt        # Plain-text auditor instructions
 ```
@@ -118,6 +134,8 @@ demo.epi
 | **Authenticity** | Ed25519 signature on the manifest |
 | **Chain** | Each step’s `prev_hash` links the timeline |
 | **Privacy** | Default secret redaction (API keys, tokens, PII) |
+
+Samples: [docs/assets/SAMPLES.md](docs/assets/SAMPLES.md) · try `docs/assets/readme-demo.epi`.
 
 ---
 
@@ -151,23 +169,43 @@ More: [docs/FRAMEWORK-INTEGRATIONS-5-MINUTES.md](docs/FRAMEWORK-INTEGRATIONS-5-M
 
 | Command | Purpose |
 |---------|---------|
+| `epi demo` | Guided demo: record → seal → verify |
 | `epi verify <file.epi>` | Offline integrity + signature check |
-| `epi view <file.epi>` | Open offline viewer |
+| `epi view <file.epi>` | Open offline viewer (screenshot above) |
+| `epi analyze <file.epi>` | Fault / policy summary from sealed analysis |
+| `epi policy init` | Create `epi_policy.json` rulebook |
 | `epi run <script.py>` | Run a script under recording |
-| `epi keys generate` | Create a local signing key |
-| `epi keys list` / `trust` / `revoke` | Key management |
-| `epi demo` | Guided demo (alias of `epi dev`) |
+| `epi keys generate` / `list` / `trust` | Local signing keys |
+| `epi enterprise setup` / `pack` | Org kit + auditor pack |
 | `epi scitt register <file.epi>` | Optional transparency anchor |
 | `epi import agt <path>` | Import Microsoft AGT evidence |
+
+Policy + fault analyzer guide: [docs/POLICY-AND-FAULT-ANALYZER.md](docs/POLICY-AND-FAULT-ANALYZER.md)
 
 ---
 
 ## Security defaults
 
-- **Redaction is on** (`redact=True`). Keys/tokens/PII become `***REDACTED***:…` placeholders.
+- **Redaction is on** (`redact=True`). Keys/tokens/PII become placeholders.
 - Prefer **not** using `redact=False` in production (it warns).
 - Verification is **local** — no network required for integrity/signature.
-- First-run identity WARN is expected until you trust your key.
+- First-run identity WARN / LOCAL is expected until you trust a key.
+- **Seal ≠ identity ≠ policy.** Verify proves the file; analyze grades the run against rules/heuristics.
+
+---
+
+## Docs & pilot
+
+| Topic | Link |
+|-------|------|
+| **Docs map** | [docs/README.md](docs/README.md) |
+| **Guided pilot pack** | [docs/PILOT.md](docs/PILOT.md) |
+| Enterprise in 15 minutes | [docs/ENTERPRISE-15-MINUTES.md](docs/ENTERPRISE-15-MINUTES.md) |
+| Enterprise capability (honest) | [docs/ENTERPRISE-CAPABILITY.md](docs/ENTERPRISE-CAPABILITY.md) |
+| Policy + fault analyzer | [docs/POLICY-AND-FAULT-ANALYZER.md](docs/POLICY-AND-FAULT-ANALYZER.md) |
+| Known limitations | [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md) |
+| CLI deep dive | [docs/CLI.md](docs/CLI.md) |
+| Auditors guide | [docs/AUDITORS-GUIDE.md](docs/AUDITORS-GUIDE.md) |
 
 ---
 
@@ -179,16 +217,9 @@ is for the auditor or notified body to determine.
 
 | Topic | Docs |
 |-------|------|
-| **Docs map (start here)** | [docs/README.md](docs/README.md) |
-| **Guided pilot pack** | [docs/PILOT.md](docs/PILOT.md) |
-| Enterprise in 15 minutes | [docs/ENTERPRISE-15-MINUTES.md](docs/ENTERPRISE-15-MINUTES.md) |
-| Enterprise capability (honest) | [docs/ENTERPRISE-CAPABILITY.md](docs/ENTERPRISE-CAPABILITY.md) |
-| Known limitations | [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md) |
 | EU AI Act Annex IV | [docs/ANNEX-IV.md](docs/ANNEX-IV.md) |
 | AIUC-1 domains | [docs/standards/aiuc-1-evidence.md](docs/standards/aiuc-1-evidence.md) |
 | SCITT | [docs/standards/scitt-predicate.md](docs/standards/scitt-predicate.md) |
-| CLI deep dive | [docs/CLI.md](docs/CLI.md) |
-| Auditors guide | [docs/AUDITORS-GUIDE.md](docs/AUDITORS-GUIDE.md) |
 
 ```bash
 epi verify agent.epi --aiuc1   # optional domain scoring
@@ -200,12 +231,13 @@ epi verify agent.epi --aiuc1   # optional domain scoring
 
 | Symptom | Fix |
 |---------|-----|
-| `epi: command not found` | Activate the same venv where you `pip install`ed, or use `python -m epi_cli` |
-| `DECISION: WARN` first verify | Normal — integrity/signature OK. Run `epi keys trust …` for KNOWN identity |
-| `Integrity: FAILED` | File was modified after seal — re-record |
-| Share / portal fails | Hosted features need a live backend; local record/verify never depends on them |
+| `epi: command not found` | Same venv as `pip install`, or `python -m epi_cli` |
+| First verify WARN / LOCAL identity | Normal if seal OK — pin with `epi keys trust …` when ready |
+| `Integrity: FAILED` | File changed after seal — re-record |
+| `epi analyze` says heuristic only | Add `epi_policy.json` via `epi policy init`, re-run from that folder |
+| Share / portal fails | Hosted needs backend; local record/verify never depends on it |
 
-**Trust-model note:** Integrity verification measures whether the sealed record has been altered since sealing — it does not verify that the recording process captured every action the agent actually took.
+**Trust-model note:** Integrity checks whether the sealed record was altered since sealing — not that every real-world action was captured.
 
 ---
 
@@ -214,12 +246,12 @@ epi verify agent.epi --aiuc1   # optional domain scoring
 | Path | Role |
 |------|------|
 | `epi_recorder/` | Python SDK (`record`, wrappers) |
-| `epi_core/` | Container, crypto, redaction, verify |
+| `epi_core/` | Container, crypto, redaction, verify, fault analyzer |
 | `epi_cli/` | `epi` command |
-| `website/` | **Public site source of truth** (`epilabs.org`) |
-| `website-v2/` | Sandbox redesign only (not production deploy) |
+| `website/` | Public site source of truth (`epilabs.org`) |
+| `website-v2/` | Sandbox redesign (not production deploy) |
 | `verify_portal/` | Hosted verify/auth API (optional) |
-| `docs/` | Documentation — start at [docs/README.md](docs/README.md) |
+| `docs/` | Start at [docs/README.md](docs/README.md) |
 | `tests/test_core_loop_golden.py` | Golden path regression |
 
 Website edits: only under `website/`, then `python scripts/sync_website.py`. See [docs/SITE.md](docs/SITE.md).
