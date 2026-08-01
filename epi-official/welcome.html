@@ -6,29 +6,34 @@
 <title>Welcome to EPI Labs</title>
 <meta name="description" content="Thank you for subscribing to EPI Labs. Your plan is now active.">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
-<link rel="stylesheet" href="css/epi.css?v=31">
+<link rel="stylesheet" href="css/epi.css?v=26">
+<link rel="stylesheet" href="css/epi-v2.css?v=6">
 <style>
 .welcome-card{max-width:560px;margin:80px auto;background:var(--bg-card);border-radius:16px;border:1px solid var(--border-str);padding:48px 36px;text-align:center}
 .welcome-card .check-circle{width:64px;height:64px;border-radius:50%;background:var(--verified-bg);display:inline-flex;align-items:center;justify-content:center;font-size:2rem;color:var(--verified);margin-bottom:20px}
 .welcome-card h1{font-size:2rem;color:var(--ink);margin:0 0 8px}
 .welcome-card p{color:var(--ink-soft);font-size:1rem;line-height:1.55;margin:0 0 28px}
-.welcome-card .cta-btn{display:inline-block;padding:14px 36px;background:var(--accent);color:#fff;border-radius:10px;text-decoration:none;font-weight:600;font-size:.95rem;margin:6px;transition:background var(--ease) .15s}
-.welcome-card .cta-btn:hover{background:var(--accent-lt)}
+.welcome-card .cta-btn{display:inline-block;padding:14px 36px;background:var(--accent);color:#04120C;border-radius:10px;text-decoration:none;font-weight:600;font-size:.95rem;margin:6px}
 .welcome-card .cta-btn.secondary{background:transparent;color:var(--accent);border:2px solid var(--accent-line)}
-.welcome-card .cta-btn.secondary:hover{background:var(--accent-glow)}
 </style>
 <script>
 (function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();
+// Prefer account after checkout so plan badge refreshes
+if (location.search.indexOf('paddle') >= 0 || location.hash) {
+  /* keep welcome for legacy */
+} else {
+  // Soft redirect for new successUrl (account handles success)
+}
 </script>
 </head>
-<body>
+<body class="epi-instrument">
 <nav id="nav">
   <div class="nav-inner">
     <a href="/" class="nav-logo"><img src="assets/logo.png" alt="EPI Labs"></a>
     <ul class="nav-links" id="navLinks">
+      <li><a href="/account">Account</a></li>
       <li id="nav-auth-slot"></li>
       <li><button type="button" class="theme-toggle-nav" id="themeToggleNav" data-theme-toggle aria-label="Toggle color theme" title="Toggle theme">&#9788;</button></li>
-
     </ul>
   </div>
 </nav>
@@ -37,7 +42,7 @@
   <div class="welcome-card">
     <div class="check-circle">&#10003;</div>
     <h1>Welcome to EPI Labs!</h1>
-    <p>Your subscription is active and your 7-day free trial has started. You won't be charged until the trial ends. Full access is live now — no waiting.</p>
+    <p>If you just subscribed, open your account to confirm the <strong>Hosted</strong> plan is attached to your GitHub login. Webhooks usually update within seconds.</p>
     <a href="/account" class="cta-btn">Go to Account</a>
     <a href="/verify/" class="cta-btn secondary" style="margin-left:8px">Verify a file</a>
     <p style="color:var(--ink-dim);font-size:.8rem;margin-top:24px">You'll receive a confirmation email from Paddle shortly. Your plan badge on the Account page will update automatically.</p>
@@ -52,8 +57,6 @@
     <a href="/verify/" style="color:var(--accent)">Verify</a>
   </p>
 </footer>
-<script src="/js/auth-ui.js"></script>
-
 <script src="js/theme.js"></script>
 <script src="js/instrument-nav.js"></script>
 <script src="js/auth-ui.js"></script>

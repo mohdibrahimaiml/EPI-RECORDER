@@ -102,6 +102,52 @@ def _extract_price_id(event_data: dict) -> str:
     return str(event_data.get("price_id") or "")
 
 
+def verify_paddle_signature(raw_body: bytes, signature_header: str, secret: str) -> bool:
+    """Paddle Billing: HMAC-SHA256 of ``ts:rawBody`` compared to ``h1``."""
+    if not secret or not signature_header:
+        return False
+    sig_map: dict[str, str] = {}
+    for part in signature_header.split(";"):
+        key, _, val = part.partition("=")
+        if key.strip():
+            sig_map[key.strip()] = val.strip()
+    ts = sig_map.get("ts", "")
+    h1 = sig_map.get("h1", "")
+    if not ts or not h1:
+        return False
+    try:
+        body_text = raw_body.decode("utf-8")
+    except UnicodeDecodeError:
+        body_text = raw_body.decode("utf-8", errors="replace")
+    signed_payload = f"{ts}:{body_text}".encode("utf-8")
+    computed = hmac.new(secret.encode("utf-8"), signed_payload, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(computed, h1)
+
+
+def _apply_plan_from_webhook(
+    storage_dir,
+    *,
+    plan: str,
+    custom: dict,
+    email: str,
+    customer_id: str,
+) -> bool:
+    """Prefer GitHub user_id from checkout custom_data, then email, then customer_id."""
+    plan = normalize_plan(plan)
+    cid = str(customer_id) if customer_id else None
+    user_id = str(custom.get("user_id") or custom.get("epi_user_id") or "").strip() or None
+    if user_id:
+        if set_user_plan(storage_dir, plan=plan, user_id=user_id, customer_id=cid):
+            return True
+    if email:
+        if set_user_plan_by_email(storage_dir, email, plan=plan, customer_id=cid):
+            return True
+    if cid:
+        if set_user_plan_by_customer_id(storage_dir, cid, plan=plan):
+            return True
+    return False
+
+
 @router.get("/api/paddle/config")
 async def get_paddle_config(request: Request):
     """Return client-side Paddle configuration."""
@@ -117,6 +163,7 @@ async def get_paddle_config(request: Request):
             },
         },
         "enterprise_price_id": PADDLE_ENTERPRISE_PRICE_ID,
+        "require_sign_in": True,
     }
 
 
@@ -126,31 +173,18 @@ async def paddle_webhook(request: Request):
     raw_body = await request.body()
     signature = request.headers.get("paddle-signature", "")
 
-    if PADDLE_WEBHOOK_SECRET and signature:
-        try:
-            parts = signature.split(";")
-            sig_map = {}
-            for part in parts:
-                key, _, val = part.partition("=")
-                sig_map[key.strip()] = val.strip()
-
-            ts = sig_map.get("ts", "")
-            h1 = sig_map.get("h1", "")
-            signed_payload = f"{ts}:{raw_body.decode()}".encode()
-            computed = hashlib.sha256(signed_payload).hexdigest()
-            if not hmac.compare_digest(computed, h1):
-                raise HTTPException(status_code=401, detail="Invalid signature")
-        except HTTPException:
-            raise
-        except Exception:
-            raise HTTPException(status_code=401, detail="Invalid signature")
+    if PADDLE_WEBHOOK_SECRET:
+        if not signature or not verify_paddle_signature(raw_body, signature, PADDLE_WEBHOOK_SECRET):
+            raise HTTPException(status_code=401, detail="Invalid Paddle webhook signature")
 
     event = json.loads(raw_body)
     event_type = event.get("event_type", "")
     event_data = event.get("data", {}) or {}
 
-    customer_id = event_data.get("customer_id", "") or event_data.get("id", "")
+    customer_id = str(event_data.get("customer_id", "") or "")
     custom = event_data.get("custom_data") or {}
+    if not isinstance(custom, dict):
+        custom = {}
     email = (
         event_data.get("email", "")
         or custom.get("email", "")
@@ -173,19 +207,31 @@ async def paddle_webhook(request: Request):
     storage_dir = os.getenv("EPI_STORAGE_DIR", "./data")
     init_billing_columns(storage_dir)
 
+    applied = False
     if event_type in ("subscription.created", "subscription.updated", "subscription.activated"):
         status = (event_data.get("status") or "").lower()
         if status in ("active", "trialing"):
             plan = normalize_plan(_plan_from_price_id(_extract_price_id(event_data)))
-            if email:
-                set_user_plan_by_email(storage_dir, email, plan=plan, customer_id=str(customer_id) if customer_id else None)
-            elif customer_id:
-                set_user_plan_by_customer_id(storage_dir, str(customer_id), plan=plan)
+            applied = _apply_plan_from_webhook(
+                storage_dir,
+                plan=plan,
+                custom=custom,
+                email=str(email or ""),
+                customer_id=customer_id,
+            )
 
     elif event_type in ("subscription.canceled", "subscription.paused", "subscription.past_due"):
-        if email:
-            set_user_plan_by_email(storage_dir, email, plan="free", customer_id=str(customer_id) if customer_id else None)
-        elif customer_id:
-            set_user_plan_by_customer_id(storage_dir, str(customer_id), plan="free")
+        applied = _apply_plan_from_webhook(
+            storage_dir,
+            plan="free",
+            custom=custom,
+            email=str(email or ""),
+            customer_id=customer_id,
+        )
 
-    return {"status": "ok", "db": str(auth_db_path(storage_dir))}
+    return {
+        "status": "ok",
+        "applied": applied,
+        "event_type": event_type,
+        "db": str(auth_db_path(storage_dir)),
+    }
