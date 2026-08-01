@@ -74,23 +74,102 @@ async function verifyEd25519(sigStr,pubKeyHex,hashHex){
   }catch(e){return{valid:null,msg:'Ed25519 error: '+e.message}}
 }
 
+/*
+  Container detection + ZIP extract.
+  Prefer shared epi-verify-core (window.epiDetectContainer / epiExtractZipBytes)
+  so homepage and /verify/ cannot drift. Fallback mirrors the same rules:
+  envelope-v2 magic "<!--", legacy ZIP "PK", BOM/junk preamble, and
+  EPI_ZIP_PAYLOAD_START marker (never naive first-PK — embedded JSZip
+  source contains a false PK\x03\x04 string).
+*/
+var EPI_ZIP_MARKER='\n<!-- EPI_ZIP_PAYLOAD_START -->\n';
+var EPI_HEADER_SIZE=128;
+
+function toU8(buffer){
+  if(buffer instanceof Uint8Array)return buffer;
+  if(buffer instanceof ArrayBuffer)return new Uint8Array(buffer);
+  if(ArrayBuffer.isView(buffer))return new Uint8Array(buffer.buffer,buffer.byteOffset,buffer.byteLength);
+  return new Uint8Array(buffer||[]);
+}
+
+function hexPreview(u8,n){
+  n=Math.min(n||16,u8.length);
+  var p=[];for(var i=0;i<n;i++)p.push(u8[i].toString(16).padStart(2,'0'));
+  return p.join(' ');
+}
+
 function detectContainer(buffer){
-  var prefix=new TextDecoder().decode(buffer.slice(0,4));
-  // Envelope-v2 files are polyglot HTML: they start with the comment magic "<!--"
-  if(prefix==='<!--')return'envelope-v2';
-  var sig=new Uint8Array(buffer.slice(0,4));
-  if(sig[0]===0x50&&sig[1]===0x4B&&sig[2]===0x03&&sig[3]===0x04)return'legacy-zip';
+  if(typeof window!=='undefined'&&typeof window.epiDetectContainer==='function'){
+    var d=window.epiDetectContainer(buffer);
+    return d?d.format:null;
+  }
+  var u8=toU8(buffer);
+  if(u8.length<4)return null;
+  var i=0;
+  if(u8.length>=3&&u8[0]===0xef&&u8[1]===0xbb&&u8[2]===0xbf)i=3;
+  while(i<u8.length&&(u8[i]===0x09||u8[i]===0x0a||u8[i]===0x0d||u8[i]===0x20))i++;
+  if(i+3<u8.length&&u8[i]===0x3c&&u8[i+1]===0x21&&u8[i+2]===0x2d&&u8[i+3]===0x2d)return'envelope-v2';
+  if(i+1<u8.length&&u8[i]===0x50&&u8[i+1]===0x4b)return'legacy-zip';
+  var scan=Math.min(u8.length-4,i+512);
+  for(var j=i;j<=scan;j++){
+    if(u8[j]===0x3c&&u8[j+1]===0x21&&u8[j+2]===0x2d&&u8[j+3]===0x2d)return'envelope-v2';
+    if(u8[j]===0x50&&u8[j+1]===0x4b)return'legacy-zip';
+  }
+  // Marker anywhere ⇒ envelope
+  var marker=new TextEncoder().encode(EPI_ZIP_MARKER);
+  var end=Math.min(u8.length,8*1024*1024)-marker.length;
+  outer:for(var k=0;k<=end;k++){
+    for(var m=0;m<marker.length;m++){if(u8[k+m]!==marker[m])continue outer;}
+    return'envelope-v2';
+  }
   return null;
 }
 
 function extractZIPPayload(buffer,fmt){
-  if(fmt==='legacy-zip')return buffer;
-  var view=new Uint8Array(buffer);
-  // EPI1 envelope: skip binary header to find ZIP PK marker
-  var marker=[0x50,0x4B,0x03,0x04];
-  var start=Math.max(128, view.indexOf(marker[0]));
-  for(var i=start;i<view.length-4;i++){if(view[i]===marker[0]&&view[i+1]===marker[1]&&view[i+2]===marker[2]&&view[i+3]===marker[3])return buffer.slice(i)}
-  return buffer.slice(128);
+  if(typeof window!=='undefined'&&typeof window.epiExtractZipBytes==='function'){
+    return window.epiExtractZipBytes(buffer);
+  }
+  var u8=toU8(buffer);
+  if(fmt==='legacy-zip'){
+    // Skip preamble if any
+    var off=0;
+    if(u8.length>=3&&u8[0]===0xef&&u8[1]===0xbb&&u8[2]===0xbf)off=3;
+    while(off<u8.length&&(u8[off]===0x09||u8[off]===0x0a||u8[off]===0x0d||u8[off]===0x20))off++;
+    while(off+1<u8.length&&!(u8[off]===0x50&&u8[off+1]===0x4b))off++;
+    return off===0?u8:u8.slice(off);
+  }
+  // Envelope: find payload via marker (NOT first PK — viewer embeds JSZip source)
+  var headerOff=0;
+  if(!(u8[0]===0x3c&&u8[1]===0x21&&u8[2]===0x2d&&u8[3]===0x2d)){
+    for(var s=0;s+3<Math.min(u8.length,512);s++){
+      if(u8[s]===0x3c&&u8[s+1]===0x21&&u8[s+2]===0x2d&&u8[s+3]===0x2d){headerOff=s;break;}
+    }
+  }
+  var marker=new TextEncoder().encode(EPI_ZIP_MARKER);
+  var searchFrom=headerOff+EPI_HEADER_SIZE;
+  var zipStart=headerOff+EPI_HEADER_SIZE;
+  var foundMarker=false;
+  var mend=Math.min(u8.length,searchFrom+8*1024*1024)-marker.length;
+  outer2:for(var p=searchFrom;p<=mend;p++){
+    for(var q=0;q<marker.length;q++){if(u8[p+q]!==marker[q])continue outer2;}
+    zipStart=p+marker.length;foundMarker=true;break;
+  }
+  if(headerOff+EPI_HEADER_SIZE<=u8.length){
+    try{
+      var view=new DataView(u8.buffer,u8.byteOffset+headerOff,EPI_HEADER_SIZE);
+      var payloadLen=view.getUint32(8,true)+view.getUint32(12,true)*4294967296;
+      if(payloadLen>0&&zipStart+payloadLen<=u8.length){
+        var sliced=u8.slice(zipStart,zipStart+payloadLen);
+        if(sliced[0]===0x50&&sliced[1]===0x4b)return sliced;
+      }
+    }catch(_e){}
+  }
+  if(zipStart+1<u8.length&&u8[zipStart]===0x50&&u8[zipStart+1]===0x4b)return u8.slice(zipStart);
+  var from=foundMarker?zipStart:headerOff+EPI_HEADER_SIZE;
+  for(var r=from;r+3<u8.length;r++){
+    if(u8[r]===0x50&&u8[r+1]===0x4b&&u8[r+2]===0x03&&u8[r+3]===0x04)return u8.slice(r);
+  }
+  return u8.slice(headerOff+EPI_HEADER_SIZE);
 }
 
 /*
@@ -326,25 +405,46 @@ async function auditSteps(steps,manifest){
 }
 
 async function processFile(f){
-  var nm=f.name.toLowerCase();
-  if(!nm.endsWith('.epi')&&!nm.endsWith('.zip')){showResult('fail','Invalid file type. Drop a .epi or .zip file.');return}
-  showResult('warn','<em>Reading '+f.name+'...</em>');
+  var nm=(f&&f.name?f.name:'').toLowerCase();
+  showResult('warn','<em>Reading '+(f.name||'file')+'...</em>');
 
   try{
+    if(typeof JSZip==='undefined'){
+      showResult('fail','<strong>Verifier not loaded</strong><br>JSZip missing — hard-refresh (Ctrl+Shift+R) and try again.');
+      return;
+    }
     var buf=await f.arrayBuffer();
-    var containerFmt=detectContainer(buf);
-    if(!containerFmt){showResult('fail','<strong>Not a valid EPI file</strong><br>No EPI envelope or ZIP header detected.');return}
+    if(!buf||buf.byteLength<4){
+      showResult('fail','<strong>Not a valid EPI file</strong><br>File is empty or too small ('+(buf?buf.byteLength:0)+' bytes).');
+      return;
+    }
+    var u8=toU8(buf);
+    var containerFmt=detectContainer(u8);
+    // Prefer magic-byte detection over file extension (pickers / email renames)
+    if(!containerFmt){
+      var peek=hexPreview(u8,16);
+      var hint='';
+      if(u8[0]===0x3c&&u8[1]===0x21&&u8[2]===0x44)hint=' This looks like an HTML page (broken download), not a sealed .epi.';
+      else if(nm&&!nm.endsWith('.epi')&&!nm.endsWith('.zip'))hint=' Expected a .epi file.';
+      showResult('fail','<strong>Not a valid EPI file</strong><br>No EPI envelope or ZIP header detected.'+hint+'<br><span style="font-size:0.68rem;opacity:.85">First bytes: '+peek+'</span>');
+      return;
+    }
 
-    var zipBuf=extractZIPPayload(buf,containerFmt);
+    var zipBuf;
+    try{zipBuf=extractZIPPayload(u8,containerFmt)}
+    catch(ex){showResult('fail','<strong>Could not locate ZIP payload</strong><br>'+ex.message);return}
     var zip;
-    try{zip=await JSZip.loadAsync(zipBuf)}catch(e){showResult('fail','<strong>ZIP extraction failed</strong><br>'+e.message);return}
+    try{zip=await JSZip.loadAsync(zipBuf)}catch(e){showResult('fail','<strong>ZIP extraction failed</strong><br>'+e.message+' (container: '+containerFmt+')');return}
 
     var report={facts:{structure_ok:false,integrity_ok:false,signature_valid:null,has_signature:false,mismatches:{},chain_ok:true,sequence_ok:true,completeness_ok:true,transparency_ok:null},identity:{status:'UNKNOWN',name:null,detail:null,registry_verified:false,public_key_id:null},metadata:{spec_version:'?',workflow_id:'?',created_at:'?',files_checked:0,verifier_version:'browser',steps_count:null},trust_level:'NONE',trust_message:''};
 
     // Check 1: mimetype
     if(!zip.file('mimetype')){report.facts.structure_ok=false;showReport(report,'No mimetype file in archive');return}
     var mt=await zip.file('mimetype').async('string');
-    if(mt.trim()!==EPI_MIMETYPE&&mt.trim()!=='application/vnd.epi'){report.facts.structure_ok=false;showReport(report,'Invalid mimetype: '+mt.trim());return}
+    var mtNorm=mt.trim().replace(/\r/g,'');
+    if(mtNorm!==EPI_MIMETYPE&&mtNorm!=='application/vnd.epi'&&mtNorm!=='application/vnd.epi+zip'){
+      report.facts.structure_ok=false;showReport(report,'Invalid mimetype: '+mtNorm);return
+    }
     report.facts.structure_ok=true;
 
     // Check 2: manifest.json
