@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>EPI Labs | Tamper-Evident Evidence Infrastructure for AI Agents</title>
-<meta name="description" content="EPI Labs builds cryptographic evidence infrastructure for AI agents. Signed, sealed, verifiable .epi files. Ed25519 signatures, SHA-256 integrity, RFC 3161 timestamps, SCITT transparency. The PDF for AI evidence.">
-<meta property="og:title" content="EPI Labs | Tamper-Evident Evidence Infrastructure for AI Agents">
-<meta property="og:description" content="EPI Labs builds cryptographic evidence infrastructure for AI agents. Signed, sealed, verifiable .epi files. Ed25519 signatures, SHA-256 integrity, RFC 3161 timestamps, SCITT transparency.">
+<title>EPI Labs | Sealed .epi evidence for AI agents — verify offline</title>
+<meta name="description" content="Seal AI agent runs into portable .epi files. Verify offline without a dashboard. Free open-source CLI; pay for hosted scale and support. Ed25519, SHA-256, RFC 3161, SCITT.">
+<meta property="og:title" content="EPI Labs | Sealed .epi evidence for AI agents">
+<meta property="og:description" content="Seal AI agent runs. Verify offline. Same bytes in CI and for auditors. Free forever offline — Hosted for scale.">
 <meta property="og:image" content="https://epilabs.org/assets/logo.png">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon.ico">
 <link rel="apple-touch-icon" href="favicon.ico">
-<link rel="stylesheet" href="css/epi.css?v=24">
-<link rel="stylesheet" href="css/epi-v2.css?v=1">
+<link rel="stylesheet" href="css/epi.css?v=25">
+<link rel="stylesheet" href="css/epi-v2.css?v=2">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -67,7 +67,6 @@
       <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
       <li id="nav-auth-slot"></li>
       <li><a href="/account" class="nav-link-cta">Sign in</a></li>
-      <li><button class="theme-toggle-nav" id="themeToggleNav" aria-label="Toggle dark mode" title="Toggle dark mode"></button></li>
     </ul>
     <button class="nav-mob" id="mobBtn" aria-label="Menu"><span></span><span></span><span></span></button>
   </div>
@@ -130,6 +129,38 @@
   </div>
 </section>
 
+<!-- ═══ VERIFY — product first ═══ -->
+<section class="section-alt" id="verify">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:48px">
+      <div class="section-label reveal" style="justify-content:center">Try it — 10 seconds</div>
+      <h2 class="section-title reveal d1">Drop a .epi — see the seal</h2>
+      <p class="section-desc reveal d2" style="margin:0 auto">
+        Runs in this tab. <strong style="color:var(--accent)">Your file is not uploaded</strong> here.
+        Need a file? <a href="assets/sample.epi" download style="color:var(--signal);font-weight:600">Download sample.epi</a>
+        · Full tool: <a href="/verify/" style="color:var(--signal);font-weight:600">private vs upload modes</a>
+      </p>
+    </div>
+    <div class="verify-grid">
+      <div class="drop-zone reveal" id="dropZoneEl" role="button" tabindex="0" aria-label="Drop or choose a .epi file to verify offline">
+        <span class="drop-icon" aria-hidden="true"></span>
+        <p class="drop-title">Drop a .epi file here</p>
+        <p class="drop-hint">or click to browse · verification stays in this browser</p>
+        <input type="file" id="fileInput" accept=".epi,.zip" style="display:none">
+        <div id="dropResult" style="display:none"></div>
+      </div>
+      <div class="checks-list reveal d1">
+        <div class="check-item" id="chk1"><span class="check-dot"></span> 01 · Structure Valid</div>
+        <div class="check-item" id="chk2"><span class="check-dot"></span> 02 · Hashes Match</div>
+        <div class="check-item" id="chk3"><span class="check-dot"></span> 03 · Signature Valid</div>
+        <div class="check-item" id="chk4"><span class="check-dot"></span> 04 · Chain Intact</div>
+        <div class="check-item" id="chk5"><span class="check-dot"></span> 05 · RFC 3161 Timestamp</div>
+        <div class="check-item" id="chk6"><span class="check-dot"></span> 06 · SCITT Anchored (optional)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ═══ THESIS ═══ -->
 <section class="thesis">
   <div class="container"><div class="thesis-inner reveal">
@@ -138,11 +169,106 @@
   </div></div>
 </section>
 
+<!-- ═══ NOT OBSERVABILITY ═══ -->
+<section class="section-alt" id="diff">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:36px">
+      <div class="section-label reveal" style="justify-content:center">Positioning</div>
+      <h2 class="section-title reveal d1">Not another agent dashboard</h2>
+      <p class="section-desc reveal d2" style="margin:0 auto">Built for proof, not for scrolling traces.</p>
+    </div>
+    <div class="v2-diff-grid reveal">
+      <div class="v2-diff-card muted">
+        <h3>LLM observability</h3>
+        <ul>
+          <li>Tenant logs &amp; traces</li>
+          <li>Usually needs vendor UI</li>
+          <li>Job: improve quality &amp; debug</li>
+          <li>You pay for hosted seats</li>
+        </ul>
+      </div>
+      <div class="v2-diff-card hl">
+        <h3>EPI</h3>
+        <ul>
+          <li>Portable sealed <code>.epi</code> file</li>
+          <li>Offline CLI or browser — no account</li>
+          <li>Job: prove integrity later</li>
+          <li>Core crypto free · pay for hosted scale</li>
+        </ul>
+      </div>
+    </div>
+    <p class="reveal" style="text-align:center;margin:28px auto 0;max-width:640px;color:var(--ink-soft);font-size:.95rem;line-height:1.6">
+      Open source free forever for record, seal, verify, Annex, and CI.
+      Hosted raises hosted checks and support — not a second closed evidence format.
+      <a href="/pricing" style="color:var(--accent)">See pricing</a>
+    </p>
+  </div>
+</section>
+
+<!-- ═══ JOURNEY RAIL ═══ -->
+<section id="paths" class="section-alt">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:32px">
+      <div class="section-label reveal" style="justify-content:center">Paths</div>
+      <h2 class="section-title reveal d1">Three ways in. One file out.</h2>
+      <p class="section-desc reveal d2" style="margin:0 auto">Pick your lane. You do not need all of them.</p>
+    </div>
+    <div class="v2-rail reveal">
+      <div class="v2-rail-item">
+        <div class="n">01 · DEVELOPER</div>
+        <h3>Offline forever free</h3>
+        <p><code>pip install epi-recorder</code> then seal a run and <code>epi verify</code>. CI-friendly. No account.</p>
+      </div>
+      <div class="v2-rail-item">
+        <div class="n">02 · AUDITOR</div>
+        <h3>Check without our UI</h3>
+        <p>Drop a file above, or import an org trust bundle and verify on your machine.</p>
+      </div>
+      <div class="v2-rail-item">
+        <div class="n">03 · ENTERPRISE</div>
+        <h3>Kit in 15 minutes</h3>
+        <p><code>epi enterprise setup</code> then <code>pack</code>. Custom limits and onboarding when you need them.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PLANS STRIP ═══ -->
+<section id="plans">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:32px">
+      <div class="section-label reveal" style="justify-content:center">Money · honest</div>
+      <h2 class="section-title reveal d1">Pay for scale and help — not for crypto</h2>
+      <p class="section-desc reveal d2" style="margin:0 auto">Core seal/verify stays free offline. Hosted quotas and support are optional.</p>
+    </div>
+    <div class="v2-plans reveal">
+      <div class="v2-plan">
+        <h3>Open source</h3>
+        <div class="price">$0</div>
+        <p>CLI, SDK, offline verify, Annex, GitHub Action. Unlimited local use.</p>
+        <a class="btn btn-secondary" href="https://pypi.org/project/epi-recorder/" target="_blank" rel="noopener">Install</a>
+      </div>
+      <div class="v2-plan featured">
+        <h3>Hosted</h3>
+        <div class="price">$15<small>/mo</small></div>
+        <p>10k hosted checks, browser full report, CI keys, remote SCITT, founder email.</p>
+        <a class="btn btn-primary" href="/pricing">Get Hosted</a>
+      </div>
+      <div class="v2-plan">
+        <h3>Enterprise</h3>
+        <div class="price">Custom</div>
+        <p>Org kit, custom volume, onboarding, procurement. SSO is roadmap — not a fake checkmark.</p>
+        <a class="btn btn-secondary" href="/enterprise">Enterprise path</a>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ═══ TERMINAL ═══ -->
-<section class="terminal-section reveal">
+<section class="terminal-section reveal" id="use">
   <div class="container">
     <div style="text-align:center;margin-bottom:40px">
-      <div class="section-label" style="justify-content:center">Try It</div>
+      <div class="section-label" style="justify-content:center">CLI in 30 seconds</div>
       <h2 class="section-title">pip install epi-recorder</h2>
       <p class="section-desc" style="margin:0 auto">Record. Seal. Verify. Three commands. One file. Evidence for every AI decision.</p>
     </div>
@@ -164,7 +290,7 @@
 </section>
 
 <!-- ═══ HOW TO USE ═══ -->
-<section id="use">
+<section id="how-start">
   <div class="container">
     <div class="how-header">
       <div class="section-label reveal" style="justify-content:center">Get Started</div>
@@ -258,34 +384,6 @@ pip install epi-recorder
   <span class="pillar-deco-g">sealing.</span>
         </div>
         <div class="pillar-content"><h3>Verify</h3><p>Drop the .epi file into any browser. Five cryptographic checks run entirely locally — no server, no upload, no trust required. Air-gap ready.</p></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══ VERIFY ═══ -->
-<section class="section-alt" id="verify">
-  <div class="container">
-    <div style="text-align:center;margin-bottom:48px">
-      <div class="section-label reveal" style="justify-content:center">Try It Now</div>
-      <h2 class="section-title reveal d1">Verify a .epi file in your browser</h2>
-      <p class="section-desc reveal d2" style="margin:0 auto">Five cryptographic checks. All local. Nothing uploaded. <a href="assets/sample.epi" download style="color:var(--accent);font-weight:600">No file? Download a sample.</a></p>
-    </div>
-    <div class="verify-grid">
-      <div class="drop-zone reveal" id="dropZoneEl">
-        <span class="drop-icon">&#x1F4E6;</span>
-        <p class="drop-title">Drop a .epi file here</p>
-        <p class="drop-hint">or click to browse ·<br>verification runs entirely offline</p>
-        <input type="file" id="fileInput" accept=".epi,.zip" style="display:none">
-        <div id="dropResult" style="display:none"></div>
-      </div>
-      <div class="checks-list reveal d1">
-        <div class="check-item" id="chk1"><span class="check-dot"></span> 01 · Structure Valid</div>
-        <div class="check-item" id="chk2"><span class="check-dot"></span> 02 · Hashes Match</div>
-        <div class="check-item" id="chk3"><span class="check-dot"></span> 03 · Signature Valid</div>
-        <div class="check-item" id="chk4"><span class="check-dot"></span> 04 · Chain Intact</div>
-        <div class="check-item" id="chk5"><span class="check-dot"></span> 05 · RFC 3161 Timestamp (FreeTSA.org)</div>
-        <div class="check-item" id="chk6"><span class="check-dot"></span> 06 · SCITT Anchored (optional)</div>
       </div>
     </div>
   </div>
@@ -484,27 +582,26 @@ pip install epi-recorder
   </div>
 </section>
 
-<!-- ═══ FOOTER ═══ -->
-<!-- Pilot Signup -->
-<section id="pilot" style="padding:80px 24px;text-align:center;max-width:600px;margin:0 auto">
-  <h2 style="font-size:1.6rem;color:var(--ink);margin:0 0 8px">Start a 14-day Enterprise pilot</h2>
-  <p style="color:var(--ink-soft);margin:0 0 32px;font-size:.95rem">Full Enterprise tier. No credit card. No commitment. Includes a dedicated onboarding call.</p>
-  <form action="https://docs.google.com/forms/d/e/EPI_PILOT_FORM_ID/formResponse" method="POST" target="_blank" style="display:flex;flex-direction:column;gap:12px;max-width:420px;margin:0 auto">
-    <input type="email" name="entry.EMAIL" placeholder="your@company.com" required style="padding:14px 16px;border:1px solid var(--border-str);border-radius:10px;font-family:var(--sans);font-size:.95rem;background:var(--bg-card);color:var(--ink)">
-    <select name="entry.USE_CASE" style="padding:14px 16px;border:1px solid var(--border-str);border-radius:10px;font-family:var(--sans);font-size:.95rem;background:var(--bg-card);color:var(--ink)">
-      <option value="">Select your use case</option>
-      <option>Financial Services</option>
-      <option>Healthcare</option>
-      <option>Insurance</option>
-      <option>Government</option>
-      <option>AI Safety</option>
-      <option>Legal Tech</option>
-      <option>Other</option>
-    </select>
-    <button type="submit" style="padding:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:var(--sans);font-size:.95rem;font-weight:600;cursor:pointer">Request Pilot Access</button>
-  </form>
-  <p style="color:var(--ink-dim);font-size:.78rem;margin-top:16px">No spam. We'll email you within 24 hours to schedule your onboarding call.</p>
+<!-- ═══ PILOT ═══ -->
+<section id="pilot" class="section-alt">
+  <div class="container" style="text-align:center;max-width:640px;margin:0 auto">
+    <div class="section-label reveal" style="justify-content:center">Pilots</div>
+    <h2 class="section-title reveal d1">Start a founder-led pilot</h2>
+    <p class="section-desc reveal d2" style="margin:0 auto 28px">
+      Seal real agent runs with the open-source CLI. We help with keys, verify path, and evidence review.
+      No fake self-serve enterprise checklist.
+    </p>
+    <div class="cta-actions reveal">
+      <a class="btn btn-primary btn-lg" href="mailto:mohdibrahim@epilabs.org?subject=EPI%20pilot">Email for pilot →</a>
+      <a class="btn btn-secondary btn-lg" href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/PILOT.md" target="_blank" rel="noopener">Pilot guide</a>
+    </div>
+  </div>
 </section>
+
+<div class="v2-sticky-cta" aria-label="Quick actions">
+  <a class="btn btn-secondary" href="#verify">Verify sample</a>
+  <a class="btn btn-primary" href="#use">Install CLI</a>
+</div>
 
 <footer>
   <div class="container"><div class="footer-inner">
@@ -513,12 +610,12 @@ pip install epi-recorder
       <span class="footer-copy">&copy; 2026 EPI LABS. MIT License. Built in India. Engineered for the world.</span>
     </div>
     <ul class="footer-links">
+      <li><a href="/verify/">Verify</a></li>
+      <li><a href="/pricing">Pricing</a></li>
       <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
       <li><a href="https://pypi.org/project/epi-recorder/" target="_blank" rel="noopener">PyPI</a></li>
-      <li><a href="viewer/">Decision Ops</a></li>
-      <li><a href="/terms">Terms of Service</a></li>
-      <li><a href="/privacy">Privacy Policy</a></li>
-      <li><a href="/refund">Refund Policy</a></li>
+      <li><a href="/terms">Terms</a></li>
+      <li><a href="/privacy">Privacy</a></li>
       <li><a href="mailto:mohdibrahim@epilabs.org">Contact</a></li>
     </ul>
   </div></div>
@@ -526,24 +623,23 @@ pip install epi-recorder
 
 <script>
 (function(){
-/* ── DARK MODE ── */
-var stored=localStorage.getItem('epi-theme'),prefersDark=matchMedia('(prefers-color-scheme:dark)').matches;
-if(stored==='dark'||(!stored&&prefersDark))document.documentElement.setAttribute('data-theme','dark');
-function updateToggles(){
-  var isDark=document.documentElement.hasAttribute('data-theme'),ico=isDark?'&#9788;':'&#9789;';
-  document.querySelectorAll('#themeToggleNav').forEach(function(b){b.innerHTML=ico;b.style.color=isDark?'#E6EDF3':'var(--ink)'});
-}
-updateToggles();
-function flip(){
-  var r=document.documentElement;
-  if(r.hasAttribute('data-theme')){r.removeAttribute('data-theme');localStorage.setItem('epi-theme','light')}
-  else{r.setAttribute('data-theme','dark');localStorage.setItem('epi-theme','dark')}
+/* ── DARK MODE (home is product-dark; optional toggle if present) ── */
+document.documentElement.setAttribute('data-theme','dark');
+document.body.setAttribute('data-theme','dark');
+var themeBtn=document.getElementById('themeToggleNav');
+if(themeBtn){
+  function updateToggles(){
+    var isDark=document.documentElement.hasAttribute('data-theme'),ico=isDark?'&#9788;':'&#9789;';
+    themeBtn.innerHTML=ico;themeBtn.style.color=isDark?'#E6EDF3':'var(--ink)';
+  }
   updateToggles();
+  themeBtn.addEventListener('click',function(){
+    var r=document.documentElement;
+    if(r.hasAttribute('data-theme')){r.removeAttribute('data-theme');localStorage.setItem('epi-theme','light')}
+    else{r.setAttribute('data-theme','dark');localStorage.setItem('epi-theme','dark')}
+    updateToggles();
+  });
 }
-document.getElementById('themeToggleNav').addEventListener('click',flip);
-matchMedia('(prefers-color-scheme:dark)').addEventListener('change',function(e){
-  if(!localStorage.getItem('epi-theme')){e.matches?document.documentElement.setAttribute('data-theme','dark'):document.documentElement.removeAttribute('data-theme');updateToggles()}
-});
 
 /* ── NAV ── */
 var nav=document.getElementById('nav');
@@ -1018,9 +1114,12 @@ function resetChecks(){
 
 if(dz&&fi&&dr){
   dz.addEventListener('click',function(){fi.click()});
+  dz.addEventListener('keydown',function(e){
+    if(e.key==='Enter'||e.key===' '){e.preventDefault();fi.click()}
+  });
   ['dragenter','dragover','dragleave','drop'].forEach(function(ev){dz.addEventListener(ev,function(e){e.preventDefault()});document.body.addEventListener(ev,function(e){e.preventDefault()})});
-  ['dragenter','dragover'].forEach(function(ev){dz.addEventListener(ev,function(){dz.classList.add('dragover')})});
-  ['dragleave','drop'].forEach(function(ev){dz.addEventListener(ev,function(){dz.classList.remove('dragover')})});
+  ['dragenter','dragover'].forEach(function(ev){dz.addEventListener(ev,function(){dz.classList.add('drag-over')})});
+  ['dragleave','drop'].forEach(function(ev){dz.addEventListener(ev,function(){dz.classList.remove('drag-over')})});
   dz.addEventListener('drop',function(e){if(e.dataTransfer.files[0])resetChecks();processFile(e.dataTransfer.files[0])});
   fi.addEventListener('change',function(){if(fi.files[0]){resetChecks();processFile(fi.files[0])}});
 }

@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════
-   EPI Labs — website-v2 visual system (sandbox only)
+   EPI Labs — product home visual system
    "Evidence instrument" — dark-first, file-centric, not SaaS purple.
-   Loaded AFTER css/epi.css on website-v2 home.
+   Loaded AFTER css/epi.css on production website/ home.
    ═══════════════════════════════════════════════════════════════ */
 
 body.v2-home {
@@ -977,4 +977,37 @@ body.v2-home ::selection {
 body.v2-home::-webkit-scrollbar { width: 10px; }
 body.v2-home::-webkit-scrollbar-track { background: #0B0D10; }
 body.v2-home::-webkit-scrollbar-thumb { background: #2A3140; border-radius: 8px; }
+
+/* Section alt bands on product home */
+body.v2-home .section-alt {
+  background: var(--bg-alt);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid transparent;
+}
+body.v2-home #paths {
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+body.v2-home #plans {
+  padding-top: clamp(64px, 9vw, 100px);
+  padding-bottom: clamp(48px, 7vw, 80px);
+  background:
+    radial-gradient(ellipse 50% 40% at 80% 0%, rgba(91, 140, 255, 0.06) 0%, transparent 55%),
+    var(--bg);
+}
+body.v2-home .cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 8px;
+}
+body.v2-home #pilot .section-title {
+  margin-bottom: 12px;
+}
+/* Drop zone keyboard focus */
+body.v2-home .drop-zone:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
 body.v2-home::-webkit-scrollbar-thumb:hover { background: #3D4658; }
