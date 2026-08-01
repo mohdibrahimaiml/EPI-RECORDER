@@ -1212,14 +1212,25 @@ body.epi-instrument .page-main pre code {
   padding: 0;
   background: transparent;
 }
-body.epi-instrument footer {
+body.epi-instrument footer,
+body.v2-home footer,
+body.epi-instrument footer.site-footer {
   border-top: 1px solid var(--border);
-  background: #080A0D;
+  background: var(--bg-alt);
   margin-top: 48px;
+  padding: 40px 24px;
 }
 body.epi-instrument .footer-copy,
-body.epi-instrument .footer-links a { color: var(--ink-dim); }
-body.epi-instrument .footer-links a:hover { color: var(--accent); }
+body.epi-instrument .footer-links a,
+body.v2-home .footer-copy,
+body.v2-home .footer-links a { color: var(--ink-dim); }
+body.epi-instrument .footer-links a:hover,
+body.v2-home .footer-links a:hover { color: var(--accent); }
+body.epi-instrument .footer-links,
+body.v2-home .footer-links {
+  flex-wrap: wrap;
+  gap: 10px 18px;
+}
 
 /* Pricing cards on instrument pages */
 body.epi-instrument .pricing-card,
