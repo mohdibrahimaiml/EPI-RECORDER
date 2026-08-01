@@ -3,209 +3,124 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>EPI Labs — How It Works</title>
-<meta name="description" content="Learn how EPI Labs builds tamper-evident evidence infrastructure for AI agents. Cryptographic signing, hash chains, SCITT transparency.">
+<title>How it works — EPI Labs</title>
+<meta name="description" content="How EPI seals AI agent runs into portable .epi files. Seal, identity, and policy are three different questions. Offline verify.">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon.ico">
-<link rel="apple-touch-icon" href="favicon.ico">
-<link rel="stylesheet" href="css/epi.css?v=30">
-<style>
-.how-main{max-width:900px;margin:0 auto;padding:120px 24px 80px}
-.how-main h1{font-size:2.2rem;color:var(--ink);margin:0 0 8px}
-.how-main .subtitle{color:var(--ink-soft);font-size:1.1rem;margin-bottom:48px}
-.how-main h2{font-size:1.4rem;color:var(--ink);margin:48px 0 12px}
-.how-main h3{font-size:1.05rem;color:var(--ink);margin:28px 0 8px}
-.how-main p,.how-main li{color:var(--ink-soft);line-height:1.7;font-size:.92rem}
-.how-main ol,.how-main ul{padding-left:24px;margin:12px 0}
-.how-main code{font-family:var(--mono);font-size:.82rem;background:var(--bg-dark);padding:2px 8px;border-radius:4px;color:#C8CDD5}
-.how-main pre{background:var(--bg-dark);border-radius:10px;padding:20px 24px;overflow-x:auto;margin:16px 0}
-.how-main pre code{padding:0;background:transparent}
-.how-diagram{background:var(--bg-card);border:1px solid var(--border-str);border-radius:16px;padding:32px;margin:32px 0;text-align:center}
-.how-diagram .flow{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin:20px 0}
-.how-diagram .flow-step{background:var(--bg-dark);border-radius:10px;padding:14px 20px;text-align:center;min-width:100px}
-.how-diagram .flow-step .icon{font-size:1.4rem;margin-bottom:4px}
-.how-diagram .flow-step .label{font-size:.8rem;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.05em}
-.how-diagram .flow-arrow{color:var(--accent);font-size:1.2rem;font-weight:700}
-</style>
+<link rel="stylesheet" href="css/epi.css?v=26">
+<link rel="stylesheet" href="css/epi-v2.css?v=4">
 </head>
-<body>
-<!-- ═══ SITE NAV ═══ -->
+<body class="epi-instrument" data-theme="dark">
 <nav id="nav">
   <div class="nav-inner">
     <a href="/" class="nav-logo"><img src="/assets/logo.png" alt="EPI Labs"></a>
     <ul class="nav-links" id="navLinks">
       <li><a href="/verify/">Verify</a></li>
-      <li><a href="/#how">How it works</a></li>
-      <li><a href="/#use">How to use</a></li>
-      <li><a href="/enterprise">Enterprise</a></li>
+      <li><a href="/how-it-works">Docs</a></li>
       <li><a href="/pricing">Pricing</a></li>
-      <li class="nav-icon-item"><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener" class="nav-icon-link" aria-label="GitHub" title="GitHub">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.4-1.3-1.8-1.3-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.3.5-2.4 1.2-3.2 0-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.9 1.2 3.2 0 4.7-2.8 5.7-5.5 6 .4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3z"/></svg>
-      </a></li>
+      <li><a href="/enterprise">Enterprise</a></li>
+      <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
       <li id="nav-auth-slot"></li>
-      <li><a href="/pricing" class="nav-link-cta">Get Started</a></li>
+      <li><a href="/account" class="nav-link-cta">Sign in</a></li>
     </ul>
-    <button type="button" class="nav-mob" id="mobBtn" aria-label="Open menu" aria-expanded="false" aria-controls="mobMenu">
-      <span></span><span></span><span></span>
-    </button>
+    <button type="button" class="nav-mob" id="mobBtn" aria-label="Menu"><span></span><span></span><span></span></button>
   </div>
 </nav>
 <div class="mob-menu" id="mobMenu" style="display:none">
   <a href="/verify/">Verify</a>
-  <a href="/#how">How it works</a>
-  <a href="/#use">How to use</a>
-  <a href="/enterprise">Enterprise</a>
   <a href="/how-it-works">Docs</a>
   <a href="/pricing">Pricing</a>
+  <a href="/enterprise">Enterprise</a>
   <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
   <a href="/account">Sign in</a>
-  <a href="/pricing" class="nav-link-cta">Get Started</a>
 </div>
-<main class="how-main">
-  <h1>How EPI Works</h1>
-  <p class="subtitle">Every AI decision, cryptographically sealed in a single file. Here's the full lifecycle.</p>
 
-  <h2>1. Install (one command)</h2>
-  <pre><code>pip install epi-recorder</code></pre>
-  <p>Works on any machine with Python 3.11+. No server. No API keys. No configuration.</p>
+<main class="page-main">
+  <div class="section-label">How it works</div>
+  <h1>A sealed file for every agent run</h1>
+  <p>EPI turns an AI agent run into a portable <code>.epi</code> evidence file: steps, hashes, Ed25519 seal, optional policy analysis, optional SCITT / timestamp. You verify offline — no dashboard required to trust the seal.</p>
 
-  <div class="how-diagram">
-    <p style="color:var(--ink-muted);font-size:.85rem;text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px">Evidence Lifecycle</p>
-    <div class="flow">
-      <div class="flow-step">
-        <div class="icon" style="color:var(--accent)">📦</div>
-        <div class="label">Record</div>
-      </div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step">
-        <div class="icon" style="color:var(--verified)">🔐</div>
-        <div class="label">Seal</div>
-      </div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step">
-        <div class="icon" style="color:var(--warn)">✓</div>
-        <div class="label">Verify</div>
-      </div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step">
-        <div class="icon">📄</div>
-        <div class="label">View</div>
-      </div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step">
-        <div class="icon">🔗</div>
-        <div class="label">Share</div>
-      </div>
+  <h2>The loop</h2>
+  <ol>
+    <li><strong>Record</strong> — <code>record()</code> or wrap OpenAI / LangChain / LiteLLM while the agent runs.</li>
+    <li><strong>Seal</strong> — SHA-256 of members + Ed25519 over the canonical manifest → one <code>.epi</code>.</li>
+    <li><strong>Verify</strong> — <code>epi verify</code> or browser private check (file not uploaded).</li>
+    <li><strong>View</strong> — <code>epi view</code> opens a forensic timeline in any browser.</li>
+  </ol>
+
+  <h2>Three different questions</h2>
+  <div class="truth-trio" style="margin:24px 0 32px">
+    <div class="truth-card truth-card--seal">
+      <div class="truth-kicker">Seal</div>
+      <h3>Tampered?</h3>
+      <p>Integrity + signature of <em>this file</em>.</p>
+      <div class="truth-ex">SEAL OK ≠ org identity</div>
     </div>
-    <p style="color:var(--ink-dim);font-size:.82rem;margin-top:12px">Every step produces a cryptographically verifiable, self-contained .epi file</p>
+    <div class="truth-card truth-card--identity">
+      <div class="truth-kicker">Identity</div>
+      <h3>Who sealed?</h3>
+      <p>LOCAL / UNKNOWN / pinned trust. LOCAL on first run is normal.</p>
+      <div class="truth-ex">epi keys trust</div>
+    </div>
+    <div class="truth-card truth-card--policy">
+      <div class="truth-kicker">Policy</div>
+      <h3>Rules broken?</h3>
+      <p>Optional <code>epi_policy.json</code> + deterministic analyzer. Separate from seal.</p>
+      <div class="truth-ex">epi analyze</div>
+    </div>
   </div>
 
-  <h2>2. Record — Wrap your agent</h2>
-  <pre><code>from epi_recorder import record, wrap_openai
-from openai import OpenAI
+  <h2>What a .epi is</h2>
+  <p>Envelope-v2 polyglot: valid HTML + ZIP payload. Contains <code>manifest.json</code>, hash-chained <code>steps.jsonl</code>, environment, optional analysis, embedded viewer. Change one byte and the signature fails.</p>
 
-client = wrap_openai(OpenAI())
-
-with record("agent-decision.epi"):
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": "Assess this insurance claim"}]
-    )
-    # Every API call, tool invocation, and decision is captured</code></pre>
-  <p>Three lines of Python. EPI silently intercepts every LLM API call, tool invocation, guardrail check, and decision point. No code changes to your existing workflow.</p>
-
-  <h3>What gets captured</h3>
+  <h2>Verify modes</h2>
   <ul>
-    <li><strong>LLM requests &amp; responses</strong> — full messages, model, tokens, timestamps</li>
-    <li><strong>Tool calls</strong> — function name, arguments, return values</li>
-    <li><strong>Guardrail evaluations</strong> — each check result, which passed/failed</li>
-    <li><strong>Human approvals</strong> — who approved, when, with what justification</li>
-    <li><strong>System context</strong> — Python version, packages, environment snapshot</li>
-    <li><strong>Custom steps</strong> — <code>epi.log_step()</code> for any arbitrary event</li>
+    <li><strong>Offline CLI</strong> — <code>epi verify file.epi</code> · no network required for core checks.</li>
+    <li><strong>Private browser</strong> — file stays in the tab · <a href="/verify/" style="color:var(--accent)">/verify/</a></li>
+    <li><strong>Full report</strong> — upload to EPI servers · plan quota · deeper hosted report.</li>
   </ul>
 
-  <h2>3. Seal — Cryptographic signing</h2>
-  <p>When the <code>with record():</code> block exits, EPI seals the evidence file:</p>
-  <ol>
-    <li><strong>Hash chain</strong> — every step is SHA-256 hashed, each linking to the previous. Breaking the chain is detectable.</li>
-    <li><strong>Manifest</strong> — a JSON manifest lists every embedded file with its hash, the workflow identity, and metadata.</li>
-    <li><strong>Ed25519 signature</strong> — the manifest is signed with your private key. Changing any byte invalidates the signature.</li>
-    <li><strong>Polyglot container</strong> — the .epi file is simultaneously a valid ZIP archive and a valid HTML page. Open it in any browser.</li>
-  </ol>
-
-  <h2>4. Verify — 5 cryptographic checks</h2>
-  <pre><code>epi verify agent-decision.epi</code></pre>
-<p>All checks run locally, offline:</p>
-  <ol>
-    <li><strong>Structure</strong> — is the .epi file a valid polyglot container?</li>
-    <li><strong>Manifest</strong> — does the manifest parse and include required fields?</li>
-    <li><strong>Integrity</strong> — do all embedded files match their SHA-256 hashes?</li>
-    <li><strong>Hash chain</strong> — is the step timeline chain intact (no insertion, deletion, reordering)?</li>
-    <li><strong>Signature</strong> — does the Ed25519 signature validate against the signer's public key?</li>
-  </ol>
-  <p>Integrity + signature can pass while identity stays <strong>UNKNOWN</strong> (trust level <strong>LOW</strong>, policy <strong>WARN</strong>) until you trust the sealer key. <strong>HIGH</strong> means known identity in your trust store — not the default first run.</p>
-
-  <h2>5. View — Open in any browser</h2>
-  <p>Because .epi files are valid HTML, you can open them in any web browser. The built-in viewer shows:</p>
+  <h2>See also on this site</h2>
   <ul>
-    <li>Step-by-step replay of every agent action</li>
-    <li>Full message exchange between your agent and the LLM</li>
-    <li>Decision tree visualization</li>
-    <li>Guardrail and policy check results</li>
-    <li>Cryptographic verification status</li>
-    <li>Signer identity from the trust registry</li>
+    <li><a href="/trust" style="color:var(--signal)">Trust model</a> — seal · identity · policy · SCITT notes</li>
+    <li><a href="/integrations" style="color:var(--signal)">Integrations</a> — OpenAI, LangChain, pytest, …</li>
+    <li><a href="/use-cases" style="color:var(--signal)">Use cases</a> — where agent decisions need a file</li>
   </ul>
 
-  <h2>6. Share — Hosted links and SCITT</h2>
-  <pre><code>epi share agent-decision.epi</code></pre>
-  <p>Generate a hosted share link that reviewers can open in their browser. Or use SCITT (Supply Chain Integrity, Transparency, and Trust) to register a transparency receipt — cryptographic proof that the evidence existed at a specific point in time.</p>
-
-  <h2>Framework Integrations</h2>
-  <p>EPI works with all major AI agent frameworks through drop-in wrappers:</p>
+  <h2>Depth (GitHub)</h2>
   <ul>
-    <li><strong>OpenAI</strong> — <code>wrap_openai()</code></li>
-    <li><strong>Anthropic</strong> — <code>wrap_anthropic()</code></li>
-    <li><strong>Google Gemini</strong> — <code>wrap_gemini()</code></li>
-    <li><strong>LangChain</strong> — callback handler</li>
-    <li><strong>LangGraph</strong> — checkpoint integration</li>
-    <li><strong>LiteLLM</strong> — callback handler</li>
-    <li><strong>OpenTelemetry</strong> — span exporter</li>
-    <li><strong>Guardrails AI</strong> — instrumentor</li>
-    <li><strong>AGT (Agent Trust &amp; Governance)</strong> — exporter</li>
+    <li><a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/COMPLETE-PRODUCT-GUIDE.md" style="color:var(--signal)">Complete product guide</a></li>
+    <li><a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/POLICY-AND-FAULT-ANALYZER.md" style="color:var(--signal)">Policy &amp; fault analyzer</a></li>
+    <li><a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/KNOWN_LIMITATIONS.md" style="color:var(--signal)">Known limitations</a></li>
+    <li><a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/PILOT.md" style="color:var(--signal)">Pilot guide</a></li>
   </ul>
 
-  <h2>Deployment Options</h2>
-  <ul>
-    <li><strong>Local CLI</strong> — everything runs on your machine. No network needed.</li>
-    <li><strong>CI/CD</strong> — GitHub Actions integration for automated verification gates</li>
-    <li><strong>Pytest</strong> — <code>pytest --epi --epi-on-pass</code> captures test runs as evidence</li>
-    <li><strong>Hosted Verification</strong> — upload .epi files for AIUC-1 compliance scoring (Pro/Enterprise plans)</li>
-    <li><strong>Hosted SCITT</strong> — remote transparency anchoring with cryptographic receipts (Enterprise plan)</li>
-  </ul>
-
-  <h2>Security Model</h2>
-  <ul>
-    <li><strong>No cloud dependency</strong> — recording and verification work entirely offline</li>
-    <li><strong>No data leaves your machine</strong> — unless you explicitly use hosted services</li>
-    <li><strong>Private keys stay local</strong> — signing happens on your machine, not in the cloud</li>
-    <li><strong>Self-verifying files</strong> — .epi files contain everything needed for offline verification</li>
-    <li><strong>Redaction built-in</strong> — API keys, secrets, and sensitive data are automatically redacted before storage</li>
-  </ul>
-
-</main>
-<footer style="text-align:center;padding:60px 24px;border-top:1px solid var(--border);margin-top:80px">
-  <p style="color:var(--ink-muted);font-size:.85rem;margin:0">
-    &copy; 2026 EPI Labs &middot;
-    <a href="/how-it-works" style="color:var(--accent)">Docs</a> &middot;
-    <a href="/verify/" style="color:var(--accent)">Verify</a> &middot;
-    <a href="/pricing" style="color:var(--accent)">Pricing</a> &middot;
-    <a href="/enterprise" style="color:var(--accent)">Enterprise</a> &middot;<a href="https://github.com/mohdibrahimaiml/epi-recorder" style="color:var(--accent)">GitHub</a> &middot;
-    <a href="https://pypi.org/project/epi-recorder/" style="color:var(--accent)">PyPI</a> &middot;
-    <a href="/terms" style="color:var(--accent)">Terms</a> &middot;
-    <a href="/privacy" style="color:var(--accent)">Privacy</a> &middot;
-    <a href="mailto:mohdibrahim@epilabs.org" style="color:var(--accent)">Contact</a>
+  <p style="margin-top:40px">
+    <a class="btn btn-primary" href="/#proof" style="display:inline-block;padding:12px 20px;border-radius:10px;background:var(--accent);color:#04120C;font-weight:600;text-decoration:none">Try on home</a>
+    <a href="/verify/" style="margin-left:12px;color:var(--accent);font-weight:600">Open verify tool →</a>
   </p>
+</main>
+
+<footer>
+  <div class="container"><div class="footer-inner">
+    <div class="footer-left">
+      <img src="assets/logo.png" alt="EPI Labs" class="footer-logo">
+      <span class="footer-copy">&copy; 2026 EPI LABS. MIT License.</span>
+    </div>
+    <ul class="footer-links">
+      <li><a href="/verify/">Verify</a></li>
+      <li><a href="/pricing">Pricing</a></li>
+      <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
+      <li><a href="mailto:mohdibrahim@epilabs.org">Contact</a></li>
+    </ul>
+  </div></div>
 </footer>
-<script src="js/theme.js"></script><script src="/js/nav.js"></script><script src="/js/auth-ui.js"></script>
+<script src="js/auth-ui.js"></script>
+<script>
+(function(){
+  document.documentElement.setAttribute('data-theme','dark');
+  var mb=document.getElementById('mobBtn'),mm=document.getElementById('mobMenu');
+  if(mb&&mm){mb.addEventListener('click',function(){mm.style.display=mm.style.display==='none'||!mm.style.display?'block':'none';});}
+})();
+</script>
 </body>
 </html>

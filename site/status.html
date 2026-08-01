@@ -6,7 +6,8 @@
 <title>EPI Labs — Status</title>
 <meta name="description" content="EPI Labs hosted service status. Verify API, SCITT service, and account system uptime.">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
-<link rel="stylesheet" href="css/epi.css?v=33">
+<link rel="stylesheet" href="css/epi.css?v=26">
+<link rel="stylesheet" href="css/epi-v2.css?v=4">
 <style>
 .status-card{max-width:640px;margin:0 auto;background:var(--bg-card);border-radius:16px;border:1px solid var(--border-str);padding:36px}
 .status-indicator{width:14px;height:14px;border-radius:50%;display:inline-block;margin-right:8px;animation:pulse 2s infinite}
@@ -23,19 +24,30 @@
 .infra-note strong{color:var(--ink)}
 </style>
 </head>
-<body>
+<body class="epi-instrument" data-theme="dark">
 <nav id="nav">
   <div class="nav-inner">
-    <a href="/" class="nav-logo"><img src="/assets/logo.png" alt="EPI Labs"></a>
+    <a href="/" class="nav-logo"><img src="assets/logo.png" alt="EPI Labs"></a>
     <ul class="nav-links" id="navLinks">
       <li><a href="/verify/">Verify</a></li>
+      <li><a href="/how-it-works">Docs</a></li>
       <li><a href="/pricing">Pricing</a></li>
-      <li><a href="/status">Status</a></li>
+      <li><a href="/enterprise">Enterprise</a></li>
+      <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
       <li id="nav-auth-slot"></li>
+      <li><a href="/account" class="nav-link-cta">Sign in</a></li>
     </ul>
+    <button type="button" class="nav-mob" id="mobBtn" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
   </div>
 </nav>
-
+<div class="mob-menu" id="mobMenu" style="display:none">
+  <a href="/verify/">Verify</a>
+  <a href="/how-it-works">Docs</a>
+  <a href="/pricing">Pricing</a>
+  <a href="/enterprise">Enterprise</a>
+  <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
+  <a href="/account">Sign in</a>
+</div>
 <main style="padding-top:120px">
 
 <section style="text-align:center;padding:40px 24px 24px">
@@ -91,7 +103,6 @@
   </p>
 </footer>
 
-<script src="/js/auth-ui.js"></script>
 <script>
 (function(){
   var API = (function(){
@@ -136,5 +147,30 @@
   }, 60000);
 })();
 </script>
+
+<footer>
+  <div class="container"><div class="footer-inner">
+    <div class="footer-left">
+      <img src="assets/logo.png" alt="EPI Labs" class="footer-logo">
+      <span class="footer-copy">&copy; 2026 EPI LABS. MIT License.</span>
+    </div>
+    <ul class="footer-links">
+      <li><a href="/verify/">Verify</a></li>
+      <li><a href="/pricing">Pricing</a></li>
+      <li><a href="/enterprise">Enterprise</a></li>
+      <li><a href="/how-it-works">Docs</a></li>
+      <li><a href="/integrations">Integrations</a></li>
+      <li><a href="/trust">Trust</a></li>
+      <li><a href="/use-cases">Use cases</a></li>
+      <li><a href="/status">Status</a></li>
+      <li><a href="/terms">Terms</a></li>
+      <li><a href="/privacy">Privacy</a></li>
+      <li><a href="mailto:mohdibrahim@epilabs.org">Contact</a></li>
+    </ul>
+  </div></div>
+</footer>
+<script src="js/instrument-nav.js"></script>
+<script src="js/auth-ui.js"></script>
+
 </body>
 </html>

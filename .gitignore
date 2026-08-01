@@ -157,6 +157,10 @@ v2.8.5.ipynb
 !pyproject.toml
 *.html
 !docs/index.html
+!website/*.html
+!website/**/*.html
+!site/*.html
+!site/**/*.html
 !epi_viewer_static/*.html
 !web_viewer/*.html
 !verify_portal/static/*.html
