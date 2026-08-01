@@ -250,12 +250,12 @@ async def scitt_register(request: Request) -> Response:
             from verify_portal.tier_gating import PLAN_RANK
 
             plan = effective_plan(request)
-            if PLAN_RANK.get(plan, 0) < PLAN_RANK.get("pro", 1):
+            if PLAN_RANK.get(plan, 0) < PLAN_RANK.get("hosted", 1):
                 raise HTTPException(
                     status_code=402,
                     detail=(
-                        "SCITT remote anchoring requires a Pro plan or higher "
-                        "(sign in or send X-API-Key from a Pro account). Upgrade at /pricing."
+                        "SCITT remote anchoring requires a Hosted plan or higher "
+                        "(sign in or send X-API-Key from a Hosted account). Upgrade at /pricing."
                     ),
                 )
         except HTTPException:

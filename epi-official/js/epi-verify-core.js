@@ -73,6 +73,10 @@
       var view = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
       var payloadLength = view.getUint32(8, true) + view.getUint32(12, true) * 4294967296;
 
+      // Scan for the ZIP payload sentinel. The marker string is split-
+      // concatenated in Python source so it never exists as a contiguous
+      // byte sequence in the source code, eliminating collision risk with
+      // inlined content. Handles artifacts with or without viewer HTML.
       var markerBytes = new TextEncoder().encode(EPI_ZIP_MARKER);
       var zipStart = HEADER_SIZE;
       var scanEnd = Math.min(u8.length, HEADER_SIZE + 4 * 1024 * 1024);
@@ -86,6 +90,8 @@
           break;
         }
       }
+      // If no viewer HTML exists, paylod starts at header boundary
+      // (older/migrated artifacts)
 
       if (zipStart + payloadLength > u8.length) {
         throw new Error('EPI envelope payload truncated');
@@ -224,9 +230,7 @@
     } else if (sigResult.valid === true) {
       trust_level = 'LOW';
       identity = 'UNKNOWN';
-      message =
-        'SEAL OK — signature valid. Identity is not pinned in the browser (normal). ' +
-        'Optional on a PC: epi keys trust + epi verify for a named sealer.';
+      message = 'Valid signature; identity unknown in browser (use epi keys trust + epi verify for HIGH)';
     } else if (!manifest.signature) {
       trust_level = 'MEDIUM';
       identity = 'NONE';
@@ -236,7 +240,6 @@
       message = sigResult.reason || 'Signature check incomplete in this browser';
     }
 
-    var pk = (manifest.public_key && String(manifest.public_key)) || '';
     return {
       structure: true,
       manifest: true,
@@ -248,8 +251,7 @@
       identity: identity,
       message: message,
       mismatches: mismatches,
-      signer: manifest.signature ? String(manifest.signature).split(':')[1] : null,
-      publicKeyFingerprint: pk ? pk.slice(0, 32) : null
+      signer: manifest.signature ? String(manifest.signature).split(':')[1] : null
     };
   }
 

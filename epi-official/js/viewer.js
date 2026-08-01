@@ -147,10 +147,9 @@ async function verifyEpiFile(file) {
             filesChecked++;
         }
 
-        // 5. Signature Check (Non-blocking for viewer, merely informative)
-        const signatureResult = checkSignatureFormat(manifest.signature);
-        // We do NOT return success:false here anymore. We allow viewing unsigned files.
-        // The displayVerifiedEvidence function will handle the UI status.
+        // 5. Real Ed25519 signature verification (Web Crypto; honest null if unsupported)
+        const signatureResult = await verifyManifestSignatureEd25519(manifest);
+        // Viewing unsigned / invalid-sig files is still allowed; UI shows honesty.
 
         // 6. Extract Viewer
         let viewerHtml = null;
@@ -183,6 +182,96 @@ async function computeSHA256(buffer) {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+function hexToBytesViewer(hex) {
+    if (typeof hex !== 'string' || hex.length % 2 !== 0) throw new Error('Invalid hex');
+    const bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < hex.length; i += 2) {
+        bytes[i / 2] = parseInt(hex.slice(i, i + 2), 16);
+    }
+    return bytes;
+}
+
+function base64ToBytesViewer(value) {
+    const binary = atob(String(value || '').replace(/\s+/g, ''));
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+}
+
+function decodeSigViewer(value) {
+    try {
+        return hexToBytesViewer(value);
+    } catch (_e) {
+        return base64ToBytesViewer(value);
+    }
+}
+
+function normalizeDatetimeViewer(value) {
+    if (typeof value !== 'string') return value;
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) return value;
+    let normalized = value.replace(/\.\d+/, '');
+    if (!normalized.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(normalized)) normalized += 'Z';
+    return normalized;
+}
+
+function canonicalJsonViewer(value) {
+    if (value === null) return 'null';
+    if (typeof value === 'string') return JSON.stringify(normalizeDatetimeViewer(value));
+    if (typeof value !== 'object') return JSON.stringify(value);
+    if (Array.isArray(value)) return '[' + value.map(canonicalJsonViewer).join(',') + ']';
+    const keys = Object.keys(value).sort();
+    return '{' + keys.map(function (k) {
+        return JSON.stringify(k) + ':' + canonicalJsonViewer(value[k]);
+    }).join(',') + '}';
+}
+
+/**
+ * Real Ed25519 verify over canonical JSON (matches epi-verify-core / CLI).
+ * Returns valid: true | false | null (null = browser cannot verify).
+ */
+async function verifyManifestSignatureEd25519(manifest) {
+    if (!manifest || !manifest.signature) {
+        return { valid: false, error: 'No signature present', level: 'UNSIGNED', reason: 'No signature present' };
+    }
+    const parts = String(manifest.signature).split(':');
+    if (parts.length !== 3 || parts[0] !== 'ed25519') {
+        return { valid: false, error: 'Invalid signature format', level: 'INVALID', reason: 'Invalid signature format' };
+    }
+    if (!manifest.public_key) {
+        return { valid: false, error: 'Missing public_key', level: 'INVALID', reason: 'Missing public_key' };
+    }
+    try {
+        const copy = JSON.parse(JSON.stringify(manifest));
+        delete copy.signature;
+        const msg = new TextEncoder().encode(canonicalJsonViewer(copy));
+        const hashBuf = await crypto.subtle.digest('SHA-256', msg);
+        const hashBytes = new Uint8Array(hashBuf);
+        const pubBytes = hexToBytesViewer(manifest.public_key);
+        const sigBytes = decodeSigViewer(parts[2]);
+        const key = await crypto.subtle.importKey('raw', pubBytes, { name: 'Ed25519' }, false, ['verify']);
+        const ok = await crypto.subtle.verify({ name: 'Ed25519' }, key, sigBytes, hashBytes);
+        return {
+            valid: ok,
+            algorithm: 'ed25519',
+            keyName: parts[1],
+            level: ok ? 'VERIFIED' : 'INVALID',
+            reason: ok ? 'Ed25519 valid' : 'Signature mismatch',
+            error: ok ? null : 'Signature mismatch',
+        };
+    } catch (e) {
+        // Web Crypto Ed25519 unavailable (older Safari, etc.) — honest null, not fake PASS
+        return {
+            valid: null,
+            algorithm: 'ed25519',
+            keyName: parts[1],
+            level: 'UNVERIFIED',
+            reason: e && e.message ? e.message : 'Browser cannot verify Ed25519',
+            error: 'Browser Ed25519 limited — use epi verify for authoritative check',
+        };
+    }
+}
+
+/** @deprecated format-only check; prefer verifyManifestSignatureEd25519 */
 function checkSignatureFormat(signature) {
     if (!signature) {
         return { valid: false, error: 'No signature present', level: 'UNSIGNED' };
@@ -192,7 +281,7 @@ function checkSignatureFormat(signature) {
 
     if (parts[0] !== 'ed25519') return { valid: false, error: `Unsupported algorithm: ${parts[0]}` };
 
-    return { valid: true, algorithm: parts[0], keyName: parts[1], level: 'SIGNED' };
+    return { valid: null, algorithm: parts[0], keyName: parts[1], level: 'FORMAT_ONLY', error: 'Format only — use verifyManifestSignatureEd25519' };
 }
 
 function updateVerificationStep(stepId, status) {
@@ -235,17 +324,27 @@ function displayVerifiedEvidence(result) {
         statusText.textContent = 'TAMPERED EVIDENCE';
         banner.style.borderBottomColor = 'var(--color-error)';
         statusIndicator.style.color = 'var(--color-error)';
-    } else if (sig.valid) {
-        // Signed & Format Valid
+    } else if (sig.valid === true) {
+        // Cryptographically verified Ed25519
         statusIndicator.classList.add('verified');
         statusIcon.textContent = 'OK';
-        statusText.textContent = 'SIGNED EVIDENCE';
+        statusText.textContent = 'VERIFIED EVIDENCE';
         banner.style.borderBottomColor = 'var(--color-verified)';
-    } else if (sig.level === 'UNSIGNED') {
-        // Unsigned
-        statusIndicator.classList.add('unsigned'); // Need to ensure css has this or defaults
+    } else if (sig.valid === false && sig.level === 'UNSIGNED') {
+        statusIndicator.classList.add('unsigned');
         statusIcon.textContent = 'WARN';
         statusText.textContent = 'UNSIGNED EVIDENCE';
+        banner.style.borderBottomColor = 'var(--color-text-secondary)';
+    } else if (sig.valid === false) {
+        statusIndicator.classList.add('error');
+        statusIcon.textContent = '!';
+        statusText.textContent = 'INVALID SIGNATURE';
+        banner.style.borderBottomColor = 'var(--color-error)';
+        statusIndicator.style.color = 'var(--color-error)';
+    } else if (sig.valid === null) {
+        statusIndicator.classList.add('unsigned');
+        statusIcon.textContent = '?';
+        statusText.textContent = 'SIGNATURE NOT VERIFIED IN BROWSER';
         banner.style.borderBottomColor = 'var(--color-text-secondary)';
         statusIndicator.style.color = 'var(--color-text-secondary)';
     } else {
@@ -367,9 +466,12 @@ function renderCryptoDetails(result) {
 
     txt += `[ SIGNATURE ]\n`;
     if (m.signature) {
+        const sig = result.verificationDetails.signature;
         txt += `Algorithm: Ed25519\n`;
         txt += `Raw Signature: ${m.signature}\n`;
-        txt += `Status: Format Valid (Key verification not implemented in browser)\n`;
+        if (sig.valid === true) txt += `Status: VALID (Ed25519 verified in browser)\n`;
+        else if (sig.valid === false) txt += `Status: INVALID (${sig.reason || sig.error || 'failed'})\n`;
+        else txt += `Status: NOT VERIFIED (${sig.reason || 'browser Ed25519 limited — use epi verify'})\n`;
     } else {
         txt += `Status: UNSIGNED\n`;
     }
@@ -437,7 +539,9 @@ function exportVerificationReport() {
     lines.push('-- SIGNATURE -------------------------------------------------');
     if (m.signature) {
         const parts = m.signature.split(':');
-        lines.push(`Status           : ${sig.valid ? 'FORMAT VALID OK' : 'INVALID X'}`);
+        const statusLabel = sig.valid === true ? 'VALID (Ed25519)' : (sig.valid === false ? 'INVALID' : 'NOT VERIFIED IN BROWSER');
+        lines.push(`Status           : ${statusLabel}`);
+        if (sig.reason || sig.error) lines.push(`Detail           : ${sig.reason || sig.error}`);
         lines.push(`Algorithm        : ${parts[0] || '--'}`);
         lines.push(`Key Name         : ${parts[1] || '--'}`);
         lines.push(`Raw Signature    : ${m.signature}`);
@@ -449,8 +553,8 @@ function exportVerificationReport() {
     lines.push('');
     lines.push('-- NOTES -----------------------------------------------------');
     lines.push('Integrity verified client-side using Web Crypto API (SHA-256).');
-    lines.push('Signature format validated. Full Ed25519 key verification');
-    lines.push('requires the signer\'s public key from a trusted source.');
+    lines.push('Ed25519 verified in-browser when Web Crypto supports it (Chrome/Edge).');
+    lines.push('For authoritative offline verify: epi verify artifact.epi');
     lines.push('');
     lines.push('Generated by EPI LABS Evidence Viewer - epilabs.org/verify');
     lines.push('By Mohd Ibrahim Afridi');

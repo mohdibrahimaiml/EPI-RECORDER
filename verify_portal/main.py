@@ -473,13 +473,8 @@ async def aiuc1_page():
     """Serve the AIUC-1 trust domains page."""
     return _static_page("aiuc1", fallback_index=True)
 
-@app.post("/api/contact")
-async def contact(request: Request):
-    form = await request.form()
-    import logging
-    log = logging.getLogger("epi.contact")
-    log.info(f"Contact inquiry from " + str(form.get("name", "unknown")) + " at " + str(form.get("company", "unknown")) + " for tier " + str(form.get("tier", "unknown")))
-    return JSONResponse(content={"status": "ok", "message": "Thank you! We will respond within 1 business day."})
+# /api/contact is defined once below (JSON ContactSubmission + optional SMTP).
+# Do not add a second form-based handler — FastAPI would register both.
 @app.post("/api/keys")
 async def create_api_key(request: Request):
     """Create an API key for the authenticated user. Tier comes from their plan."""
@@ -626,7 +621,7 @@ async def verify(
             plan = auth_module.normalize_plan(get_user_plan(storage_dir, user["id"]))
             from verify_portal.tier_gating import PLAN_RANK
 
-            if PLAN_RANK.get(plan, 0) >= PLAN_RANK.get("pro", 1):
+            if PLAN_RANK.get(plan, 0) >= PLAN_RANK.get("hosted", 1):
                 limit = get_rate_limit(plan)
                 user_bucket = "user:" + hashlib.sha256(
                     str(user["id"]).encode()
@@ -1234,7 +1229,7 @@ async def auth_status():
     }
 
 
-# --- Contact Form Endpoint ---
+# --- Contact Form Endpoint (single route; accepts JSON or form) ---
 class ContactSubmission(BaseModel):
     name: str
     email: str
@@ -1242,24 +1237,59 @@ class ContactSubmission(BaseModel):
     tier: str = ""
     use_case: str = ""
 
+
 @app.post("/api/contact")
-async def submit_contact(submission: ContactSubmission):
-    """Receive contact form submissions and forward to admin."""
-    logger.info(f"CONTACT | {submission.tier} | {submission.name} ({submission.email}) from {submission.company}: {submission.use_case[:200]}")
-    
-    # Try email via SMTP if configured
+async def submit_contact(request: Request):
+    """Receive contact form submissions (JSON body or form fields) and forward to admin."""
+    content_type = (request.headers.get("content-type") or "").lower()
+    data: dict = {}
+    if "application/json" in content_type:
+        try:
+            body = await request.json()
+            if isinstance(body, dict):
+                data = body
+        except Exception:
+            data = {}
+    else:
+        try:
+            form = await request.form()
+            data = {k: str(form.get(k) or "") for k in ("name", "email", "company", "tier", "use_case")}
+        except Exception:
+            data = {}
+
+    name = str(data.get("name") or "").strip()
+    email = str(data.get("email") or "").strip()
+    if not name or not email:
+        raise HTTPException(status_code=422, detail="name and email are required")
+
+    submission = ContactSubmission(
+        name=name,
+        email=email,
+        company=str(data.get("company") or ""),
+        tier=str(data.get("tier") or ""),
+        use_case=str(data.get("use_case") or ""),
+    )
+    import logging as _logging
+    _logging.getLogger("epi.contact").info(
+        f"CONTACT | {submission.tier} | {submission.name} ({submission.email}) "
+        f"from {submission.company}: {submission.use_case[:200]}"
+    )
+
     smtp_host = os.getenv("SMTP_HOST", "")
     if smtp_host:
         _send_contact_email(submission)
-    
-    # Write to local log file
+
     log_dir = Path("contact_submissions")
     log_dir.mkdir(exist_ok=True)
-    ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    log_file = log_dir / f"{ts}_{submission.name.replace(' ', '_')}.json"
+    ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    safe = submission.name.replace(" ", "_")
+    log_file = log_dir / f"{ts}_{safe}.json"
     log_file.write_text(submission.model_dump_json(indent=2), encoding="utf-8")
-    
-    return {"status": "received", "message": "Thank you for your inquiry. We will respond within 1 business day."}
+
+    return {
+        "status": "ok",
+        "message": "Thank you for your inquiry. We will respond within 1 business day.",
+    }
 
 def _send_contact_email(submission: ContactSubmission):
     """Send contact form data via SMTP with SendGrid fallback."""
@@ -1301,9 +1331,13 @@ Use Case:
                 server.starttls()
                 server.login(os.getenv("SMTP_USER", ""), os.getenv("SMTP_PASS", ""))
                 server.send_message(msg)
-        logger.info("CONTACT email sent successfully")
+        import logging as _logging
+        _logging.getLogger("epi.contact").info("CONTACT email sent successfully")
     except Exception as e:
-        logger.warning(f"CONTACT email failed (submission saved to disk): {e}")
+        import logging as _logging
+        _logging.getLogger("epi.contact").warning(
+            f"CONTACT email failed (submission saved to disk): {e}"
+        )
 
 
 # --- EPI Share Endpoint ---
@@ -1313,8 +1347,10 @@ async def share_epi_file(
     expires_days: int = Query(30, ge=1, le=30),
 ):
     """Accept uploaded .epi files and return a hosted share link."""
-    import uuid, shutil
-    
+    import uuid
+    import json
+    import logging as _logging
+
     body = await request.body()
     filename = request.headers.get("X-EPI-Filename", "untitled.epi")
     
@@ -1332,20 +1368,19 @@ async def share_epi_file(
     share_path.write_bytes(body)
     
     # Save metadata
-    import json
     meta = {
         "share_id": share_id,
         "filename": filename,
         "size": len(body),
-        "created_at": datetime.utcnow().isoformat(),
-        "expires_at": (datetime.utcnow() + timedelta(days=expires_days)).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
+        "expires_at": (datetime.now(UTC) + timedelta(days=expires_days)).isoformat(),
         "downloads": 0,
     }
     meta_path = share_dir / f"{share_id}.json"
     meta_path.write_text(json.dumps(meta, indent=2))
     
     share_url = f"https://epilabs.org/cases/?id={share_id}"
-    logger.info(f"SHARE | {share_id} | {filename} | {len(body)} bytes")
+    _logging.getLogger("epi.share").info(f"SHARE | {share_id} | {filename} | {len(body)} bytes")
     
     return {
         "share_id": share_id,

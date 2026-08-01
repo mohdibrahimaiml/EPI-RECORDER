@@ -2320,19 +2320,22 @@ function renderIntegrity(caseData, context) {
     intEl.className = 'indicator failed';
   }
 
-  // Signature indicator — prefer live context, fall back to case payload sig
+  // Signature indicator — honest labels only (never "open via another tool")
   const sigEl = document.getElementById('ind-signature');
-  const resolvedSigValid = context != null ? context.signature_valid : sig.valid;
+  let resolvedSigValid;
+  if (context && typeof context.signature_valid === 'boolean') {
+    resolvedSigValid = context.signature_valid;
+  } else if (typeof sig.valid === 'boolean') {
+    resolvedSigValid = sig.valid;
+  } else {
+    resolvedSigValid = null;
+  }
   if (resolvedSigValid === true) {
     sigEl.textContent = 'VALID';
     sigEl.className = 'indicator verified';
-  } else if (resolvedSigValid === false && sig.valid === false && !context) {
-    // Baked viewer — can't verify without epi view
-    sigEl.textContent = 'OPEN VIA EPI VIEW TO VERIFY';
-    sigEl.className = 'indicator unverified';
-    sigEl.style.fontSize = '11px';
   } else if (resolvedSigValid === false) {
-    sigEl.textContent = 'INVALID';
+    const unsigned = !m.signature && !(sig && sig.present);
+    sigEl.textContent = unsigned ? 'UNSIGNED' : 'INVALID';
     sigEl.className = 'indicator failed';
   } else {
     sigEl.textContent = 'NOT VERIFIED';

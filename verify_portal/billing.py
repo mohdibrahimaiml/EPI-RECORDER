@@ -80,14 +80,16 @@ def _plan_from_price_id(price_id: str) -> str:
     if PADDLE_ADVANCED_PRICE_ID and price_id in (PADDLE_ADVANCED_PRICE_ID, PADDLE_ADVANCED_PRICE_ID_YEARLY):
         return "team"
     if PADDLE_PRO_PRICE_ID and price_id in (PADDLE_PRO_PRICE_ID, PADDLE_PRO_PRICE_ID_YEARLY):
-        return "pro"
+        return "hosted"  # public SKU alias; normalize_plan also maps pro→hosted
     # Fallback: name heuristics
     low = price_id.lower()
     if "enterprise" in low:
         return "enterprise"
     if "team" in low or "advanced" in low:
         return "team"
-    return "pro"
+    if "hosted" in low or "pro" in low or "starter" in low:
+        return "hosted"
+    return "hosted"
 
 
 def _extract_price_id(event_data: dict) -> str:

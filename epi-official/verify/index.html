@@ -79,7 +79,7 @@
   <div class="section-label">Verify</div>
   <h1 style="font-size:1.9rem;color:var(--ink);margin:0 0 8px">Check a .epi file</h1>
   <p class="clarify">
-    Yes — <strong>this page always loads over the internet</strong> (like any website).
+    Yes ΓÇö <strong>this page always loads over the internet</strong> (like any website).
     That is <em>not</em> the choice. The only choice is:
     <strong>does your .epi file get uploaded to EPI, or not?</strong>
   </p>
@@ -96,14 +96,14 @@
       <span>Sends the file to EPI for a deeper report. Counts on Pro / Team / Enterprise if signed in.</span>
     </button>
   </div>
-  <p class="mode-hint" id="modeHint">Selected: <strong>Private check</strong> — page online, <strong>file stays here</strong> (not uploaded).</p>
+  <p class="mode-hint" id="modeHint">Selected: <strong>Private check</strong> ΓÇö page online, <strong>file stays here</strong> (not uploaded).</p>
 
-  <p id="engineStatus" class="engine-status">Loading checker…</p>
-  <div id="loading" class="loading">Checking file…</div>
+  <p id="engineStatus" class="engine-status">Loading checkerΓÇª</p>
+  <div id="loading" class="loading">Checking fileΓÇª</div>
 
   <div id="dropZone" class="drop-zone">
     <h2 id="dropTitle">Drop .epi file here</h2>
-    <p id="dropSub">or click to browse · file will not be uploaded</p>
+    <p id="dropSub">or click to browse ┬╖ file will not be uploaded</p>
     <input type="file" id="fileInput" accept=".epi,application/octet-stream" style="display:none">
   </div>
 
@@ -114,8 +114,8 @@
   </div>
   <p style="margin-top:28px;font-size:.88rem;color:var(--ink-muted);line-height:1.55">
     <strong>Truly offline</strong> (no website at all): install the CLI and run
-    <code>epi verify file.epi</code> on your PC. ·
-    <a href="/account" style="color:var(--accent)">Account</a> ·
+    <code>epi verify file.epi</code> on your PC. ┬╖
+    <a href="/account" style="color:var(--accent)">Account</a> ┬╖
     <a href="/enterprise" style="color:var(--accent)">Enterprise kit</a>
   </p>
 </main>
@@ -166,16 +166,16 @@
     modeDevice.setAttribute('aria-selected', m === 'device' ? 'true' : 'false');
     modeServer.setAttribute('aria-selected', m === 'server' ? 'true' : 'false');
     if (m === 'device') {
-      modeHint.innerHTML = 'Selected: <strong>Private check</strong> — website is online; <strong>your .epi is not uploaded</strong>. Checked only in this tab.';
+      modeHint.innerHTML = 'Selected: <strong>Private check</strong> ΓÇö website is online; <strong>your .epi is not uploaded</strong>. Checked only in this tab.';
       if (dropTitle) dropTitle.textContent = 'Drop .epi file here';
-      if (dropSub) dropSub.textContent = 'or click to browse · file will not be uploaded';
+      if (dropSub) dropSub.textContent = 'or click to browse ┬╖ file will not be uploaded';
       engineStatus.style.display = '';
       markEngine();
     } else {
-      modeHint.innerHTML = 'Selected: <strong>Full report</strong> — dropping a file will <strong>upload it to EPI</strong> for a deeper report. Sign in so it counts on your plan. <a href="/account" style="color:var(--accent)">Account</a>';
+      modeHint.innerHTML = 'Selected: <strong>Full report</strong> ΓÇö dropping a file will <strong>upload it to EPI</strong> for a deeper report. Sign in so it counts on your plan. <a href="/account" style="color:var(--accent)">Account</a>';
       if (dropTitle) dropTitle.textContent = 'Drop .epi to upload';
-      if (dropSub) dropSub.textContent = 'or click to browse · file will be sent to EPI servers';
-      engineStatus.textContent = 'Upload mode ready — the next file you drop is sent to EPI.';
+      if (dropSub) dropSub.textContent = 'or click to browse ┬╖ file will be sent to EPI servers';
+      engineStatus.textContent = 'Upload mode ready ΓÇö the next file you drop is sent to EPI.';
       engineStatus.className = 'engine-status ok';
     }
     try {
@@ -197,7 +197,7 @@
       engineStatus.className = 'engine-status ok';
       return true;
     }
-    engineStatus.textContent = 'Private checker still loading… hard-refresh (Ctrl+Shift+R) if this stays.';
+    engineStatus.textContent = 'Private checker still loadingΓÇª hard-refresh (Ctrl+Shift+R) if this stays.';
     engineStatus.className = 'engine-status bad';
     return false;
   }
@@ -232,7 +232,7 @@
     var row = document.createElement('div');
     row.className = 'check-row';
     var statusText = String(status || '').toUpperCase();
-    var noteHtml = note ? ' <span style="font-weight:400;color:var(--ink-muted)">— ' + note + '</span>' : '';
+    var noteHtml = note ? ' <span style="font-weight:400;color:var(--ink-muted)">ΓÇö ' + note + '</span>' : '';
     row.innerHTML = '<span class="label">' + label + noteHtml + '</span><span class="status ' + status + '">' + statusText + '</span>';
     checksEl.appendChild(row);
   }
@@ -241,7 +241,7 @@
     checksEl.innerHTML = '';
     resultBox.classList.add('visible');
     decisionBox.className = 'decision-box';
-    decisionBox.textContent = 'Checking…';
+    decisionBox.textContent = 'CheckingΓÇª';
     verifierHash.textContent = '';
   }
 
@@ -258,18 +258,18 @@
       addCheck('Manifest present', result.manifest ? 'pass' : 'fail');
       addCheck('File integrity (not tampered)', result.integrity ? 'pass' : 'fail');
       addCheck('Signature valid', result.signature === true ? 'pass' : (result.signature === false ? 'fail' : 'pending'));
-      addCheck('Company identity on this page', 'pending', 'not checked here — normal for device mode');
+      addCheck('Company identity on this page', 'pending', 'not checked here ΓÇö normal for device mode');
 
       var sealOk = !!(result.structure && result.integrity && result.signature === true);
       var sealBroken = !result.structure || !result.integrity || result.signature === false;
       if (sealBroken) {
-        decisionBox.textContent = 'SEAL FAIL — do not trust this copy';
+        decisionBox.textContent = 'SEAL FAIL ΓÇö do not trust this copy';
         decisionBox.className = 'decision-box fail';
       } else if (sealOk) {
-        decisionBox.textContent = 'SEAL OK — file intact (private check; not uploaded)';
+        decisionBox.textContent = 'SEAL OK ΓÇö file intact (private check; not uploaded)';
         decisionBox.className = 'decision-box pass';
       } else {
-        decisionBox.textContent = 'PARTIAL — incomplete or unsigned';
+        decisionBox.textContent = 'PARTIAL ΓÇö incomplete or unsigned';
         decisionBox.className = 'decision-box warn';
       }
       if (result.hash) verifierHash.textContent = 'File SHA-256: ' + result.hash;
@@ -323,14 +323,14 @@
       addCheck('Signature', facts.signature_valid === true ? 'pass' : (facts.signature_valid === false ? 'fail' : 'pending'));
       addCheck('Sequence / chain', (facts.sequence_ok && facts.chain_ok) ? 'pass' : 'fail');
       addCheck('Identity status', idn.status === 'KNOWN' ? 'pass' : 'pending', idn.status || 'UNKNOWN');
-      addCheck('File was uploaded', 'pass', 'yes — checked on EPI servers');
+      addCheck('File was uploaded', 'pass', 'yes ΓÇö checked on EPI servers');
 
       var ok = facts.integrity_ok && facts.signature_valid === true;
       if (ok) {
-        decisionBox.textContent = 'SEAL OK — full report (file was uploaded)' + (idn.status ? ' · identity: ' + idn.status : '');
+        decisionBox.textContent = 'SEAL OK ΓÇö full report (file was uploaded)' + (idn.status ? ' ┬╖ identity: ' + idn.status : '');
         decisionBox.className = 'decision-box pass';
       } else {
-        decisionBox.textContent = 'CHECK FAILED — see details above';
+        decisionBox.textContent = 'CHECK FAILED ΓÇö see details above';
         decisionBox.className = 'decision-box fail';
       }
       var tl = data.trust_level || data.decision && data.decision.status;
