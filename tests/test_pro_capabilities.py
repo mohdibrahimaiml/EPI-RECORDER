@@ -98,7 +98,9 @@ def test_scitt_register_free_blocked(portal: TestClient, tmp_path: Path) -> None
         headers={"Content-Type": "application/cose"},
     )
     assert r.status_code == 402
-    assert "Pro" in r.json()["detail"]
+    # Public paid self-serve plan is Hosted (pro/starter normalize to hosted)
+    detail = r.json()["detail"]
+    assert "Hosted" in detail or "Pro" in detail
 
 
 def test_scitt_register_pro_api_key_allowed(portal: TestClient, tmp_path: Path) -> None:
