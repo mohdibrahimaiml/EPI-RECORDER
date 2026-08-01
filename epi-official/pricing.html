@@ -319,17 +319,33 @@
   };
 
   window.openCheckout = function() {
-    if (!cfg || !cfg.client_token) { window.location.href = "/account"; return; }
+    if (!cfg || !cfg.client_token) { window.location.href = "/account?next=" + encodeURIComponent("/pricing"); return; }
     var priceId = priceIdFor();
-    if (!priceId) { window.location.href = "/account"; return; }
-    if (typeof Paddle === "undefined") { window.location.href = "/account"; return; }
+    if (!priceId) { window.location.href = "/account?next=" + encodeURIComponent("/pricing"); return; }
+    if (typeof Paddle === "undefined") { window.location.href = "/account?next=" + encodeURIComponent("/pricing"); return; }
     var user = null;
+    var token = "";
     try { var raw = localStorage.getItem("epi_user"); if (raw) user = JSON.parse(raw); } catch (e) {}
+    try { token = localStorage.getItem("epi_token") || ""; } catch (e2) {}
+    // Require sign-in so webhook can attach Hosted to this GitHub user
+    if (!token || !user || !user.id) {
+      window.location.href = "/account?next=" + encodeURIComponent("/pricing") + "&reason=checkout";
+      return;
+    }
     var opts = {
       items: [{ priceId: priceId, quantity: 1 }],
-      settings: { displayMode: "overlay", variant: "one-page", successUrl: window.location.origin + "/welcome" }
+      settings: {
+        displayMode: "overlay",
+        variant: "one-page",
+        successUrl: window.location.origin + "/account?checkout=success"
+      },
+      customData: {
+        user_id: String(user.id),
+        email: user.email || "",
+        github_login: user.login || ""
+      }
     };
-    if (user && user.email) opts.customer = { email: user.email };
+    if (user.email) opts.customer = { email: user.email };
     Paddle.Checkout.open(opts);
   };
 

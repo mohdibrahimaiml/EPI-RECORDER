@@ -85,6 +85,7 @@
       <p style="color:var(--ink-muted);margin-bottom:28px;font-size:.88rem">We only request your public profile and email.</p>
       <button class="signin-btn" id="btn-signin" type="button" onclick="startLogin()">Continue with GitHub</button>
       <p class="signin-footer">Same button for sign in and sign up · Free offline CLI forever</p>
+      <p id="signin-hint" style="display:none;margin-top:14px;padding:12px 16px;border-radius:10px;background:var(--accent-glow);border:1px solid var(--accent-line);color:var(--ink-soft);font-size:.88rem;max-width:28rem;margin-left:auto;margin-right:auto;line-height:1.5"></p>
       <p id="signin-status" style="display:none;margin-top:16px;color:var(--ink-dim);font-size:.85rem"></p>
       <p style="margin-top:28px;font-size:.85rem;color:var(--ink-muted)">
         <a href="/pricing" style="color:var(--accent);font-weight:600">Pricing</a>
@@ -101,6 +102,7 @@
   <div id="state-account" style="display:none">
     <h1 id="acct-name">Your Account</h1>
     <p class="subtitle">Manage your subscription, API keys, and settings.</p>
+    <div id="checkout-banner" style="display:none;margin:0 0 20px;padding:14px 18px;border-radius:12px;background:var(--verified-bg);border:1px solid var(--accent-line);color:var(--ink);font-size:.92rem;line-height:1.5"></div>
 
     <div class="acct-card">
       <h3>Plan</h3>
@@ -214,10 +216,22 @@ var ERROR_MSGS = {
   no_github_token: 'GitHub did not return a token. Please try again.'
 };
 
-// Capture OAuth return: #token=...&user=...  or ?error=
+// Capture OAuth return: #token=...&user=...  or ?error= / ?next= / ?checkout=
 (function captureOAuthReturn() {
   var params = new URLSearchParams(window.location.search);
   var err = params.get('error');
+  var next = params.get('next') || '';
+  var reason = params.get('reason') || '';
+  var checkout = params.get('checkout') || '';
+  if (next && next.charAt(0) === '/' && next.indexOf('//') < 0) {
+    try { sessionStorage.setItem('epi_auth_next', next); } catch (e) {}
+  }
+  if (reason === 'checkout') {
+    window.__epi_checkout_hint = 'Sign in with GitHub first so your Hosted subscription attaches to this account.';
+  }
+  if (checkout === 'success') {
+    window.__epi_checkout_success = true;
+  }
   if (err) {
     history.replaceState(null, '', '/account');
     window.__epi_oauth_error = ERROR_MSGS[err] || ('Sign-in error: ' + err);
@@ -238,6 +252,8 @@ var ERROR_MSGS = {
       }
     }
     history.replaceState(null, '', '/account');
+  } else if (checkout === 'success' || reason === 'checkout') {
+    // Keep query briefly for banners; clean path after loadAccount
   }
 })();
 
@@ -288,6 +304,27 @@ function renderAccount(user) {
   document.getElementById('acct-name').textContent = 'Hi, ' + (userData.login || 'there');
   document.getElementById('acct-email').textContent = userData.email || '';
   document.getElementById('acct-org').textContent = userData.org ? ('Organization: ' + userData.org) : '';
+  var banner = document.getElementById('checkout-banner');
+  if (banner && window.__epi_checkout_success) {
+    var pl = planLabel(userData.plan);
+    banner.style.display = 'block';
+    if (userData.plan === 'free') {
+      banner.textContent = 'Checkout finished. If you just subscribed, wait a few seconds and refresh — webhooks attach Hosted to this GitHub account.';
+    } else {
+      banner.textContent = 'Subscription active — plan: ' + pl + '. Thank you.';
+    }
+  }
+  // After OAuth from pricing checkout
+  try {
+    var next = sessionStorage.getItem('epi_auth_next');
+    if (next && window.__epi_just_logged_in) {
+      sessionStorage.removeItem('epi_auth_next');
+      if (next.indexOf('/pricing') === 0) {
+        window.location.href = next;
+        return;
+      }
+    }
+  } catch (e) {}
 }
 
 async function loadAccount() {
@@ -301,6 +338,11 @@ async function loadAccount() {
   if (!token) {
     showState('signin');
     updateNav(false);
+    var hint = document.getElementById('signin-hint');
+    if (hint && window.__epi_checkout_hint) {
+      hint.style.display = 'block';
+      hint.textContent = window.__epi_checkout_hint;
+    }
     return;
   }
 
