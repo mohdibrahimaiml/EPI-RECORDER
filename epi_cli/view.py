@@ -804,42 +804,22 @@ def export_html(
     else:
         out_path = Path(f"{resolved_path.stem}.html")
 
-    # Try to extract embedded viewer from polyglot envelope first
-    viewer_html = EPIContainer.extract_embedded_viewer(resolved_path)
-
-    if viewer_html is not None:
-        # Polyglot path: inject the inner ZIP payload bytes so the browser
-        # can load the original signed archive and only swap review.json.
-        import base64 as _b64, re as _re, tempfile as _temp, shutil as _shutil
-        _tmp = Path(_temp.mkdtemp())
-        try:
-            _payload = _tmp / "payload.zip"
-            EPIContainer.extract_inner_payload(resolved_path, _payload)
-            payload_b64 = _b64.b64encode(_payload.read_bytes()).decode("ascii")
-        finally:
-            _shutil.rmtree(_tmp, ignore_errors=True)
-        # Replace the archive_base64 null value with the real payload bytes.
-        # The baked HTML has "archive_base64": null — patch just that key.
-        viewer_html = viewer_html.replace(
-            '"archive_base64": null',
-            f'"archive_base64": "{payload_b64}"'
-        )
-
-    if viewer_html is None:
-        # Fallback: legacy format or no embedded viewer — generate fresh
-        console.print("[yellow][!] No embedded viewer found; generating fresh viewer...[/yellow]")
-        temp_dir = _make_temp_dir()
-        if temp_dir is None:
-            console.print("[red][X] Could not create temporary directory.[/red]")
-            raise typer.Exit(1)
-        try:
-            EPIContainer.unpack(resolved_path, temp_dir)
-            viewer_html = _create_decision_ops_viewer(temp_dir, resolved_path)
-        except Exception as e:
-            console.print(f"[red][X] Failed to generate viewer:[/red] {e}")
-            raise typer.Exit(1)
-        finally:
-            shutil.rmtree(temp_dir, ignore_errors=True)
+    # Always generate a *fresh* standalone viewer with current client crypto
+    # (verifyCaseInBrowser). Older polyglot-embedded viewers may still contain
+    # the "OPEN VIA EPI VIEW TO VERIFY" punt — that path is not acceptable for
+    # zero-install share delivery.
+    temp_dir = _make_temp_dir()
+    if temp_dir is None:
+        console.print("[red][X] Could not create temporary directory.[/red]")
+        raise typer.Exit(1)
+    try:
+        EPIContainer.unpack(resolved_path, temp_dir)
+        viewer_html = _create_decision_ops_viewer(temp_dir, resolved_path)
+    except Exception as e:
+        console.print(f"[red][X] Failed to generate viewer:[/red] {e}")
+        raise typer.Exit(1)
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
     # Inject a banner that tells the recipient this is a shared EPI case
     share_banner = (

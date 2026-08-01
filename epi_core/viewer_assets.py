@@ -86,6 +86,21 @@ def _validate_app_js(app_js: str | None) -> None:
             "FATAL: 'delete manifest.signature' found in app.js — "
             "this destroys cryptographic integrity during Sign & Seal"
         )
+
+    # Exact punt UI string (not comments that merely mention the bug by name)
+    if "sigEl.textContent = 'OPEN VIA EPI VIEW TO VERIFY'" in app_js or (
+        'sigEl.textContent = "OPEN VIA EPI VIEW TO VERIFY"' in app_js
+    ):
+        errors.append(
+            "FATAL: signature UI still assigns OPEN VIA EPI VIEW TO VERIFY — "
+            "standalone export-html must run real client-side signature verification"
+        )
+
+    if "function verifyCaseInBrowser" not in app_js and "async function verifyCaseInBrowser" not in app_js:
+        errors.append(
+            "FATAL: 'verifyCaseInBrowser' missing from app.js — "
+            "export-html / embedded viewers cannot prove signatures offline"
+        )
     
     # 3. Critical: new function must exist
     if "buildReviewedFromOriginal" not in app_js:
