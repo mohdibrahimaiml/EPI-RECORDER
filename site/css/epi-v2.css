@@ -1051,4 +1051,306 @@ body.v2-home #walkthrough {
     var(--bg);
   border-top: 1px solid var(--border);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   7-block instrument redesign — shared by body.v2-home
+   and body.epi-instrument (pricing / docs / enterprise shells)
+   ═══════════════════════════════════════════════════════════════ */
+
+body.epi-instrument {
+  --bg: #0B0D10;
+  --bg-alt: #0F1218;
+  --bg-card: #141820;
+  --bg-dark: #080A0D;
+  --bg-code: #0A0C10;
+  --ink: #F2F4F7;
+  --ink-soft: #C8CDD6;
+  --ink-muted: #8B93A1;
+  --ink-dim: #5C6573;
+  --accent: #3DDC97;
+  --accent-lt: #6EE7B0;
+  --accent-glow: rgba(61, 220, 151, 0.12);
+  --accent-line: rgba(61, 220, 151, 0.28);
+  --signal: #5B8CFF;
+  --signal-glow: rgba(91, 140, 255, 0.15);
+  --verified: #3DDC97;
+  --verified-bg: rgba(61, 220, 151, 0.1);
+  --warn: #E6B84D;
+  --warn-bg: rgba(230, 184, 77, 0.1);
+  --tamper: #FF6B6B;
+  --tamper-bg: rgba(255, 107, 107, 0.1);
+  --border: rgba(255, 255, 255, 0.06);
+  --border-str: rgba(255, 255, 255, 0.1);
+  --border-accent: rgba(61, 220, 151, 0.35);
+  --radius: 14px;
+  --radius-sm: 10px;
+  background: var(--bg);
+  color: var(--ink-soft);
+  min-height: 100vh;
+}
+body.epi-instrument #nav,
+body.v2-home #nav {
+  background: rgba(11, 13, 16, 0.72);
+  backdrop-filter: blur(16px) saturate(1.2);
+  border-bottom: 1px solid var(--border);
+}
+body.epi-instrument .nav-links a { color: rgba(242, 244, 247, 0.55); }
+body.epi-instrument .nav-links a:hover { color: var(--ink); }
+body.epi-instrument .nav-link-cta {
+  background: transparent !important;
+  color: var(--accent) !important;
+  border: 1px solid var(--accent-line) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 8px 16px !important;
+  font-weight: 600 !important;
+}
+body.epi-instrument .mob-menu {
+  background: rgba(11, 13, 16, 0.98);
+  top: 72px;
+}
+body.epi-instrument .mob-menu a {
+  color: var(--ink);
+  border-bottom-color: var(--border);
+}
+body.epi-instrument .page-main {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 120px 24px 80px;
+}
+body.epi-instrument .page-main h1 {
+  color: var(--ink);
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  margin: 0 0 12px;
+  letter-spacing: -0.03em;
+}
+body.epi-instrument .page-main h2 {
+  color: var(--ink);
+  font-size: 1.35rem;
+  margin: 48px 0 12px;
+}
+body.epi-instrument .page-main p,
+body.epi-instrument .page-main li {
+  color: var(--ink-soft);
+  line-height: 1.65;
+  font-size: 0.95rem;
+}
+body.epi-instrument .page-main code {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  background: var(--bg-dark);
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: #C8CDD5;
+}
+body.epi-instrument .page-main pre {
+  background: var(--bg-dark);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 22px;
+  overflow-x: auto;
+}
+body.epi-instrument .page-main pre code {
+  padding: 0;
+  background: transparent;
+}
+body.epi-instrument footer {
+  border-top: 1px solid var(--border);
+  background: #080A0D;
+  margin-top: 48px;
+}
+body.epi-instrument .footer-copy,
+body.epi-instrument .footer-links a { color: var(--ink-dim); }
+body.epi-instrument .footer-links a:hover { color: var(--accent); }
+
+/* Pricing cards on instrument pages */
+body.epi-instrument .pricing-card,
+body.epi-instrument .thesis-banner,
+body.epi-instrument .service-card,
+body.epi-instrument .coming-soon-card {
+  background: var(--bg-card);
+  border-color: var(--border-str);
+  color: var(--ink-soft);
+}
+body.epi-instrument .pricing-card h3,
+body.epi-instrument .pricing-card .price,
+body.epi-instrument .service-card h4,
+body.epi-instrument .faq-item h4 { color: var(--ink); }
+body.epi-instrument .pricing-card .price-sub,
+body.epi-instrument .pricing-card .features li,
+body.epi-instrument .faq-item p { color: var(--ink-soft); }
+body.epi-instrument .compare-table th {
+  background: var(--bg-alt);
+  color: var(--ink-muted);
+}
+body.epi-instrument .compare-table td {
+  color: var(--ink-soft);
+  border-bottom-color: var(--border);
+}
+body.epi-instrument .billing-toggle span { color: var(--ink-muted); }
+body.epi-instrument .billing-toggle span.active { color: var(--ink); }
+
+/* TruthTrio */
+.truth-trio {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.truth-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 20px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.truth-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+.truth-card--seal::before { background: var(--verified); }
+.truth-card--identity::before { background: var(--warn); }
+.truth-card--policy::before { background: var(--signal); }
+.truth-card .truth-kicker {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 10px;
+}
+.truth-card h3 {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  color: var(--ink);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.truth-card p {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--ink-muted);
+  line-height: 1.55;
+}
+.truth-card .truth-ex {
+  margin-top: 14px;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--ink-dim);
+  line-height: 1.45;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.truth-card--seal .truth-ex { color: var(--verified); }
+.truth-card--identity .truth-ex { color: var(--warn); }
+.truth-card--policy .truth-ex { color: var(--signal); }
+
+/* CommandStrip */
+.command-strip {
+  max-width: 900px;
+  margin: 0 auto;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-str);
+  border-radius: 16px;
+  padding: 8px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+.command-strip ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+.command-strip li {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.command-strip li:last-child { border-bottom: none; }
+.command-strip .n {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent);
+  opacity: 0.7;
+  padding-top: 4px;
+}
+.command-strip .cmd {
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  color: #D0D5DD;
+  margin: 0 0 4px;
+  word-break: break-all;
+}
+.command-strip .cmd span { color: var(--accent); }
+.command-strip .hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+  font-family: var(--sans);
+  line-height: 1.45;
+}
+.command-strip-foot {
+  text-align: center;
+  margin-top: 18px;
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+}
+.command-strip-foot a { color: var(--signal); font-weight: 600; }
+
+/* Proof stack: verify then video */
+.proof-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+body.v2-home #proof {
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  padding-top: clamp(64px, 9vw, 100px);
+  padding-bottom: clamp(48px, 7vw, 80px);
+}
+body.v2-home #truths {
+  background: var(--bg-alt);
+  border-top: 1px solid var(--border);
+  padding: clamp(64px, 9vw, 100px) 24px;
+}
+body.v2-home #loop {
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  padding: clamp(64px, 9vw, 100px) 24px;
+}
+body.v2-home #close {
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 100%, rgba(61, 220, 151, 0.08) 0%, transparent 60%),
+    var(--bg-alt);
+  border-top: 1px solid var(--border);
+  padding: clamp(64px, 9vw, 100px) 24px 80px;
+  text-align: center;
+}
+body.v2-home #close .section-desc { margin: 0 auto 28px; }
+
+/* Compact section headers on 7-block home */
+body.v2-home .block-head {
+  text-align: center;
+  margin-bottom: 36px;
+}
+body.v2-home .block-head .section-desc {
+  margin: 0 auto;
+  max-width: 36rem;
+}
+
+@media (max-width: 900px) {
+  .truth-trio { grid-template-columns: 1fr; }
+  .command-strip li { grid-template-columns: 36px 1fr; padding: 14px; }
+}
 body.v2-home::-webkit-scrollbar-thumb:hover { background: #3D4658; }
