@@ -1,7 +1,14 @@
 /**
- * Browser .epi verifier for epilabs.org/verify/
- * Classic script (no ES modules). Exposes window.verifyEPI(File|Blob).
- * Supports envelope-v2 (magic "<!--") and legacy ZIP.
+ * Browser .epi verifier for epilabs.org/verify/ and homepage drop-zone.
+ * Classic script (no ES modules). Exposes window.verifyEPI(File|Blob)
+ * and window.epiExtractZipBytes / window.epiDetectContainer.
+ *
+ * Supports:
+ *  - envelope-v2 polyglot (magic "<!--" + 128-byte header + optional HTML + ZIP)
+ *  - legacy ZIP .epi (starts with PK)
+ *  - UTF-8 BOM / small leading junk before magic
+ *  - ZIP payload located via EPI_ZIP_PAYLOAD_START marker (never via naive first-PK scan;
+ *    embedded JSZip source can contain a false PK\x03\x04 string)
  */
 (function (global) {
   'use strict';
@@ -14,6 +21,180 @@
       throw new Error('JSZip is required. Check that jszip.min.js loaded.');
     }
     return global.JSZip;
+  }
+
+  function toU8(input) {
+    if (!input) return new Uint8Array(0);
+    if (input instanceof Uint8Array) return input;
+    if (input instanceof ArrayBuffer) return new Uint8Array(input);
+    if (ArrayBuffer.isView(input)) {
+      return new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
+    }
+    return new Uint8Array(input);
+  }
+
+  function hexPreview(u8, n) {
+    n = Math.min(n || 16, u8.length);
+    var parts = [];
+    for (var i = 0; i < n; i++) parts.push(u8[i].toString(16).padStart(2, '0'));
+    return parts.join(' ');
+  }
+
+  function skipPreamble(u8) {
+    var i = 0;
+    // UTF-8 BOM
+    if (u8.length >= 3 && u8[0] === 0xef && u8[1] === 0xbb && u8[2] === 0xbf) i = 3;
+    // Leading CR/LF/TAB/SPACE only (never skip into binary header body)
+    while (i < u8.length && (u8[i] === 0x09 || u8[i] === 0x0a || u8[i] === 0x0d || u8[i] === 0x20)) i++;
+    return i;
+  }
+
+  function isEnvelopeMagicAt(u8, i) {
+    return (
+      i + 3 < u8.length &&
+      u8[i] === 0x3c && // <
+      u8[i + 1] === 0x21 && // !
+      u8[i + 2] === 0x2d && // -
+      u8[i + 3] === 0x2d // -
+    );
+  }
+
+  function isZipMagicAt(u8, i) {
+    // Local file header, empty archive, or spanning marker
+    return (
+      i + 1 < u8.length &&
+      u8[i] === 0x50 &&
+      u8[i + 1] === 0x4b &&
+      (i + 3 >= u8.length ||
+        u8[i + 2] === 0x03 ||
+        u8[i + 2] === 0x05 ||
+        u8[i + 2] === 0x07 ||
+        u8[i + 2] === 0x00)
+    );
+  }
+
+  function findBytes(u8, needle, from, to) {
+    from = from || 0;
+    to = to == null ? u8.length : to;
+    if (typeof needle === 'string') needle = new TextEncoder().encode(needle);
+    var end = Math.min(u8.length, to) - needle.length;
+    outer: for (var i = from; i <= end; i++) {
+      for (var j = 0; j < needle.length; j++) {
+        if (u8[i + j] !== needle[j]) continue outer;
+      }
+      return i;
+    }
+    return -1;
+  }
+
+  /**
+   * Detect container kind. Returns { format, offset } or null.
+   * format: 'envelope-v2' | 'legacy-zip'
+   */
+  function detectContainer(input) {
+    var u8 = toU8(input);
+    if (u8.length < 4) return null;
+
+    var pre = skipPreamble(u8);
+    if (isEnvelopeMagicAt(u8, pre)) return { format: 'envelope-v2', offset: pre };
+    if (isZipMagicAt(u8, pre)) return { format: 'legacy-zip', offset: pre };
+
+    // Tolerate small leading junk (email/gateway wrappers, extra BOMs)
+    var scanEnd = Math.min(u8.length - 4, pre + 512);
+    for (var i = pre; i <= scanEnd; i++) {
+      if (isEnvelopeMagicAt(u8, i)) return { format: 'envelope-v2', offset: i };
+      if (isZipMagicAt(u8, i)) return { format: 'legacy-zip', offset: i };
+    }
+
+    // Marker present ⇒ envelope even if leading bytes were mangled
+    var markerAt = findBytes(u8, EPI_ZIP_MARKER, 0, Math.min(u8.length, 8 * 1024 * 1024));
+    if (markerAt >= 0) return { format: 'envelope-v2', offset: Math.max(0, markerAt - HEADER_SIZE) };
+
+    return null;
+  }
+
+  function readPayloadLength(u8, headerOffset) {
+    var view = new DataView(u8.buffer, u8.byteOffset + headerOffset, Math.min(HEADER_SIZE, u8.length - headerOffset));
+    // uint64 LE at header offset + 8
+    var lo = view.getUint32(8, true);
+    var hi = view.getUint32(12, true);
+    return lo + hi * 4294967296;
+  }
+
+  function extractEnvelopeZip(u8, headerOffset) {
+    headerOffset = headerOffset || 0;
+    if (u8.length < headerOffset + HEADER_SIZE) {
+      throw new Error('EPI envelope header truncated');
+    }
+
+    var payloadLength = 0;
+    try {
+      payloadLength = readPayloadLength(u8, headerOffset);
+    } catch (_e) {
+      payloadLength = 0;
+    }
+
+    // Prefer the official payload sentinel (avoids false PK inside inlined JSZip).
+    var scanFrom = headerOffset + HEADER_SIZE;
+    var scanTo = Math.min(u8.length, scanFrom + 8 * 1024 * 1024);
+    var markerAt = findBytes(u8, EPI_ZIP_MARKER, scanFrom, scanTo);
+    var zipStart;
+    if (markerAt >= 0) {
+      zipStart = markerAt + EPI_ZIP_MARKER.length;
+    } else {
+      // No viewer shell — payload immediately after 128-byte header
+      zipStart = headerOffset + HEADER_SIZE;
+    }
+
+    if (payloadLength > 0 && zipStart + payloadLength <= u8.length) {
+      var slice = u8.slice(zipStart, zipStart + payloadLength);
+      if (slice.length >= 2 && slice[0] === 0x50 && slice[1] === 0x4b) return slice;
+    }
+
+    // Length missing/wrong: take from zipStart if it looks like ZIP
+    if (zipStart + 4 <= u8.length && u8[zipStart] === 0x50 && u8[zipStart + 1] === 0x4b) {
+      return u8.slice(zipStart);
+    }
+
+    // Last resort after marker: search forward for a real local-file header,
+    // but only after the marker (never in viewer HTML / JSZip source).
+    var searchFrom = markerAt >= 0 ? markerAt + EPI_ZIP_MARKER.length : headerOffset + HEADER_SIZE;
+    for (var i = searchFrom; i + 4 <= u8.length; i++) {
+      if (u8[i] === 0x50 && u8[i + 1] === 0x4b && u8[i + 2] === 0x03 && u8[i + 3] === 0x04) {
+        return u8.slice(i);
+      }
+    }
+
+    throw new Error('EPI envelope ZIP payload not found after header/marker');
+  }
+
+  function extractZipBytes(input) {
+    var u8 = toU8(input);
+    if (!u8 || u8.length < 4) {
+      throw new Error('File too small to be a valid .epi');
+    }
+
+    var det = detectContainer(u8);
+    if (!det) {
+      // Helpful diagnostics for HTML 404 pages, text files, etc.
+      var pre = skipPreamble(u8);
+      if (u8[pre] === 0x3c && u8[pre + 1] === 0x21 && u8[pre + 2] === 0x44) {
+        throw new Error(
+          'Not a valid .epi file — this looks like an HTML page (e.g. a broken download link), not a sealed artifact. First bytes: ' +
+            hexPreview(u8, 16)
+        );
+      }
+      throw new Error(
+        'Not a valid .epi file (expected envelope-v2 magic "<!--" or ZIP "PK"). First bytes: ' +
+          hexPreview(u8, 16)
+      );
+    }
+
+    if (det.format === 'legacy-zip') {
+      return det.offset === 0 ? u8 : u8.slice(det.offset);
+    }
+
+    return extractEnvelopeZip(u8, det.offset);
   }
 
   function normalizeDatetime(value) {
@@ -64,44 +245,6 @@
     return Array.from(new Uint8Array(digest)).map(function (b) {
       return b.toString(16).padStart(2, '0');
     }).join('');
-  }
-
-  function extractZipBytes(u8) {
-    if (!u8 || u8.length < 4) throw new Error('File too small to be a valid .epi');
-    if (u8[0] === 0x3c && u8[1] === 0x21 && u8[2] === 0x2d && u8[3] === 0x2d) {
-      if (u8.length < HEADER_SIZE) throw new Error('EPI envelope header truncated');
-      var view = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
-      var payloadLength = view.getUint32(8, true) + view.getUint32(12, true) * 4294967296;
-
-      // Scan for the ZIP payload sentinel. The marker string is split-
-      // concatenated in Python source so it never exists as a contiguous
-      // byte sequence in the source code, eliminating collision risk with
-      // inlined content. Handles artifacts with or without viewer HTML.
-      var markerBytes = new TextEncoder().encode(EPI_ZIP_MARKER);
-      var zipStart = HEADER_SIZE;
-      var scanEnd = Math.min(u8.length, HEADER_SIZE + 4 * 1024 * 1024);
-      for (var i = HEADER_SIZE; i + markerBytes.length <= scanEnd; i++) {
-        var match = true;
-        for (var j = 0; j < markerBytes.length; j++) {
-          if (u8[i + j] !== markerBytes[j]) { match = false; break; }
-        }
-        if (match) {
-          zipStart = i + markerBytes.length;
-          break;
-        }
-      }
-      // If no viewer HTML exists, paylod starts at header boundary
-      // (older/migrated artifacts)
-
-      if (zipStart + payloadLength > u8.length) {
-        throw new Error('EPI envelope payload truncated');
-      }
-      return u8.slice(zipStart, zipStart + payloadLength);
-    }
-    if (u8[0] === 0x50 && u8[1] === 0x4b) {
-      return u8;
-    }
-    throw new Error('Not a valid .epi file (expected envelope-v2 or ZIP)');
   }
 
   async function computeIntegrityMismatches(zip, manifest) {
@@ -257,8 +400,10 @@
 
   global.verifyEPI = verifyEPI;
   global.epiExtractZipBytes = extractZipBytes;
+  global.epiDetectContainer = detectContainer;
   if (typeof window !== 'undefined') {
     window.verifyEPI = verifyEPI;
     window.epiExtractZipBytes = extractZipBytes;
+    window.epiDetectContainer = detectContainer;
   }
 })(typeof window !== 'undefined' ? window : globalThis);
