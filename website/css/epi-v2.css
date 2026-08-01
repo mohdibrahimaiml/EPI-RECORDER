@@ -687,14 +687,21 @@ body.v2-home .btn:focus-visible {
 
 /* Logo sizing (color filter only in dark — see light overrides) */
 body.v2-home .nav-logo img,
-body.v2-home .footer-logo,
-body.epi-instrument .nav-logo img,
-body.epi-instrument .footer-logo {
+body.epi-instrument .nav-logo img {
   height: 48px;
   width: auto;
   object-fit: contain;
   display: block;
   opacity: 0.95;
+}
+body.v2-home .footer-logo,
+body.epi-instrument .footer-logo {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  opacity: 0.95;
+  margin: 0;
 }
 html[data-theme="dark"] body.v2-home .nav-logo img,
 html[data-theme="dark"] body.v2-home .footer-logo,
