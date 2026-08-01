@@ -1,11 +1,16 @@
 """Tier-gating for paid plan features.
 
-Honesty contract (must match website/pricing.html):
+Honesty contract (must match website/pricing.html + auth.normalize_plan):
 
 - Free forever offline: CLI, local SCITT, Annex multi-sign, CLI PDF, public GitHub Action.
+- Paid self-serve plan is **hosted** (aliases: pro, starter → hosted via normalize_plan).
 - Paid plans gate hosted verification volume, API key limits, and remote SCITT only.
 - Hosted PDF API is not implemented — `pdf` is always False (use CLI).
 - Seats / SSO / regulatory adapters are not gated here because they are not shipped.
+
+Keys in PLAN_FEATURES must match VALID_PLANS after normalize_plan (free, hosted,
+team, enterprise). Looking up raw aliases like "pro" without normalize falls back
+incorrectly — always call normalize_plan first (features_for_plan does).
 """
 
 from __future__ import annotations
@@ -20,7 +25,7 @@ from verify_portal.billing import get_user_plan, init_billing_columns
 
 PLAN_RANK = {"free": 0, "hosted": 1, "team": 2, "enterprise": 3}
 
-# Hosted-only capabilities. Do not list free CLI features as paid flags.
+# Canonical plan keys only (post-normalize). Do not list free CLI features as paid flags.
 PLAN_FEATURES = {
     "free": {
         "verifications": 100,
@@ -29,36 +34,20 @@ PLAN_FEATURES = {
         "api_keys": True,
         "api_key_limit": 1,
         "support": "Community",
-        "label": "Free",
+        "label": "Free / Open Source",
     },
-    "starter": {
-        "verifications": 10_000,
-        "scitt": False,
-        "pdf": False,
-        "api_keys": True,
-        "api_key_limit": 1,
-        "support": "Community",
-        "label": "Starter",
-    },
-    "dummy_free_placeholder": {
-        "verifications": 100,  # soft plan label; public /api/verify also uses IP free cap
-        "scitt": False,
-        "pdf": False,  # hosted PDF not implemented; CLI PDF is free
-        "api_keys": True,  # 1 free key for onboarding
-        "api_key_limit": 1,
-        "support": "Community",
-        "label": "Free",
-    },
-    "pro": {
+    "hosted": {
+        # Self-serve paid tier on pricing.html (~$15/mo). Aliases: pro, starter.
         "verifications": 10_000,
         "scitt": True,
         "pdf": False,
         "api_keys": True,
         "api_key_limit": 10,
         "support": "Email",
-        "label": "Pro",
+        "label": "Hosted",
     },
     "team": {
+        # Higher volume / design-partner path — not always listed as fixed public price.
         "verifications": 50_000,
         "scitt": True,
         "pdf": False,

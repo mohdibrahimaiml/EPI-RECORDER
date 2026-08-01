@@ -14,6 +14,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon.ico">
 <link rel="apple-touch-icon" href="favicon.ico">
 <link rel="stylesheet" href="css/epi.css?v=24">
+<link rel="stylesheet" href="css/epi-v2.css?v=1">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -51,43 +52,82 @@
 </script>
     <script defer data-domain="epilabs.org" src="https://plausible.io/js/script.js"></script>
 </head>
-<body>
+<body class="v2-home" data-theme="dark">
+<a class="v2-skip" href="#verify">Skip to verify</a>
 
 <!-- ═══ NAV ═══ -->
 <nav id="nav">
   <div class="nav-inner">
-    <a href="#" class="nav-logo"><img src="assets/logo.png" alt="EPI Labs"></a>
+    <a href="/" class="nav-logo"><img src="assets/logo.png" alt="EPI Labs"></a>
     <ul class="nav-links" id="navLinks">
-      <li><a href="/how-it-works">How It Works</a></li>
       <li><a href="/verify/">Verify</a></li>
+      <li><a href="/how-it-works">How it works</a></li>
       <li><a href="/pricing">Pricing</a></li>
+      <li><a href="/enterprise">Enterprise</a></li>
       <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
-      <li><a href="/pricing" class="nav-link-cta">Get Started</a></li>
+      <li id="nav-auth-slot"></li>
+      <li><a href="/account" class="nav-link-cta">Sign in</a></li>
       <li><button class="theme-toggle-nav" id="themeToggleNav" aria-label="Toggle dark mode" title="Toggle dark mode"></button></li>
     </ul>
     <button class="nav-mob" id="mobBtn" aria-label="Menu"><span></span><span></span><span></span></button>
   </div>
 </nav>
 <div class="mob-menu" id="mobMenu">
-  <a href="/how-it-works">How It Works</a><a href="/verify/">Verify</a><a href="/pricing">Pricing</a>
+  <a href="/verify/">Verify</a>
+  <a href="/how-it-works">How it works</a>
+  <a href="/pricing">Pricing</a>
+  <a href="/enterprise">Enterprise</a>
   <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
-  <a href="#cta">Get Started</a>
+  <a href="/account">Sign in</a>
+  <a href="#verify">Try sample</a>
 </div>
 
-<!-- ═══ HERO ═══ -->
+<!-- ═══ HERO — product-first (file, not brochure) ═══ -->
 <section class="hero">
-  <div class="hero-bg"></div>
-  <div class="hero-content">
-
-    <h1>AI has models.<br>The world needs <em>Evidence</em> <span class="epi-badge">.epi</span></h1>
-    <p class="hero-sub" style="font-size:clamp(1.3rem,2.6vw,1.6rem);font-weight:500;color:var(--ink-soft);margin-bottom:16px">The evidence layer for the AI economy.</p>
-    <p class="hero-sub" style="max-width:680px">Every AI decision. Every agent action. Every workflow. Cryptographically verifiable.</p>
-    <div class="hero-actions">
-      <a href="#verify" class="btn btn-primary btn-lg">See a Receipt <span class="btn-arrow">&rarr;</span></a>
-      <a href="#standards" class="btn btn-secondary btn-lg">Read the Specification</a>
+  <div class="hero-content v2-hero-grid">
+    <div class="v2-hero-copy">
+      <div class="hero-eyebrow">Open-source evidence · portable .epi</div>
+      <h1>Evidence as a <em>file</em> — not a dashboard login <span class="epi-badge">.epi</span></h1>
+      <p class="hero-sub">Seal AI agent runs. Verify offline. Same bytes in CI and for auditors.</p>
+      <p class="hero-sub">Observability shows <em>you</em> what happened. EPI gives <em>anyone</em> a sealed proof that still works without our UI.</p>
+      <div class="hero-actions">
+        <a href="#verify" class="btn btn-primary btn-lg">Verify a sample <span class="btn-arrow">&rarr;</span></a>
+        <a href="#use" class="btn btn-secondary btn-lg">Install in 30s</a>
+      </div>
+      <div class="v2-install-chip" id="installChip">
+        <code>pip install epi-recorder</code>
+        <button type="button" id="copyInstall" aria-label="Copy install command">Copy</button>
+      </div>
+      <div class="v2-personas" role="tablist" aria-label="Who are you?">
+        <button type="button" class="v2-persona is-active" data-persona="dev" role="tab" aria-selected="true">Developer</button>
+        <button type="button" class="v2-persona" data-persona="audit" role="tab" aria-selected="false">Auditor</button>
+        <button type="button" class="v2-persona" data-persona="ent" role="tab" aria-selected="false">Enterprise</button>
+      </div>
+      <p class="v2-persona-note" id="personaNote">Ship agents with a sealed file in CI. No dashboard required for proof.</p>
+      <div class="v2-proof">
+        <span><strong>MIT</strong> open source</span>
+        <span><strong>Offline</strong> verify</span>
+        <span><strong>No upload</strong> private mode</span>
+        <span><strong>Same bytes</strong> in CI</span>
+      </div>
+      <p class="hero-meta">Free forever offline · Hosted for scale · <a href="/pricing">Pricing</a> · <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></p>
+    </div>
+    <div class="v2-hero-visual" aria-hidden="false">
+      <div class="v2-file-card">
+        <div class="v2-file-card-top">
+          <div class="v2-file-name">demo_refund<span>.epi</span></div>
+          <div class="v2-seal-pill">Seal OK</div>
+        </div>
+        <div class="v2-file-rows">
+          <div class="v2-file-row"><span class="k">SHA-256</span><span class="v">a7b3…f21c · 47 steps</span></div>
+          <div class="v2-file-row"><span class="k">Signature</span><span class="v ok">Ed25519 · valid</span></div>
+          <div class="v2-file-row"><span class="k">Identity</span><span class="v">LOCAL · pin for strict</span></div>
+          <div class="v2-file-row"><span class="k">Mode</span><span class="v">Private check · not uploaded</span></div>
+        </div>
+        <p class="v2-file-foot">Drop your own file below, or open the full tool at <a href="/verify/">verify/</a>.</p>
+      </div>
     </div>
   </div>
-  <div class="scroll-ind"><span>Scroll</span><div class="scroll-line"></div></div>
 </section>
 
 <!-- ═══ THESIS ═══ -->
@@ -558,8 +598,9 @@ function updateChecks(report){
   set('chk1',f.structure_ok,'01 · Structure '+(f.structure_ok?'Valid — valid EPI archive':'<span style="color:var(--tamper)">Invalid</span>'));
   set('chk2',f.integrity_ok,'02 · Integrity '+(f.integrity_ok?'PASS — all file hashes match':'<span style="color:var(--tamper)">FAIL — '+Object.keys(f.mismatches||{}).length+' mismatch(es)</span>'));
   if(f.has_signature){
-    set('chk3',f.signature_valid===true||f.signature_valid===null,'03 · Signature '+(f.signature_valid===true?'VALID — Ed25519 verified':f.signature_valid===null?'CHECK — browser Ed25519 limited':'<span style="color:var(--tamper)">INVALID — tampered</span>'));
-  }else{set('chk3',true,'03 · Signature — none present (unsigned)')}
+    // Only mark pass when crypto actually returned true — null is not a green check
+    set('chk3',f.signature_valid===true,'03 · Signature '+(f.signature_valid===true?'VALID — Ed25519 verified':f.signature_valid===null?'CHECK — browser Ed25519 limited (use epi verify)':'<span style="color:var(--tamper)">INVALID — tampered</span>'));
+  }else{set('chk3',false,'03 · Signature — none present (unsigned)')}
   set('chk4',f.chain_ok!==false,'04 · Chain '+(f.chain_ok!==false?'INTACT':'<span style="color:var(--tamper)">BROKEN</span>'));
   set('chk5',f.has_signature,'05 · Identity — '+report.identity.status+(report.identity.name?' ('+report.identity.name+')':''));
 }
@@ -1102,6 +1143,42 @@ window.replayTerminal=function(){resetTerminal();setTimeout(playTerminal,200)};
 var termObs=new IntersectionObserver(function(e){if(e[0].isIntersecting&&!termObs.triggered){termObs.triggered=true;setTimeout(playTerminal,300);termObs.unobserve(termEl)}},{threshold:0.2});
 if(termEl)termObs.observe(termEl);
 
+})();
+</script>
+<script>
+/* Product-first hero: personas + install copy */
+(function(){
+  var notes = {
+    dev: 'Ship agents with a sealed file in CI. No dashboard required for proof.',
+    audit: 'Check integrity without trusting a vendor UI. Import trust bundles when keys must be pinned.',
+    ent: 'Two commands for a pilot pack: epi enterprise setup then pack. Services for limits and onboarding.'
+  };
+  var note = document.getElementById('personaNote');
+  document.querySelectorAll('.v2-persona').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.v2-persona').forEach(function(b){
+        b.classList.remove('is-active');
+        b.setAttribute('aria-selected','false');
+      });
+      btn.classList.add('is-active');
+      btn.setAttribute('aria-selected','true');
+      if(note) note.textContent = notes[btn.getAttribute('data-persona')] || notes.dev;
+    });
+  });
+  var copyBtn = document.getElementById('copyInstall');
+  if(copyBtn){
+    copyBtn.addEventListener('click', function(){
+      var cmd = 'pip install epi-recorder';
+      function done(){ copyBtn.textContent = 'Copied'; setTimeout(function(){ copyBtn.textContent = 'Copy'; }, 1600); }
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(cmd).then(done).catch(function(){
+          var ta=document.createElement('textarea'); ta.value=cmd; document.body.appendChild(ta); ta.select();
+          try{ document.execCommand('copy'); }catch(e){}
+          document.body.removeChild(ta); done();
+        });
+      }
+    });
+  }
 })();
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>

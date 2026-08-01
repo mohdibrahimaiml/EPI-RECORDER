@@ -54,16 +54,61 @@ pricing CTAs should fall back to sign-in / contact — not a working checkout.
 `/account`, then EPI Labs promotes the plan with the admin **set-plan** endpoint
 (see [OPERATOR-RUNBOOK.md](./OPERATOR-RUNBOOK.md) — operators only).
 
-Public tiers (product gates): Free (low hosted cap) · **Pro** (~10k hosted
-checks/mo) · **Team** (higher volume) · **Enterprise** (custom). Offline CLI
-verify is unlimited free. Hosted PDF API is **not** implemented (HTTP 501);
-use CLI Annex PDF.
+Public tiers after `normalize_plan` (must match `verify_portal/tier_gating.py`
+and `website/pricing.html`):
+
+| Plan key | Public label | Hosted checks/mo | Remote SCITT | API keys |
+|----------|--------------|------------------|--------------|----------|
+| `free` | Open Source | 100 | no | 1 |
+| `hosted` | Hosted (~$15) | 10,000 | yes | 10 |
+| `team` | Team (design partners) | 50,000 | yes | 50 |
+| `enterprise` | Enterprise | custom | yes | unlimited |
+
+Aliases `pro` and `starter` normalize to **`hosted`**. Offline CLI verify is
+unlimited free. Hosted PDF API is **not** implemented (HTTP 501); use CLI Annex PDF.
 
 There is **no automated sync** between the Paddle dashboard and Render env vars —
 ops must keep them aligned when self-serve is enabled.
 
 ---
 
+## Browser verification honesty
+
+- **Authoritative verify** remains `epi verify` (CLI).
+- Browser private check (`/verify/` mode device, home drop zone) uses Web Crypto
+  Ed25519 when the browser supports it (Chrome/Edge). When it cannot, UI must
+  show **pending / not verified** — never a green PASS for an unverified signature.
+- Identity trust (KNOWN/HIGH) still requires CLI key pin / trust bundle; browser
+  only proves signature-over-manifest when crypto works.
+
+---
+
+## Seats, SSO, hosted PDF
+
+Not shipped. Pricing and tier gates must not claim them. Seats/SSO are consulting
+or future product; PDF is CLI-only.
+
+---
+
+## Site mirrors
+
+Production static source is **`website/`**. `scripts/sync_website.py` copies into
+`site/`, `verify_portal/static/`, and `epi-official/`. `website-v2/` is a sandbox
+and is **not** the deploy source. Stale mirrors after editing `website/` are a
+known ops hazard until sync runs.
+
+---
+
+## PyPI release hold
+
+Do **not** publish a new PyPI version until residual release-gate issues
+(browser honesty, contact route uniqueness, dual-mode verify on production
+static, tier_gating ↔ pricing alignment, product-first home, mirror sync,
+regression green) are closed. Source version may lead PyPI; pin from git for pilots.
+
+---
+
 ## Last updated
 
-2026-07-31 — pricing/billing note aligned with Pro/Team/Enterprise + set-plan path.
+2026-08-01 — residual fix-before-PyPI: hosted plan key, dual-mode verify,
+browser Ed25519 honesty, contact route de-dup, product-first home, release hold.
