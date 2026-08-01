@@ -1,9 +1,10 @@
-/** Shared mobile nav + dark instrument for marketing pages. */
+/** Shared mobile nav for instrument marketing pages. Does not force theme. */
 (function () {
-  document.documentElement.setAttribute("data-theme", "dark");
   if (document.body) {
-    document.body.setAttribute("data-theme", "dark");
-    if (!document.body.classList.contains("epi-instrument") && !document.body.classList.contains("v2-home")) {
+    if (
+      !document.body.classList.contains("epi-instrument") &&
+      !document.body.classList.contains("v2-home")
+    ) {
       document.body.classList.add("epi-instrument");
     }
   }

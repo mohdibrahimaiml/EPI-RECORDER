@@ -17,6 +17,9 @@
 .welcome-card .cta-btn.secondary{background:transparent;color:var(--accent);border:2px solid var(--accent-line)}
 .welcome-card .cta-btn.secondary:hover{background:var(--accent-glow)}
 </style>
+<script>
+(function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();
+</script>
 </head>
 <body>
 <nav id="nav">
@@ -24,6 +27,8 @@
     <a href="/" class="nav-logo"><img src="assets/logo.png" alt="EPI Labs"></a>
     <ul class="nav-links" id="navLinks">
       <li id="nav-auth-slot"></li>
+      <li><button type="button" class="theme-toggle-nav" id="themeToggleNav" data-theme-toggle aria-label="Toggle color theme" title="Toggle theme">&#9788;</button></li>
+
     </ul>
   </div>
 </nav>
@@ -48,5 +53,9 @@
   </p>
 </footer>
 <script src="/js/auth-ui.js"></script>
+
+<script src="js/theme.js"></script>
+<script src="js/instrument-nav.js"></script>
+<script src="js/auth-ui.js"></script>
 </body>
 </html>

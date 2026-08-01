@@ -44,9 +44,7 @@ body.v2-home {
   font-size: 16px;
 }
 
-body.v2-home[data-theme="light"] {
-  /* still dark-first; light override not encouraged on v2 home */
-}
+/* light tokens applied below via [data-theme="light"] */
 
 /* ── NAV ── */
 body.v2-home #nav {
@@ -687,22 +685,66 @@ body.v2-home .btn:focus-visible {
   }
 }
 
-/* Logo on dark instrument (home + all epi-instrument pages) */
+/* Logo sizing (color filter only in dark — see light overrides) */
 body.v2-home .nav-logo img,
 body.v2-home .footer-logo,
 body.epi-instrument .nav-logo img,
 body.epi-instrument .footer-logo {
-  filter: brightness(0) invert(1);
-  opacity: 0.92;
   height: 48px;
   width: auto;
   object-fit: contain;
   display: block;
+  opacity: 0.95;
+}
+html[data-theme="dark"] body.v2-home .nav-logo img,
+html[data-theme="dark"] body.v2-home .footer-logo,
+html[data-theme="dark"] body.epi-instrument .nav-logo img,
+html[data-theme="dark"] body.epi-instrument .footer-logo,
+body.v2-home:not([data-theme="light"]) .nav-logo img,
+body.epi-instrument:not([data-theme="light"]) .nav-logo img,
+body.v2-home:not([data-theme="light"]) .footer-logo,
+body.epi-instrument:not([data-theme="light"]) .footer-logo {
+  filter: brightness(0) invert(1);
+  opacity: 0.92;
+}
+html[data-theme="light"] body.v2-home .nav-logo img,
+html[data-theme="light"] body.v2-home .footer-logo,
+html[data-theme="light"] body.epi-instrument .nav-logo img,
+html[data-theme="light"] body.epi-instrument .footer-logo {
+  filter: none;
+  opacity: 1;
 }
 body.epi-instrument .nav-logo,
 body.v2-home .nav-logo {
   display: flex;
   align-items: center;
+}
+
+/* Theme toggle */
+.theme-toggle-nav,
+#themeToggleNav,
+[data-theme-toggle] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border-str);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 1.05rem;
+  line-height: 1;
+  padding: 0;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.theme-toggle-nav:hover,
+#themeToggleNav:hover,
+[data-theme-toggle]:hover {
+  border-color: var(--accent-line);
+  color: var(--accent);
+  background: var(--accent-glow);
 }
 
 /* Social proof strip */
@@ -1364,3 +1406,94 @@ body.v2-home .block-head .section-desc {
   .command-strip li { grid-template-columns: 36px 1fr; padding: 14px; }
 }
 body.v2-home::-webkit-scrollbar-thumb:hover { background: #3D4658; }
+/* ═══════════════════════════════════════════════════════════════
+   LIGHT MODE — [data-theme="light"] on html/body
+   ═══════════════════════════════════════════════════════════════ */
+html[data-theme="light"] body.v2-home,
+html[data-theme="light"] body.epi-instrument,
+body.v2-home[data-theme="light"],
+body.epi-instrument[data-theme="light"] {
+  --bg: #FAFAF8;
+  --bg-alt: #F5F5F2;
+  --bg-card: #FFFFFF;
+  --bg-dark: #0C0C0E;
+  --bg-code: #0C0C0E;
+  --ink: #111113;
+  --ink-soft: #3A3A3E;
+  --ink-muted: #6E6E73;
+  --ink-dim: #9E9EA3;
+  --accent: #1a7a4c;
+  --accent-lt: #22965e;
+  --accent-glow: rgba(26, 122, 76, 0.08);
+  --accent-line: rgba(26, 122, 76, 0.28);
+  --signal: #3B6FE0;
+  --signal-glow: rgba(59, 111, 224, 0.1);
+  --verified: #1A6840;
+  --verified-bg: rgba(26, 104, 64, 0.08);
+  --warn: #8B6914;
+  --warn-bg: rgba(139, 105, 20, 0.08);
+  --tamper: #B52626;
+  --tamper-bg: rgba(181, 38, 38, 0.08);
+  --border: rgba(22, 24, 26, 0.08);
+  --border-str: rgba(22, 24, 26, 0.12);
+  --border-accent: rgba(26, 122, 76, 0.3);
+  background: var(--bg);
+  color: var(--ink-soft);
+}
+
+html[data-theme="light"] body.v2-home #nav,
+html[data-theme="light"] body.epi-instrument #nav,
+body.v2-home[data-theme="light"] #nav,
+body.epi-instrument[data-theme="light"] #nav {
+  background: rgba(250, 250, 248, 0.88);
+  border-bottom: 1px solid var(--border);
+  box-shadow: none;
+}
+html[data-theme="light"] body.epi-instrument .nav-links a,
+html[data-theme="light"] body.v2-home .nav-links a {
+  color: rgba(17, 17, 19, 0.5);
+}
+html[data-theme="light"] body.epi-instrument .nav-links a:hover,
+html[data-theme="light"] body.v2-home .nav-links a:hover {
+  color: var(--ink);
+}
+html[data-theme="light"] body.epi-instrument .nav-link-cta,
+html[data-theme="light"] body.v2-home .nav-link-cta {
+  color: var(--accent) !important;
+  border-color: var(--accent-line) !important;
+  background: transparent !important;
+}
+html[data-theme="light"] body.epi-instrument .mob-menu,
+html[data-theme="light"] body.v2-home .mob-menu {
+  background: rgba(250, 250, 248, 0.98);
+}
+html[data-theme="light"] body.epi-instrument .mob-menu a,
+html[data-theme="light"] body.v2-home .mob-menu a {
+  color: var(--ink);
+  border-bottom-color: var(--border);
+}
+html[data-theme="light"] body.epi-instrument footer,
+html[data-theme="light"] body.v2-home footer {
+  background: var(--bg-alt);
+  border-top-color: var(--border);
+}
+html[data-theme="light"] .command-strip {
+  background: #0C0C0E;
+  border-color: rgba(0,0,0,0.12);
+}
+html[data-theme="light"] .command-strip .cmd { color: #D0D5DD; }
+html[data-theme="light"] .v2-file-card {
+  box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+}
+html[data-theme="light"] body.v2-home .hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 15% 20%, rgba(26, 122, 76, 0.06) 0%, transparent 55%),
+    var(--bg);
+}
+html[data-theme="light"] .truth-card,
+html[data-theme="light"] .v2-plan,
+html[data-theme="light"] .int-card,
+html[data-theme="light"] .uc-card,
+html[data-theme="light"] .pricing-card {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}

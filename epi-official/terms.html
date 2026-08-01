@@ -9,15 +9,18 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon.ico">
 <link rel="apple-touch-icon" href="favicon.ico">
 <link rel="stylesheet" href="css/epi.css?v=26">
-<link rel="stylesheet" href="css/epi-v2.css?v=5">
+<link rel="stylesheet" href="css/epi-v2.css?v=6">
 <style>
 .terms-main{max-width:700px;margin:0 auto;padding:120px 24px 80px}
 .terms-main h1{font-size:1.8rem;color:var(--ink);margin:0 0 8px}
 .terms-main p,.terms-main li{color:var(--ink-soft);line-height:1.7;font-size:.92rem}
 .terms-main h3{font-size:1.1rem;color:var(--ink);margin:32px 0 8px}
 </style>
+<script>
+(function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();
+</script>
 </head>
-<body class="epi-instrument" data-theme="dark">
+<body class="epi-instrument">
 <!-- ═══ SITE NAV ═══ -->
 <nav id="nav">
   <div class="nav-inner">
@@ -29,7 +32,8 @@
       <li><a href="/enterprise">Enterprise</a></li>
       <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
       <li id="nav-auth-slot"></li>
-      <li><a href="/account" class="nav-link-cta">Sign in</a></li>
+      <li><button type="button" class="theme-toggle-nav" id="themeToggleNav" data-theme-toggle aria-label="Toggle color theme" title="Toggle theme">&#9788;</button></li>
+
     </ul>
     <button type="button" class="nav-mob" id="mobBtn" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
   </div>
@@ -40,8 +44,7 @@
   <a href="/pricing">Pricing</a>
   <a href="/enterprise">Enterprise</a>
   <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
-  <a href="/account">Sign in</a>
-</div>
+  </div>
 <main class="terms-main">
   <h1>Terms of Service</h1>
   <p>Last updated: July 2026</p>
@@ -88,8 +91,7 @@
   <h3>10. Contact</h3>
   <p>For questions about these terms: <a href="mailto:mohdibrahim@epilabs.org" style="color:var(--accent)">mohdibrahim@epilabs.org</a></p>
 </main>
-<script src="js/theme.js"></script><script src="/js/nav.js"></script>
-<footer>
+<script src="js/theme.js"></script><footer>
   <div class="container"><div class="footer-inner">
     <div class="footer-left">
       <img src="assets/logo.png" alt="EPI Labs" class="footer-logo">

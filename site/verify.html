@@ -6,8 +6,15 @@
 <link rel="canonical" href="https://epilabs.org/verify/">
 <title>Redirecting to EPI Verify…</title>
 <script>location.replace('/verify/');</script>
+<script>
+(function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();
+</script>
 </head>
 <body>
 <p>Moved to <a href="/verify/">/verify/</a>.</p>
+
+<script src="js/theme.js"></script>
+<script src="js/instrument-nav.js"></script>
+<script src="js/auth-ui.js"></script>
 </body>
 </html>
