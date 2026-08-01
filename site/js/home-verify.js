@@ -541,15 +541,29 @@ async function processFile(f){
   }catch(e){showResult('fail','<strong>Verification error</strong><br>'+e.message)}
 }
 
+function setDropSealState(type){
+  if(!dz)return;
+  dz.classList.remove('seal-ok','seal-fail','seal-warn');
+  if(type==='pass')dz.classList.add('seal-ok');
+  else if(type==='fail')dz.classList.add('seal-fail');
+  else if(type==='warn')dz.classList.add('seal-warn');
+}
+
 function showResult(type,msg){
   var colors={pass:['var(--verified-bg)','var(--verified)','var(--verified)'],warn:['var(--warn-bg)','var(--warn)','var(--warn)'],fail:['var(--tamper-bg)','var(--tamper)','var(--tamper)']};
   var c=colors[type]||colors.fail;
   dr.style.display='block';dr.style.background=c[0];dr.style.border='1px solid '+c[1];dr.style.color=c[2];dr.innerHTML=msg;
+  if(type==='pass'||type==='fail'||type==='warn')setDropSealState(type);
+  else setDropSealState(null);
 }
 
 function showReport(report,errMsg){
   if(errMsg){showResult('fail',errMsg);return}
   var type=report.trust_level==='HIGH'?'pass':report.trust_level==='MEDIUM'?'warn':'fail';
+  // Integrity+structure green is a seal success even when identity is LOW
+  if(report.facts&&report.facts.structure_ok&&report.facts.integrity_ok&&report.facts.signature_valid!==false){
+    if(type==='fail'&&report.trust_level==='LOW')type='pass';
+  }
   showResult(type,reportDOM(report));
   updateChecks(report);
 }
@@ -557,6 +571,7 @@ function showReport(report,errMsg){
 function resetChecks(){
   ['chk1','chk2','chk3','chk4','chk5'].forEach(function(id){var el=document.getElementById(id);if(el){el.classList.remove('pass');el.innerHTML='<span class="check-dot"></span> '+el.innerHTML.replace(/^.*?\d{2}\s*·\s*/,'')}});
   if(dr)dr.style.display='none';
+  setDropSealState(null);
 }
 
 if(dz&&fi&&dr){
