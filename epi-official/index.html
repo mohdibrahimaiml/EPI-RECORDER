@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon.ico">
 <link rel="apple-touch-icon" href="favicon.ico">
 <link rel="stylesheet" href="css/epi.css?v=25">
-<link rel="stylesheet" href="css/epi-v2.css?v=2">
+<link rel="stylesheet" href="css/epi-v2.css?v=3">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -90,8 +90,8 @@
       <p class="hero-sub">Seal AI agent runs. Verify offline. Same bytes in CI and for auditors.</p>
       <p class="hero-sub">Observability shows <em>you</em> what happened. EPI gives <em>anyone</em> a sealed proof that still works without our UI.</p>
       <div class="hero-actions">
-        <a href="#verify" class="btn btn-primary btn-lg">Verify a sample <span class="btn-arrow">&rarr;</span></a>
-        <a href="#use" class="btn btn-secondary btn-lg">Install in 30s</a>
+        <a href="#walkthrough" class="btn btn-primary btn-lg">Watch 17s demo <span class="btn-arrow">&rarr;</span></a>
+        <a href="#verify" class="btn btn-secondary btn-lg">Verify a sample</a>
       </div>
       <div class="v2-install-chip" id="installChip">
         <code>pip install epi-recorder</code>
@@ -124,6 +124,38 @@
           <div class="v2-file-row"><span class="k">Mode</span><span class="v">Private check · not uploaded</span></div>
         </div>
         <p class="v2-file-foot">Drop your own file below, or open the full tool at <a href="/verify/">verify/</a>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PRODUCT WALKTHROUGH VIDEO ═══ -->
+<section class="section-alt" id="walkthrough">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:36px">
+      <div class="section-label reveal" style="justify-content:center">See it · 17 seconds</div>
+      <h2 class="section-title reveal d1">From PyPI to a sealed .epi</h2>
+      <p class="section-desc reveal d2" style="margin:0 auto">
+        Real product path: <code>pip install</code> → <code>record()</code> → signed file → <code>epi verify</code> → browser view.
+        No dashboard login. Same bytes offline and in CI.
+      </p>
+    </div>
+    <div class="v2-video-wrap reveal">
+      <video
+        class="v2-video"
+        controls
+        playsinline
+        preload="metadata"
+        poster="assets/demo/frames/01_title.png"
+        title="EPI product walkthrough: install, record, seal, verify">
+        <source src="assets/epi-walkthrough.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+        <a href="assets/epi-walkthrough.mp4">Download the walkthrough (MP4)</a>
+      </video>
+      <div class="v2-video-meta">
+        <span>Silent demo · 1080p</span>
+        <span><a href="assets/sample.epi" download>Download sample.epi</a></span>
+        <span><a href="/verify/">Try verify yourself</a></span>
       </div>
     </div>
   </div>
