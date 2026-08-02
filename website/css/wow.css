@@ -729,3 +729,122 @@ html[data-theme="light"] body.v2-home .v2-install-chip {
 html[data-theme="light"] body.v2-home .v2-install-chip code {
   color: var(--ink);
 }
+
+/* ═══ Light mode polish pass (professional paper UI) ═══ */
+html[data-theme="light"] body.v2-home .v2-file-row {
+  background: #F4F2EC !important;
+  border-color: rgba(15, 18, 24, 0.08) !important;
+}
+html[data-theme="light"] body.v2-home .v2-file-foot,
+html[data-theme="light"] body.v2-home .v2-file-foot a {
+  color: var(--ink-muted);
+}
+html[data-theme="light"] body.v2-home .hero-fx .aurora {
+  opacity: 0.35 !important;
+  filter: blur(28px) !important;
+}
+html[data-theme="light"] body.v2-home .hero-fx .meteors {
+  display: none !important;
+}
+html[data-theme="light"] body.v2-home .hero-sub {
+  color: var(--ink-soft);
+}
+html[data-theme="light"] body.v2-home .v2-proof span {
+  background: #fff;
+  border-color: var(--border-str);
+  color: var(--ink-muted);
+}
+html[data-theme="light"] body.v2-home .v2-proof span strong {
+  color: var(--accent);
+}
+html[data-theme="light"] body.v2-home .drop-zone {
+  background: #fff !important;
+  color: var(--ink);
+}
+html[data-theme="light"] body.v2-home .drop-title,
+html[data-theme="light"] body.v2-home .drop-hint {
+  color: var(--ink-soft);
+}
+html[data-theme="light"] body.v2-home .check-item {
+  color: var(--ink-soft);
+}
+html[data-theme="light"] body.v2-home .v2-plan {
+  background: #fff;
+  border-color: var(--border-str);
+  box-shadow: 0 4px 20px rgba(15, 18, 24, 0.04);
+}
+html[data-theme="light"] body.v2-home .v2-plan h3,
+html[data-theme="light"] body.v2-home .v2-plan .price {
+  color: var(--ink);
+}
+html[data-theme="light"] body.v2-home .v2-plan p {
+  color: var(--ink-muted);
+}
+html[data-theme="light"] body.v2-home .v2-plan.featured {
+  background: #fff !important;
+  border-color: var(--accent-line) !important;
+  box-shadow: 0 8px 32px rgba(11, 143, 98, 0.1) !important;
+}
+html[data-theme="light"] body.v2-home .truth-kicker,
+html[data-theme="light"] body.v2-home .section-label {
+  color: var(--accent);
+}
+html[data-theme="light"] body.v2-home .section-desc,
+html[data-theme="light"] body.epi-instrument .section-desc {
+  color: var(--ink-muted);
+}
+html[data-theme="light"] body.v2-home .command-strip {
+  /* keep terminal dark for code authenticity */
+  background: #0F1218 !important;
+  border-color: rgba(15, 18, 24, 0.12);
+}
+html[data-theme="light"] body.v2-home .btn-secondary {
+  color: var(--ink);
+  border-color: var(--border-str);
+  background: #fff;
+}
+html[data-theme="light"] body.v2-home .btn-primary,
+html[data-theme="light"] body.epi-instrument .btn-primary {
+  color: #fff !important;
+  background: var(--accent) !important;
+}
+html[data-theme="light"] body.epi-instrument .pricing-card,
+html[data-theme="light"] body.epi-instrument .acct-card,
+html[data-theme="light"] body.epi-instrument .ent-card,
+html[data-theme="light"] body.epi-instrument .service-card {
+  background: #fff;
+  border-color: var(--border-str);
+  color: var(--ink-soft);
+}
+html[data-theme="light"] body.epi-instrument .pricing-card h3,
+html[data-theme="light"] body.epi-instrument .pricing-card .price,
+html[data-theme="light"] body.epi-instrument h1,
+html[data-theme="light"] body.epi-instrument h2,
+html[data-theme="light"] body.epi-instrument h4 {
+  color: var(--ink);
+}
+html[data-theme="light"] .mob-menu a,
+html[data-theme="light"] .mob-menu button.mob-theme-btn {
+  color: var(--ink) !important;
+  border-bottom-color: var(--border);
+}
+html[data-theme="light"] body.v2-home .v2-sticky-cta {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-top: 1px solid var(--border-str);
+}
+html[data-theme="light"] body.v2-home .v2-sticky-cta .btn-secondary {
+  background: #fff;
+  color: var(--ink);
+}
+html[data-theme="light"] body.v2-home .nav-mob span,
+html[data-theme="light"] body.epi-instrument .nav-mob span {
+  background: var(--ink) !important;
+}
+/* Logo: no invert in light */
+html[data-theme="light"] body.v2-home .nav-logo img,
+html[data-theme="light"] body.epi-instrument .nav-logo img,
+html[data-theme="light"] body.v2-home .footer-logo,
+html[data-theme="light"] body.epi-instrument .footer-logo {
+  filter: none !important;
+  opacity: 1 !important;
+}

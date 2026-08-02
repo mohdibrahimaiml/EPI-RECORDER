@@ -1,4 +1,4 @@
-// EPI site nav — burger + scroll + mobile theme (mobile-safe)
+// EPI site nav — single owner of burger + scroll + mobile theme
 (function () {
   function ready(fn) {
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn);
@@ -18,7 +18,7 @@
       window.addEventListener("scroll", onScroll, { passive: true });
     }
 
-    // Ensure mobile menu has a theme toggle (desktop toggle is in hidden .nav-links)
+    // Theme toggle in drawer (desktop toggle lives in hidden .nav-links)
     if (menu && !menu.querySelector("[data-theme-toggle], .mob-theme-btn")) {
       var themeBtn = document.createElement("button");
       themeBtn.type = "button";
@@ -27,7 +27,6 @@
       themeBtn.setAttribute("aria-label", "Toggle color theme");
       themeBtn.innerHTML = "&#9788; Theme";
       menu.appendChild(themeBtn);
-      // Re-apply icons if theme.js already ran
       if (window.EPITheme && typeof window.EPITheme.apply === "function") {
         try {
           var cur = document.documentElement.getAttribute("data-theme") || "dark";
@@ -38,7 +37,7 @@
 
     if (!btn || !menu) return;
 
-    // Prevent duplicate listeners if script loaded twice
+    // Prevent duplicate listeners (nav.js or instrument-nav)
     if (btn.dataset.epiNavBound === "1") return;
     btn.dataset.epiNavBound = "1";
 
@@ -49,12 +48,14 @@
     function setOpen(open) {
       menu.classList.toggle("is-open", open);
       menu.classList.toggle("open", open);
-      menu.removeAttribute("hidden");
-      // Clear inline display:none that some pages ship with
       if (open) {
+        menu.removeAttribute("hidden");
         menu.style.display = "flex";
+        menu.style.pointerEvents = "auto";
       } else {
         menu.style.display = "none";
+        menu.style.pointerEvents = "none";
+        menu.setAttribute("hidden", "");
       }
       btn.classList.toggle("is-open", open);
       btn.classList.toggle("open", open);
@@ -62,6 +63,7 @@
       btn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
       document.body.style.overflow = open ? "hidden" : "";
       document.documentElement.style.overflow = open ? "hidden" : "";
+      document.body.classList.toggle("mob-nav-open", open);
     }
 
     setOpen(false);
@@ -70,11 +72,13 @@
       if (e) {
         e.preventDefault();
         e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
       }
       setOpen(!isOpen());
     }
 
-    btn.addEventListener("click", toggle);
+    // Capture phase so we win over any leftover instrument-nav handlers
+    btn.addEventListener("click", toggle, true);
 
     menu.addEventListener("click", function (e) {
       var a = e.target && e.target.closest && e.target.closest("a");
@@ -92,5 +96,8 @@
       },
       { passive: true }
     );
+
+    // Expose for debugging / secondary scripts
+    window.EPINav = { setOpen: setOpen, isOpen: isOpen };
   });
 })();
