@@ -14,6 +14,14 @@ body {
   max-width: 100%;
 }
 
+/* Always above hero / sticky CTA / FX layers */
+#nav,
+nav#nav {
+  z-index: 1300 !important;
+  isolation: isolate;
+  pointer-events: auto;
+}
+
 /* ── Burger nav: always solid + tappable on tablet/phone ── */
 @media (max-width: 1100px) {
   html { scroll-padding-top: 64px; }
@@ -40,6 +48,8 @@ body {
     min-width: 0;
     padding-left: max(12px, env(safe-area-inset-left));
     padding-right: max(8px, env(safe-area-inset-right));
+    position: relative;
+    z-index: 1302;
   }
   .nav-logo {
     min-width: 0;
@@ -63,29 +73,44 @@ body {
     min-height: 48px;
     margin-left: auto;
     -webkit-tap-highlight-color: transparent;
-    z-index: 1201;
+    position: relative;
+    z-index: 1303 !important;
+    pointer-events: auto !important;
+    cursor: pointer;
+    touch-action: manipulation;
   }
 
-  /* Full-screen drawer — both open class names */
+  /* Full-screen drawer — below burger, above page content */
   .mob-menu {
     top: calc(58px + env(safe-area-inset-top, 0px)) !important;
-    z-index: 1200 !important;
+    z-index: 1290 !important;
     padding: 8px 12px calc(28px + env(safe-area-inset-bottom));
     gap: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    pointer-events: none;
   }
   .mob-menu[hidden] {
     display: none !important;
+    pointer-events: none !important;
   }
   .mob-menu.is-open,
   .mob-menu.open {
     display: flex !important;
+    pointer-events: auto !important;
   }
   .mob-menu.is-open[hidden],
   .mob-menu.open[hidden] {
-    /* class wins if hidden attr not cleared yet */
     display: flex !important;
+    pointer-events: auto !important;
+  }
+  html[data-theme="light"] .mob-menu {
+    background: rgba(250, 250, 248, 0.99) !important;
+    color: var(--ink);
+  }
+  html[data-theme="dark"] .mob-menu,
+  body.v2-home .mob-menu {
+    background: rgba(11, 13, 16, 0.99) !important;
   }
   .mob-menu a,
   .mob-menu button.mob-theme-btn {
