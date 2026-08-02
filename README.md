@@ -151,9 +151,14 @@ Samples: [docs/assets/SAMPLES.md](docs/assets/SAMPLES.md) · try `docs/assets/re
 | Microsoft AGT | `epi import agt <file>` |
 
 ```python
-# LangChain
-from epi_recorder.integrations.langchain import EPICallbackHandler
-llm = ChatOpenAI(model="gpt-4o-mini", callbacks=[EPICallbackHandler()])
+# LangChain (canonical adapter)
+from epi_recorder import record
+from epi_recorder.adapters.langchain import EpiCallbackHandler
+
+with record("run.epi") as session:
+    handler = EpiCallbackHandler(session)
+    llm = ChatOpenAI(model="gpt-4o-mini", callbacks=[handler])
+    llm.invoke("…")
 ```
 
 ```bash

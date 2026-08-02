@@ -21,15 +21,21 @@ class _Session:
         self.logged.append((kind, payload))
 
 
-def test_langchain_handler_captures_llm_tool_chain_and_agent_events(monkeypatch):
-    handler = EPICallbackHandler()
+def test_langchain_handler_captures_llm_tool_and_chain_events(monkeypatch):
+    """Legacy EPICallbackHandler is a deprecated alias of adapters.EpiCallbackHandler."""
+    import warnings
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        handler = EPICallbackHandler()
+    assert any(issubclass(x.category, DeprecationWarning) for x in w)
+
     session = _Session()
     monkeypatch.setattr(handler, "_get_session", lambda: session)
 
     llm_run = uuid4()
     tool_run = uuid4()
     chain_run = uuid4()
-    agent_run = uuid4()
 
     handler.on_llm_start({"name": "offline-llm"}, ["prompt"], run_id=llm_run)
     handler.on_llm_end(SimpleNamespace(generations=[]), run_id=llm_run)
@@ -37,18 +43,14 @@ def test_langchain_handler_captures_llm_tool_chain_and_agent_events(monkeypatch)
     handler.on_tool_end({"ok": True}, run_id=tool_run)
     handler.on_chain_start({"name": "chain"}, {"question": "refund"}, run_id=chain_run)
     handler.on_chain_end({"answer": "review"}, run_id=chain_run)
-    handler.on_agent_action(SimpleNamespace(tool="lookup", tool_input="{}", log="call"), run_id=agent_run)
-    handler.on_agent_finish(SimpleNamespace(return_values={"output": "done"}, log="done"), run_id=agent_run)
 
     assert [kind for kind, _ in session.logged] == [
-        "llm.request",
+        "llm.call",
         "llm.response",
         "tool.call",
         "tool.response",
         "chain.start",
         "chain.end",
-        "agent.action",
-        "agent.finish",
     ]
 
 
