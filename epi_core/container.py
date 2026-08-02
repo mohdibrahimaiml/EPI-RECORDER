@@ -45,8 +45,15 @@ EPI_ENVELOPE_VERSION = 2
 EPI_PAYLOAD_FORMAT_ZIP_V1 = 0x01
 EPI_ENVELOPE_HEADER_SIZE = 128
 EPI_ZIP_MARKER = b"\n<!-- EPI_ZIP_PAYLOAD_START -->\n"
+# reserved_tail (56 bytes) layout:
+#   [0:32]  polyglot_viewer_sha256 — SHA-256 of outer viewer HTML (UTF-8 body only)
+#           all-zero = legacy artifact (viewer display layer not integrity-covered)
+#   [32:56] must remain zero (reserved for future use)
+EPI_VIEWER_HASH_SIZE = 32
+EPI_RESERVED_TAIL_PADDING_SIZE = 24
+EPI_RESERVED_TAIL_SIZE = EPI_VIEWER_HASH_SIZE + EPI_RESERVED_TAIL_PADDING_SIZE  # 56
 VERIFY_TXT_TEMPLATE = """EPI_FORENSIC_VERIFICATION_GUIDE\n===============================\n\nArtifact UUID: %(filename)s\nStep Count:    %(steps_count)s\n\nVERIFY:\n  epi verify <this_file>.epi\n"""
-# Structure: Magic(4), Version(1), Format(1), Flags(2), Length(8), UUID(16), CreatedAtMicros(8), Hash(32), Padding(56)
+# Structure: Magic(4), Version(1), Format(1), Flags(2), Length(8), UUID(16), CreatedAtMicros(8), Hash(32), reserved_tail(56)
 _EPI_ENVELOPE_HEADER_STRUCT = struct.Struct("<4sBBHQ16sQ32s56s")
 
 # Written explicitly via ZipFile.writestr (not from workspace rglob) so they
@@ -390,11 +397,100 @@ class EPIContainer:
             raise ValueError(f"Unsupported EPI payload format: {header.payload_format}")
         if header.reserved_flags != 0:
             raise ValueError("Invalid EPI envelope header: reserved flags must be zero")
-        if header.reserved_tail != b"\x00" * len(header.reserved_tail):
-            raise ValueError("Invalid EPI envelope header: reserved bytes must be zero")
+        EPIContainer._validate_reserved_tail(header.reserved_tail)
         if header.payload_length <= 0 or file_size < (EPI_ENVELOPE_HEADER_SIZE + header.payload_length):
             raise ValueError("Invalid EPI envelope payload length or truncated file")
         return header
+
+    @staticmethod
+    def _validate_reserved_tail(reserved_tail: bytes) -> None:
+        """Validate reserved_tail layout. Viewer hash (first 32) may be non-zero; padding must be zero."""
+        if len(reserved_tail) != EPI_RESERVED_TAIL_SIZE:
+            raise ValueError(
+                f"Invalid EPI envelope header: reserved_tail must be {EPI_RESERVED_TAIL_SIZE} bytes"
+            )
+        padding = reserved_tail[EPI_VIEWER_HASH_SIZE:]
+        if padding != b"\x00" * EPI_RESERVED_TAIL_PADDING_SIZE:
+            raise ValueError(
+                "Invalid EPI envelope header: reserved_tail padding bytes must be zero"
+            )
+
+    @staticmethod
+    def _viewer_hash_from_reserved_tail(reserved_tail: bytes) -> bytes:
+        return reserved_tail[:EPI_VIEWER_HASH_SIZE]
+
+    @staticmethod
+    def _build_reserved_tail(viewer_html_bytes: bytes | None = None) -> bytes:
+        """Build 56-byte reserved_tail with optional polyglot viewer SHA-256 in [0:32]."""
+        if viewer_html_bytes:
+            viewer_hash = hashlib.sha256(viewer_html_bytes).digest()
+        else:
+            viewer_hash = b"\x00" * EPI_VIEWER_HASH_SIZE
+        return viewer_hash + (b"\x00" * EPI_RESERVED_TAIL_PADDING_SIZE)
+
+    @staticmethod
+    def _extract_polyglot_viewer_bytes(epi_path: Path) -> bytes | None:
+        """Raw outer polyglot viewer HTML bytes (after comment close, before ZIP marker).
+
+        Returns None for legacy ZIP or envelopes with no embedded viewer region.
+        """
+        fmt = EPIContainer.detect_container_format(epi_path)
+        if fmt == EPI_CONTAINER_FORMAT_LEGACY:
+            return None
+
+        with open(epi_path, "rb") as f:
+            f.seek(EPI_ENVELOPE_HEADER_SIZE)
+            chunk = f.read(4 * 1024 * 1024)
+
+        marker_idx = chunk.find(EPI_ZIP_MARKER)
+        if marker_idx == -1:
+            return None
+
+        viewer_bytes = chunk[:marker_idx]
+        prefix = b" -->\n"
+        if viewer_bytes.startswith(prefix):
+            viewer_bytes = viewer_bytes[len(prefix):]
+        return viewer_bytes
+
+    @staticmethod
+    def verify_polyglot_viewer(epi_path: Path) -> tuple[bool, str | None]:
+        """Verify outer polyglot viewer HTML against reserved_tail[0:32] hash.
+
+        Returns (ok, detail_message).
+        - Legacy (all-zero hash): ok=True, detail notes display layer not covered.
+        - Hash present and matches: ok=True, detail=None.
+        - Hash present and mismatches / missing viewer: ok=False with reason.
+        """
+        fmt = EPIContainer.detect_container_format(epi_path)
+        if fmt == EPI_CONTAINER_FORMAT_LEGACY:
+            return True, None
+
+        header = EPIContainer._read_envelope_header(epi_path)
+        claimed = EPIContainer._viewer_hash_from_reserved_tail(header.reserved_tail)
+        zero = b"\x00" * EPI_VIEWER_HASH_SIZE
+        viewer_bytes = EPIContainer._extract_polyglot_viewer_bytes(epi_path)
+
+        if claimed == zero:
+            if viewer_bytes is not None and len(viewer_bytes) > 0:
+                return True, (
+                    "legacy: polyglot viewer HTML is not integrity-covered "
+                    "(reserved_tail viewer hash is zero); trust epi verify, not the embedded UI"
+                )
+            return True, None
+
+        if viewer_bytes is None:
+            return False, (
+                "polyglot viewer hash present in envelope header but no outer viewer HTML found"
+            )
+
+        actual = hashlib.sha256(viewer_bytes).digest()
+        if actual != claimed:
+            return False, (
+                f"polyglot viewer HTML hash mismatch: "
+                f"expected {claimed.hex()[:16]}…, got {actual.hex()[:16]}… "
+                f"(display layer may have been tampered)"
+            )
+        return True, None
 
     @staticmethod
     def _validate_zip_payload(zip_path: Path) -> None:
@@ -427,29 +523,9 @@ class EPIContainer:
         Returns the inlined viewer HTML string if the file is an envelope with an
         embedded viewer, or None for legacy ZIP files or files without a viewer.
         """
-        fmt = EPIContainer.detect_container_format(epi_path)
-        if fmt == EPI_CONTAINER_FORMAT_LEGACY:
+        viewer_bytes = EPIContainer._extract_polyglot_viewer_bytes(epi_path)
+        if viewer_bytes is None:
             return None
-
-        with open(epi_path, "rb") as f:
-            f.seek(EPI_ENVELOPE_HEADER_SIZE)
-            # Read a reasonable chunk to find the ZIP marker
-            # Viewer HTML is typically 500KB-2MB; read first 4MB to be safe
-            chunk = f.read(4 * 1024 * 1024)
-
-        marker_idx = chunk.find(EPI_ZIP_MARKER)
-        if marker_idx == -1:
-            return None
-
-        viewer_bytes = chunk[:marker_idx]
-        # Strip the polyglot comment close " -->\n" if present
-        prefix = b" -->\n"
-        if viewer_bytes.startswith(prefix):
-            viewer_bytes = viewer_bytes[len(prefix):]
-        else:
-            # Some older polyglot formats may not have the prefix
-            pass
-
         try:
             return viewer_bytes.decode("utf-8")
         except UnicodeDecodeError:
@@ -533,6 +609,17 @@ class EPIContainer:
         uuid_bytes = manifest.workflow_id.bytes if manifest else b"\x00" * 16
         created_at_micros = int(manifest.created_at.timestamp() * 1_000_000) if manifest else 0
 
+        # Hash the outer polyglot viewer so display-layer tampering fails verify.
+        html_bytes: bytes | None = None
+        if viewer_html:
+            html_bytes = viewer_html.encode("utf-8")
+            if EPI_ZIP_MARKER in html_bytes:
+                raise RuntimeError(
+                    "Viewer HTML contains EPI_ZIP_MARKER sentinel bytes; "
+                    "this would corrupt extraction. Cannot pack this artifact."
+                )
+        reserved_tail = EPIContainer._build_reserved_tail(html_bytes)
+
         header = _EPI_ENVELOPE_HEADER_STRUCT.pack(
             EPI_ENVELOPE_MAGIC, # "<!--"
             EPI_ENVELOPE_VERSION,
@@ -542,23 +629,16 @@ class EPIContainer:
             uuid_bytes,
             created_at_micros,
             b"\x00" * 32,
-            b"\x00" * 56,
+            reserved_tail,
         )
 
         with open(output_path, "wb") as dst:
             dst.write(header)
             
             # Polyglot Bootstrap: Inject HTML between header and ZIP
-            if viewer_html:
+            if html_bytes is not None:
                 # Close the header comment, add HTML, then start a new comment for the binary ZIP
                 dst.write(b" -->\n")
-                # Guard: viewer HTML must not contain the ZIP payload sentinel
-                html_bytes = viewer_html.encode("utf-8")
-                if EPI_ZIP_MARKER in html_bytes:
-                    raise RuntimeError(
-                        "Viewer HTML contains EPI_ZIP_MARKER sentinel bytes; "
-                        "this would corrupt extraction. Cannot pack this artifact."
-                    )
                 dst.write(html_bytes)
                 dst.write(EPI_ZIP_MARKER)
 
@@ -576,7 +656,7 @@ class EPIContainer:
             uuid_bytes,
             created_at_micros,
             payload_hash.digest(),
-            b"\x00" * 56,
+            reserved_tail,
         )
 
         with open(output_path, "r+b") as dst:
@@ -946,6 +1026,14 @@ class EPIContainer:
             f"3. Public Key (Raw Hex): {manifest.public_key or '(unsigned)'}\n\n"
             f"COMMAND LINE:\n"
             f"  python -m epi_cli verify <this_file>.epi\n\n"
+            f"TRUST MODEL:\n"
+            f"  Trust `epi verify` (CLI / machine-readable report), not the colors or\n"
+            f"  labels painted by the double-click embedded HTML viewer alone.\n"
+            f"  Sealed data lives in the ZIP payload (file_manifest + Ed25519 seal).\n"
+            f"  New envelope-v2 artifacts also store SHA-256 of the outer polyglot\n"
+            f"  viewer HTML in the 128-byte header reserved_tail[0:32]. Mutating that\n"
+            f"  display layer fails verification. Legacy artifacts with an all-zero\n"
+            f"  viewer hash do not cover the outer HTML — still trust the CLI.\n\n"
             f"This artifact is a signed, tamper-evident record.\n",
             encoding="utf-8"
         )
@@ -1480,5 +1568,16 @@ class EPIContainer:
                         mismatches[rel_path] = "Extra file not in manifest"
         finally:
             shutil.rmtree(temp_path, ignore_errors=True)
+
+        # Outer polyglot viewer HTML integrity (envelope reserved_tail[0:32]).
+        # ZIP-internal viewer.html is already covered by file_manifest above.
+        try:
+            poly_ok, poly_detail = EPIContainer.verify_polyglot_viewer(epi_path)
+            if not poly_ok:
+                mismatches["__polyglot_viewer__"] = poly_detail or (
+                    "polyglot viewer HTML integrity check failed"
+                )
+        except Exception as exc:
+            mismatches["__polyglot_viewer__"] = f"polyglot viewer check error: {exc}"
 
         return (len(mismatches) == 0, mismatches)
