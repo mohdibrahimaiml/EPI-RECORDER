@@ -60,6 +60,30 @@ def _copy_tree(src: Path, dest: Path, *, preserve_top: set[str] | None = None) -
     return count
 
 
+def _purge_stale_pricing_dirs() -> None:
+    """Remove legacy pricing/ directories that override flat pricing.html on CF Pages.
+
+    Old deploys used pricing/index.html (Starter/Pro monthly SKUs). If that
+    directory remains next to pricing.html, directory routes can win and show
+    vaporware tiers while homepage links to /pricing for the sprint.
+    """
+    for base in TARGETS:
+        stale = base / "pricing"
+        if stale.is_dir() and not (stale / "index.html").exists():
+            # empty dir leftover
+            shutil.rmtree(stale, ignore_errors=True)
+            print(f"Removed empty stale {stale.relative_to(ROOT)}")
+        elif stale.is_dir():
+            # Always remove directory form — canonical is pricing.html only
+            shutil.rmtree(stale, ignore_errors=True)
+            print(f"Removed stale directory {stale.relative_to(ROOT)} (use pricing.html)")
+    # Also purge under SOURCE if ever created by mistake
+    src_stale = SOURCE / "pricing"
+    if src_stale.is_dir():
+        shutil.rmtree(src_stale, ignore_errors=True)
+        print("Removed website/pricing/ directory (canonical is website/pricing.html)")
+
+
 def sync() -> None:
     if not SOURCE.is_dir():
         raise SystemExit(f"Canonical website/ not found at {SOURCE}")
@@ -70,6 +94,8 @@ def sync() -> None:
         n = _copy_tree(SOURCE, dest, preserve_top=preserve)
         print(f"Synced {n} files → {dest.relative_to(ROOT)}")
         total += n
+
+    _purge_stale_pricing_dirs()
 
     # Ensure portal-only dirs exist
     static = ROOT / "verify_portal" / "static"

@@ -28,6 +28,14 @@ for (const DEST of DESTINATIONS) {
   mkdirSync(DEST, { recursive: true });
   cpSync(SRC, DEST, { recursive: true });
 
+  // Never ship directory-style pricing/ (old Starter/Pro SaaS page).
+  // Canonical is flat pricing.html — directory routes can shadow it on CF.
+  const stalePricing = join(DEST, "pricing");
+  if (existsSync(stalePricing)) {
+    rmSync(stalePricing, { recursive: true, force: true });
+    console.log(`Removed stale ${DEST}/pricing/ directory`);
+  }
+
   // Ensure CF treats this as a static site (not a Worker-only project)
   const routesPath = join(DEST, "_routes.json");
   writeFileSync(
@@ -50,5 +58,15 @@ for (const DEST of DESTINATIONS) {
       return 0;
     }
   })();
+  const pricingHead = (() => {
+    try {
+      return readFileSync(join(DEST, "pricing.html"), "utf8").slice(0, 200);
+    } catch {
+      return "";
+    }
+  })();
+  if (pricingHead && !pricingHead.includes("Agent Evidence Sprint") && !pricingHead.includes("$1,500") && !pricingHead.includes("$1500")) {
+    console.warn(`WARNING: ${DEST}/pricing.html may not be the honest sprint page`);
+  }
   console.log(`Cloudflare Pages build OK: copied ${SRC}/ → ${DEST}/ (index.html ${count} bytes)`);
 }
