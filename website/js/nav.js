@@ -1,4 +1,4 @@
-// EPI site nav — burger + scroll (mobile-safe)
+// EPI site nav — burger + scroll + mobile theme (mobile-safe)
 (function () {
   function ready(fn) {
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn);
@@ -18,6 +18,24 @@
       window.addEventListener("scroll", onScroll, { passive: true });
     }
 
+    // Ensure mobile menu has a theme toggle (desktop toggle is in hidden .nav-links)
+    if (menu && !menu.querySelector("[data-theme-toggle], .mob-theme-btn")) {
+      var themeBtn = document.createElement("button");
+      themeBtn.type = "button";
+      themeBtn.className = "mob-theme-btn theme-toggle-nav";
+      themeBtn.setAttribute("data-theme-toggle", "1");
+      themeBtn.setAttribute("aria-label", "Toggle color theme");
+      themeBtn.innerHTML = "&#9788; Theme";
+      menu.appendChild(themeBtn);
+      // Re-apply icons if theme.js already ran
+      if (window.EPITheme && typeof window.EPITheme.apply === "function") {
+        try {
+          var cur = document.documentElement.getAttribute("data-theme") || "dark";
+          window.EPITheme.apply(cur);
+        } catch (e) {}
+      }
+    }
+
     if (!btn || !menu) return;
 
     // Prevent duplicate listeners if script loaded twice
@@ -32,7 +50,12 @@
       menu.classList.toggle("is-open", open);
       menu.classList.toggle("open", open);
       menu.removeAttribute("hidden");
-      menu.style.display = open ? "flex" : "none";
+      // Clear inline display:none that some pages ship with
+      if (open) {
+        menu.style.display = "flex";
+      } else {
+        menu.style.display = "none";
+      }
       btn.classList.toggle("is-open", open);
       btn.classList.toggle("open", open);
       btn.setAttribute("aria-expanded", open ? "true" : "false");
@@ -52,19 +75,16 @@
     }
 
     btn.addEventListener("click", toggle);
-    // iOS sometimes prefers touchend; use click only to avoid double-fire
 
-    menu.querySelectorAll("a").forEach(function (a) {
-      a.addEventListener("click", function () {
-        setOpen(false);
-      });
+    menu.addEventListener("click", function (e) {
+      var a = e.target && e.target.closest && e.target.closest("a");
+      if (a) setOpen(false);
     });
 
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && isOpen()) setOpen(false);
     });
 
-    // Close when rotating / resizing to desktop
     window.addEventListener(
       "resize",
       function () {
