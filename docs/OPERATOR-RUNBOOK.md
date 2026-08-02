@@ -47,13 +47,39 @@ https://epi-verify-portal.onrender.com/api/auth/github/callback
 
 (Use your real Render hostname if different.)
 
-### Durable auth DB
+### Durable auth DB (CRITICAL — free Render disk is ephemeral)
+
+`verify_portal/db.py` uses:
+
+1. **Turso / libSQL** when `TURSO_DATABASE_URL` (or `TURSO_URL` / `LIBSQL_DATABASE_URL`) **and**
+   `TURSO_AUTH_TOKEN` (or `TURSO_TOKEN`) are set on the Render service.
+2. **Local SQLite** under `./data` otherwise.
+
+Render free tier **wipes the filesystem on every redeploy/restart**. Without Turso:
+
+- users / sessions / API keys / `plan` / `customer_id` **silently reset**
+- a paying Hosted user can fall back to free with no error toast
 
 | Variable | Purpose |
 |----------|---------|
-| Turso / remote auth config used by `verify_portal.db` | Prefer durable backend so plans survive deploys |
+| `TURSO_DATABASE_URL` | libSQL/Turso URL (`libsql://…`) |
+| `TURSO_AUTH_TOKEN` | Turso auth token |
 
-Check: `GET https://epilabs.org/api/auth/status` → `oauth_configured: true`, `db_durable: true` when healthy.
+**Survival test (2 minutes):**
+
+1. Sign in on epilabs.org/account and note plan / user id.
+2. Trigger a Render **Manual Deploy**.
+3. Hard-refresh /account — still signed in? Plan still Hosted if you were paid?
+4. `GET https://epilabs.org/api/auth/status` — prefer `db_durable: true` (or equivalent) when Turso is wired.
+
+Check: `GET https://epilabs.org/api/auth/status` → `oauth_configured: true`, durable DB when healthy.
+
+### Public site pricing (Cloudflare Pages)
+
+- Build **source of truth:** `website/` → output **`site/`** (`npm run build` / `scripts/cf-pages-build.mjs`).
+- Canonical pricing is **flat** `pricing.html` (Open Source / $1,500 sprint / design partners).
+- **Never** ship `pricing/index.html` (legacy Starter/Pro monthly vaporware). Sync and CF build purge `pricing/` dirs.
+- After deploy: open **https://epilabs.org/pricing** and confirm **Agent Evidence Sprint** + **no** $1/$15/$40 Subscribe.
 
 ### Admin (manual plan promote)
 

@@ -18,5 +18,10 @@
 /viewer/ /verify/ 301
 /viewer/* /verify/ 301
 #
+# Stale directory-style pricing (old Starter/Pro SaaS HTML) → flat pricing.html
+# CF Pages may prefer pricing/index.html over pricing.html if both exist.
+/pricing/ /pricing 301
+/pricing/index.html /pricing 301
+#
 # Optional: force apex (uncomment if needed and not handled in CF dashboard)
 # https://www.epilabs.org/* https://epilabs.org/:splat 301
