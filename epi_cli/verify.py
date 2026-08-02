@@ -511,6 +511,15 @@ def verify_command(
 
         integrity_ok, mismatches = EPIContainer.verify_integrity(epi_file)
 
+        if verbose:
+            poly_ok, poly_detail = EPIContainer.verify_polyglot_viewer(epi_file)
+            if not poly_ok:
+                console.print(f"  [red][FAIL][/red] Polyglot viewer: {poly_detail}")
+            elif poly_detail and "legacy" in poly_detail:
+                console.print(f"  [yellow]![/yellow] Polyglot viewer: {poly_detail}")
+            elif "__polyglot_viewer__" not in mismatches:
+                console.print("  [green][OK][/green] Polyglot viewer HTML integrity verified")
+
         # ========== STEP 3: FORENSIC AUDIT (Facts) ==========
         # Moved forward as these are objective 'facts'
         sequence_ok = True
@@ -775,6 +784,16 @@ def verify_command(
         if annex_iv_ok and verbose:
             console.print(f"  [green]All Annex IV sections validated.[/green]")
         # ========== STEP 5: CREATE REPORT & APPLY POLICY ==========
+        forensic_reason: str | None = None
+        if not completeness_ok and seq_comp_gaps:
+            forensic_reason = seq_comp_gaps[0]
+        elif not chain_ok and chain_breaks:
+            forensic_reason = chain_breaks[0]
+        elif not sequence_ok:
+            forensic_reason = "step sequence invalid"
+        elif not completeness_ok:
+            forensic_reason = "step sequence incomplete (e.g. tool.call without tool.response)"
+
         report = create_verification_report(
             integrity_ok=integrity_ok,
             signature_valid=signature_valid,
@@ -786,6 +805,8 @@ def verify_command(
             completeness_ok=completeness_ok,
             chain_ok=chain_ok,
             transparency_ok=transparency_ok,
+            completeness_gaps=seq_comp_gaps,
+            forensic_reason=forensic_reason,
         )
 
         # Apply the selected governance policy
@@ -1007,9 +1028,29 @@ def print_trust_report(report: dict, epi_file: Path, verbose: bool = False):
     s_text = "Valid" if signature_valid else ("Unsigned" if signature_valid is None else "INVALID")
     content_lines.append(f"  [{s_color}]- Signature:    {s_text}[/{s_color}]")
 
-    f_color = "green" if (sequence_ok and completeness_ok and chain_ok) else "red"
-    f_text = "PASS" if (sequence_ok and completeness_ok and chain_ok) else "FAIL"
-    content_lines.append(f"  [{f_color}]- Forensic:     {f_text}[/{f_color}]")
+    f_ok = sequence_ok and completeness_ok and chain_ok
+    f_color = "green" if f_ok else "red"
+    f_text = "PASS" if f_ok else "FAIL"
+    f_reason = (
+        facts.get("forensic_reason")
+        or report.get("forensic_reason")
+        or ""
+    )
+    if not f_ok and not f_reason:
+        gaps = facts.get("completeness_gaps") or report.get("completeness_gaps") or []
+        if gaps:
+            f_reason = str(gaps[0])
+        elif not chain_ok:
+            f_reason = "prev_hash chain broken"
+        elif not sequence_ok:
+            f_reason = "step sequence invalid"
+        elif not completeness_ok:
+            f_reason = "step sequence incomplete (e.g. tool.call without tool.response)"
+    if f_ok:
+        content_lines.append(f"  [{f_color}]- Forensic:     {f_text}[/{f_color}]")
+    else:
+        detail = f" — {f_reason}" if f_reason else ""
+        content_lines.append(f"  [{f_color}]- Forensic:     {f_text}{detail}[/{f_color}]")
 
     # Notarization status — RFC 3161 timestamp evidence
     notarization_status = "dim]Not available"

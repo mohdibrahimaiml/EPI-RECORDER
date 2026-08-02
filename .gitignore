@@ -27,11 +27,24 @@ venv/
 ENV/
 env/
 .venv
+.venv/
+.venv-*/
 .venv-release/
 .venv-normal-user/
 .venv-e2e/
+.venv-311-test/
+.test_fresh/
 ci_check_env/
 tmp_debug_env/
+fresh_user_env/
+dist-test/
+scratch/
+scratch_clone/
+# Customer-named / live-ops artifacts must never re-enter the tree
+agicomply*.epi
+paddle-catalog-live.json
+# Website sandbox only — production source is website/
+website-v2/
 .tmp-*
 .tmp-*/**
 .tmp/

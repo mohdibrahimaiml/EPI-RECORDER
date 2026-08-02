@@ -83,6 +83,27 @@ ops must keep them aligned when self-serve is enabled.
 
 ---
 
+## Polyglot embedded viewer (display layer)
+
+`.epi` envelope-v2 files are polyglots: a 128-byte header, outer viewer HTML
+(for double-click in a browser), then a ZIP payload. The **ZIP payload** (steps,
+manifest, `viewer.html` inside the archive) is sealed via `payload_sha256` and
+`file_manifest` + Ed25519.
+
+**New artifacts** also store `SHA-256(outer_viewer_html_bytes)` in
+`reserved_tail[0:32]` of the envelope header. Mutating CSS/JS/labels in the
+outer HTML region fails `epi verify` (integrity mismatch on `__polyglot_viewer__`).
+
+**Legacy artifacts** (viewer hash all-zero) still open and can PASS seal checks
+while the outer display HTML is forgeable. For those files: **trust `epi verify`,
+not the colors or verdict chrome of the double-click UI.** Documented in
+`VERIFY.txt` inside each new pack.
+
+ZIP-internal `viewer.html` was already in `file_manifest`; the gap was only the
+**outer** polyglot region used when a human double-clicks the file.
+
+---
+
 ## Seats, SSO, hosted PDF
 
 Not shipped. Pricing and tier gates must not claim them. Seats/SSO are consulting

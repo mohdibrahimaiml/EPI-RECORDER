@@ -431,6 +431,8 @@ def create_verification_report(
     completeness_ok: bool = True,
     chain_ok: bool = True,
     transparency_ok: bool | None = None,
+    completeness_gaps: list[str] | None = None,
+    forensic_reason: str | None = None,
 ) -> dict:
     """
     Create a structured verification report separating Facts and Identity.
@@ -483,6 +485,9 @@ def create_verification_report(
     # 2. Fact Layer (Objective Evidence)
     scitt_gov = (manifest.governance or {}).get("scitt") if manifest.governance else None
     pk = (manifest.public_key or "").strip().lower()
+    gaps = list(completeness_gaps or [])
+    if not forensic_reason and gaps:
+        forensic_reason = gaps[0]
     report = {
         "facts": {
             "integrity_ok": integrity_ok,
@@ -493,6 +498,8 @@ def create_verification_report(
             "transparency_ok": transparency_ok,
             "has_signature": manifest.signature is not None,
             "mismatches": mismatches,
+            "completeness_gaps": gaps,
+            "forensic_reason": forensic_reason,
         },
         "identity": {
             "status": identity_status,

@@ -93,3 +93,94 @@ def test_envelope_file_starts_with_magic():
     # Header size check
     header_bytes = epi_path.read_bytes()[:128]
     assert len(header_bytes) == 128
+
+    # New packs seal outer polyglot viewer SHA-256 in reserved_tail[0:32]
+    header = EPIContainer._read_envelope_header(epi_path)
+    assert header.reserved_tail[32:] == b"\x00" * 24
+    viewer_hash = header.reserved_tail[:32]
+    assert viewer_hash != b"\x00" * 32  # must be set when viewer is embedded
+    ok, detail = EPIContainer.verify_polyglot_viewer(epi_path)
+    assert ok is True
+    assert detail is None
+
+
+def test_polyglot_viewer_tamper_fails_integrity(tmp_path):
+    """Flipping bytes in the outer polyglot HTML must fail verify integrity."""
+    from epi_core.schemas import ManifestModel
+    from epi_core.trust import sign_manifest
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from epi_core.container import EPI_ZIP_MARKER
+
+    manifest = ManifestModel(
+        spec_version="4.0.1",
+        file_manifest={"steps.jsonl": "a" * 64},
+    )
+    key = Ed25519PrivateKey.from_private_bytes(b"\x01" * 32)
+    signed = sign_manifest(manifest, key, key_name="test")
+
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "steps.jsonl").write_text("{}\n", encoding="utf-8")
+    epi_path = tmp_path / "sealed.epi"
+    EPIContainer.pack(
+        source_dir=source,
+        manifest=signed,
+        output_path=epi_path,
+        container_format=EPI_CONTAINER_FORMAT_ENVELOPE,
+        generate_analysis=False,
+    )
+
+    ok_before, _ = EPIContainer.verify_integrity(epi_path)
+    assert ok_before is True
+
+    raw = bytearray(epi_path.read_bytes())
+    marker = raw.find(EPI_ZIP_MARKER)
+    assert marker > EPI_ENVELOPE_HEADER_SIZE
+    # Flip a byte in the CSS/HTML region (after header + comment close)
+    flip_at = EPI_ENVELOPE_HEADER_SIZE + 10
+    assert flip_at < marker
+    raw[flip_at] ^= 0xFF
+    epi_path.write_bytes(bytes(raw))
+
+    ok_after, mismatches = EPIContainer.verify_integrity(epi_path)
+    assert ok_after is False
+    assert "__polyglot_viewer__" in mismatches
+
+
+def test_legacy_zero_viewer_hash_still_readable(tmp_path):
+    """All-zero reserved_tail viewer hash = legacy; still opens (display not sealed)."""
+    from epi_core.schemas import ManifestModel
+    from epi_core.trust import sign_manifest
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+    manifest = ManifestModel(
+        spec_version="4.0.1",
+        file_manifest={"steps.jsonl": "a" * 64},
+    )
+    key = Ed25519PrivateKey.from_private_bytes(b"\x02" * 32)
+    signed = sign_manifest(manifest, key, key_name="test")
+
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "steps.jsonl").write_text("{}\n", encoding="utf-8")
+    epi_path = tmp_path / "legacy_style.epi"
+    EPIContainer.pack(
+        source_dir=source,
+        manifest=signed,
+        output_path=epi_path,
+        container_format=EPI_CONTAINER_FORMAT_ENVELOPE,
+        generate_analysis=False,
+    )
+
+    # Zero out viewer hash to simulate a pre-fix artifact
+    raw = bytearray(epi_path.read_bytes())
+    # reserved_tail starts at offset 72 (magic4+ver1+fmt1+flags2+len8+uuid16+ts8+hash32 = 72)
+    reserved_tail_off = 72
+    raw[reserved_tail_off : reserved_tail_off + 32] = b"\x00" * 32
+    epi_path.write_bytes(bytes(raw))
+
+    header = EPIContainer._read_envelope_header(epi_path)
+    assert header.reserved_tail[:32] == b"\x00" * 32
+    ok, detail = EPIContainer.verify_polyglot_viewer(epi_path)
+    assert ok is True
+    assert detail is not None and "legacy" in detail
