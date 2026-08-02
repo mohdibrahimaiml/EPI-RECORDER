@@ -299,6 +299,8 @@ class TestReportStructureStability:
             "has_signature",
             "mismatches",
             "transparency_ok",
+            "completeness_gaps",
+            "forensic_reason",
         }
         assert set(report["identity"].keys()) == {
             "status",
