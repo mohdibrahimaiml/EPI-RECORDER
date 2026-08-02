@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>EPI Labs Pricing | Evidence Infrastructure for AI Agents</title>
-<meta name="description" content="Open-source CLI free forever. Hosted $15/mo for web-based verification. Compliance consulting from $15K. Cryptographic evidence for AI agents.">
-<meta property="og:title" content="EPI Labs Pricing | Evidence Infrastructure for AI Agents">
-<meta property="og:description" content="Free CLI forever. Hosted $15/mo for convenience. Compliance consulting from $15K. Ed25519, notarization, SCITT, Annex IV.">
+<title>EPI Labs Pricing | Free verify · $1,500 sprint · Design partners</title>
+<meta name="description" content="Verification is free forever. Buy an Agent Evidence Sprint ($1,500) this month. Evidence Control Plane: design partners only — no vaporware SaaS tiers.">
+<meta property="og:title" content="EPI Labs Pricing | Free to verify. Pay for proof.">
+<meta property="og:description" content="Open source free forever. Agent Evidence Sprint $1,500. Control plane design partners from $5K pilots. No fake monthly tiers.">
 <meta property="og:image" content="https://epilabs.org/assets/logo.png">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon.ico">
@@ -17,69 +17,58 @@
 <link rel="stylesheet" href="css/wow.css?v=3">
 <link rel="stylesheet" href="css/mobile.css?v=1">
 <style>
-.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:24px;max-width:750px;margin:0 auto;padding:0 16px}
-.pricing-card{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-str);padding:32px 24px;position:relative;transition:transform var(--ease) .2s,box-shadow var(--ease) .2s}
-.pricing-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.08)}
-.pricing-card.featured{border-color:var(--accent-line);border-width:2px}
-.pricing-card .badge{position:absolute;top:-14px;right:24px;background:var(--accent);color:#fff;padding:4px 16px;border-radius:20px;font-size:.75rem;font-weight:600;letter-spacing:.04em}
-.pricing-card h3{font-size:1.1rem;color:var(--ink-muted);font-weight:500;margin:0 0 8px;text-transform:uppercase;letter-spacing:.08em}
-.pricing-card .price{font-size:2.6rem;font-weight:700;color:var(--ink);margin:0 0 4px}
-.pricing-card .price small{font-size:1rem;font-weight:400;color:var(--ink-muted)}
-.pricing-card .price .trial-badge{display:inline-block;background:var(--verified-bg);color:var(--verified);font-size:.72rem;font-weight:600;padding:2px 10px;border-radius:10px;margin-left:6px;vertical-align:middle;position:relative;top:-4px}
-.pricing-card .price .save-badge{display:inline-block;background:rgba(34,197,94,.12);color:#22c55e;font-size:.68rem;font-weight:600;padding:2px 8px;border-radius:8px;margin-left:4px;vertical-align:middle;position:relative;top:-4px}
-.pricing-card .price-sub{color:var(--ink-muted);font-size:.85rem;margin-bottom:20px}
-.pricing-card .features{list-style:none;padding:0;margin:0 0 24px}
-.pricing-card .features li{padding:7px 0;border-bottom:1px solid var(--border);font-size:.88rem;color:var(--ink-soft);display:flex;align-items:flex-start;gap:8px;line-height:1.4}
-.pricing-card .features li .icon{font-size:1rem;flex-shrink:0;line-height:1.4}
-.pricing-card .features li .icon.check{color:var(--verified)}
-.pricing-card .features li .icon.star{color:var(--accent-lt)}
-.pricing-card .features li .icon.dash{color:var(--ink-dim)}
-.pricing-card .note{font-size:.78rem;color:var(--ink-dim);margin:-8px 0 18px;line-height:1.45}
-.pricing-card .cta-btn{display:block;width:100%;padding:14px;text-align:center;border-radius:10px;font-family:var(--sans);font-size:.95rem;font-weight:600;cursor:pointer;text-decoration:none;transition:all var(--ease) .15s;border:2px solid transparent}
-.pricing-card .cta-btn.primary{background:var(--accent);color:#fff}
-.pricing-card .cta-btn.primary:hover{background:var(--accent-lt)}
+.pricing-main{padding-top:100px;padding-bottom:80px}
+.pricing-hero{text-align:center;padding:48px 24px 28px;max-width:720px;margin:0 auto}
+.pricing-hero h1{font-size:clamp(1.85rem,4vw,2.5rem);color:var(--ink);margin:0 0 14px;letter-spacing:-0.03em;line-height:1.15}
+.pricing-hero p{color:var(--ink-soft);font-size:1.08rem;line-height:1.6;margin:0}
+
+/* Mid-page verify moat */
+.verify-now{max-width:720px;margin:0 auto 40px;padding:0 16px}
+.verify-now-inner{background:var(--bg-card);border:1px solid var(--border-str);border-radius:16px;padding:20px 22px;box-shadow:0 8px 28px rgba(0,0,0,.06)}
+.verify-now-label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 10px;font-weight:600}
+.verify-now-title{font-size:1.05rem;color:var(--ink);margin:0 0 8px;font-weight:650}
+.verify-now-desc{font-size:.9rem;color:var(--ink-muted);margin:0 0 14px;line-height:1.5}
+.verify-code{background:var(--bg-dark,#0c0c0e);color:#d0d5dd;font-family:var(--mono);font-size:.88rem;border-radius:12px;padding:14px 16px;line-height:1.7;overflow-x:auto;margin:0 0 12px;border:1px solid var(--border)}
+.verify-code .cmt{color:#6b7280}
+.verify-now-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.verify-now-actions a,.verify-now-actions button{font-size:.85rem;font-weight:600;font-family:var(--sans);border-radius:10px;padding:10px 14px;cursor:pointer;text-decoration:none;border:1px solid var(--border-str);background:transparent;color:var(--ink)}
+.verify-now-actions a.primary,.verify-now-actions button.primary{background:var(--accent);color:#04120c;border-color:transparent}
+.verify-now-actions a:hover,.verify-now-actions button:hover{border-color:var(--accent-line)}
+
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:1100px;margin:0 auto;padding:0 16px}
+@media(max-width:900px){
+  .pricing-grid{grid-template-columns:1fr;max-width:440px}
+  .pricing-card.featured{order:-1}
+}
+.pricing-card{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-str);padding:28px 22px;position:relative;display:flex;flex-direction:column;transition:border-color .2s,box-shadow .2s}
+.pricing-card.featured{border-color:var(--border-accent);border-width:2px;box-shadow:0 0 0 1px rgba(61,220,151,.12),0 16px 40px rgba(0,0,0,.12)}
+.pricing-card .badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--accent);color:#04120c;padding:5px 14px;border-radius:999px;font-size:.72rem;font-weight:700;letter-spacing:.04em}
+.pricing-card h3{font-size:1rem;color:var(--ink-muted);font-weight:600;margin:8px 0 6px;text-transform:uppercase;letter-spacing:.06em}
+.pricing-card .price{font-size:2.4rem;font-weight:700;color:var(--ink);margin:0 0 4px;letter-spacing:-0.02em}
+.pricing-card .price small{font-size:1rem;font-weight:500;color:var(--ink-muted)}
+.pricing-card .price-sub{color:var(--ink-muted);font-size:.88rem;margin:0 0 10px;line-height:1.45}
+.pricing-card .deal-line{font-size:.88rem;color:var(--ink-soft);line-height:1.5;margin:0 0 16px;padding:12px 12px;background:var(--accent-glow);border:1px solid var(--accent-line);border-radius:10px}
+.pricing-card .spine{font-size:.9rem;color:var(--ink);font-weight:600;line-height:1.45;margin:0 0 16px}
+.pricing-card .features{list-style:none;padding:0;margin:0 0 20px;flex:1}
+.pricing-card .features li{padding:8px 0;border-bottom:1px solid var(--border);font-size:.88rem;color:var(--ink-soft);display:flex;align-items:flex-start;gap:8px;line-height:1.4}
+.pricing-card .features li .icon{color:var(--verified);flex-shrink:0}
+.pricing-card .note{font-size:.78rem;color:var(--ink-dim);margin:0 0 16px;line-height:1.45}
+.pricing-card .cta-btn{display:block;width:100%;padding:14px;text-align:center;border-radius:10px;font-family:var(--sans);font-size:.95rem;font-weight:600;cursor:pointer;text-decoration:none;transition:all .15s;border:2px solid transparent;box-sizing:border-box}
+.pricing-card .cta-btn.primary{background:var(--accent);color:#04120c}
+.pricing-card .cta-btn.primary:hover{filter:brightness(1.06)}
 .pricing-card .cta-btn.secondary{background:transparent;color:var(--accent);border-color:var(--accent-line)}
 .pricing-card .cta-btn.secondary:hover{background:var(--accent-glow)}
-.pricing-card .price-placeholder{color:var(--ink-dim);font-size:1.4rem;font-weight:400}
-.pricing-card .price-loaded{color:var(--ink)}
-.thesis-banner{max-width:800px;margin:0 auto 40px;padding:28px 32px;background:var(--bg-alt);border:1px solid var(--border);border-radius:12px;font-size:.92rem;color:var(--ink-soft);line-height:1.6}
-.thesis-banner strong{color:var(--ink)}
-.billing-toggle{display:flex;justify-content:center;align-items:center;gap:12px;margin:0 auto 36px;max-width:400px}
-.billing-toggle span{font-size:.9rem;color:var(--ink-muted);font-weight:500}
-.billing-toggle span.active{color:var(--ink);font-weight:700}
-.billing-toggle button{position:relative;width:52px;height:28px;border-radius:14px;background:var(--accent);border:none;cursor:pointer;transition:background var(--ease) .2s}
-.billing-toggle button::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform var(--ease) .2s}
-.billing-toggle button.yearly{background:var(--ink-dim)}
-.billing-toggle button.yearly::after{transform:translateX(24px)}
-.compare-section{max-width:750px;margin:80px auto 0;padding:0 24px;overflow-x:auto}
-.compare-section h2{text-align:center;font-size:1.4rem;color:var(--ink);margin-bottom:12px}
-.compare-table{width:100%;border-collapse:collapse;font-size:.86rem}
-.compare-table th,.compare-table td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border)}
-.compare-table th{font-weight:600;color:var(--ink-soft);font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;background:var(--bg-alt)}
-.compare-table td{color:var(--ink)}
-.compare-table td:not(:first-child){text-align:center;font-weight:600}
-.compare-table .row-label{font-weight:500}
-.compare-table .check{color:var(--verified);font-size:1.1rem}
-.compare-table .dash{color:var(--ink-dim)}
-.services-section{max-width:800px;margin:80px auto 0;padding:0 24px}
-.services-section h2{text-align:center;font-size:1.4rem;color:var(--ink);margin:0 0 24px}
-.service-card{background:var(--bg-card);border-radius:12px;border:1px solid var(--border-str);padding:24px 20px;margin-bottom:18px}
-.service-card h4{font-size:1rem;color:var(--ink);margin:0 0 8px}
-.service-card .price-anchor{display:inline-block;background:var(--accent-glow);color:var(--accent);font-size:.82rem;font-weight:600;padding:3px 12px;border-radius:6px;margin-bottom:10px}
-.service-card p{color:var(--ink-soft);font-size:.88rem;line-height:1.55;margin:0 0 10px}
-.service-card a{display:inline-block;color:var(--accent);text-decoration:none;font-weight:600;font-size:.85rem}
-.service-card a:hover{text-decoration:underline}
-.coming-soon-card{background:var(--bg-alt);border:1px dashed var(--border);border-radius:12px;padding:24px 20px;margin-bottom:18px}
-.coming-soon-card h4{font-size:1rem;color:var(--ink);margin:0 0 8px}
-.coming-soon-card p{color:var(--ink-soft);font-size:.88rem;line-height:1.55;margin:0 0 10px}
-.coming-soon-card a{display:inline-block;color:var(--accent);text-decoration:none;font-weight:600;font-size:.85rem}
-.coming-soon-card a:hover{text-decoration:underline}
-.faq-section{max-width:700px;margin:80px auto 80px;padding:0 24px}
-.faq-section h2{text-align:center;font-size:1.6rem;color:var(--ink);margin-bottom:40px}
-.faq-item{margin-bottom:28px}
-.faq-item h4{font-size:1.05rem;color:var(--ink);margin:0 0 8px;font-weight:600}
+.pricing-card .cta-stack{display:flex;flex-direction:column;gap:8px}
+
+.faq-section{max-width:700px;margin:72px auto 40px;padding:0 24px}
+.faq-section h2{text-align:center;font-size:1.45rem;color:var(--ink);margin:0 0 32px}
+.faq-item{margin-bottom:24px}
+.faq-item h4{font-size:1.02rem;color:var(--ink);margin:0 0 8px;font-weight:600}
 .faq-item p{color:var(--ink-soft);font-size:.92rem;line-height:1.6;margin:0}
 .faq-item p code{background:var(--bg-alt);padding:1px 6px;border-radius:4px;font-size:.88em}
+
+.pricing-foot{text-align:center;padding:0 24px 40px;color:var(--ink-muted);font-size:.88rem}
+.pricing-foot a{color:var(--accent);font-weight:600}
 </style>
 <script>
 (function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();
@@ -97,7 +86,6 @@
       <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
       <li id="nav-auth-slot"></li>
       <li><button type="button" class="theme-toggle-nav" id="themeToggleNav" data-theme-toggle aria-label="Toggle color theme" title="Toggle theme">&#9788;</button></li>
-
     </ul>
     <button type="button" class="nav-mob" id="mobBtn" aria-label="Open menu" aria-expanded="false" aria-controls="mobMenu"><span></span><span></span><span></span></button>
   </div>
@@ -108,253 +96,140 @@
   <a href="/pricing">Pricing</a>
   <a href="/enterprise">Enterprise</a>
   <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
-  </div>
-<main style="padding-top:120px">
-
-<section style="text-align:center;padding:60px 24px 24px">
-  <h1 style="font-size:2.4rem;color:var(--ink);margin:0 0 12px">Free to verify. Pay for convenience.</h1>
-  <p style="color:var(--ink-soft);font-size:1.1rem;max-width:620px;margin:0 auto">The CLI &mdash; the real product &mdash; is MIT-licensed and free forever. Hosted is $15/month for web-based verification. Everything else starts with a conversation.</p>
-</section>
-
-<div class="thesis-banner">
-  <strong>Your AI agent did something consequential. Prove it.</strong><br><br>
-  EPI Recorder cryptographically seals an agent's decision trail &mdash; what it did, who reviewed it, who approved it &mdash; into a tamper-proof, self-verifiable <code>.epi</code> file with Ed25519 signatures, RFC 3161 timestamping, and optional Bitcoin anchoring. Works completely offline. No server. No trust in EPI Labs. No vendor lock-in. Anyone can verify with <code>epi verify</code> and a public key.<br><br>
-  <strong>That's the product. It's free. We charge for services on top of it.</strong>
+  <a href="/account">Sign in</a>
 </div>
 
-<div class="billing-toggle">
-  <span id="label-monthly">Monthly</span>
-  <button id="billing-toggle-btn" onclick="toggleBilling()" aria-label="Toggle billing period"></button>
-  <span id="label-yearly" class="active">Yearly &mdash; save 20%</span>
-</div>
+<main class="pricing-main">
 
-<section class="pricing-grid">
+  <section class="pricing-hero">
+    <h1>Free to verify. Pay for proof&nbsp;— not vaporware.</h1>
+    <p>The crypto is open source. The only thing you can buy this month is a founder-led sprint. Everything else is either free forever or still in development — and we say so.</p>
+  </section>
 
-  <div class="pricing-card">
-    <h3>Open Source</h3>
-    <div class="price">$0</div>
-    <div class="price-sub">MIT licensed. Free forever. No account required.</div>
-    <ul class="features">
-      <li><span class="icon check">&#10003;</span> CLI &amp; Python SDK</li>
-      <li><span class="icon check">&#10003;</span> Ed25519 sealing + offline verification</li>
-      <li><span class="icon check">&#10003;</span> Annex IV (9 sections) + multi-signer chains</li>
-      <li><span class="icon check">&#10003;</span> Annex PDF / HTML reports via CLI</li>
-      <li><span class="icon check">&#10003;</span> RFC 3161 notarization + Bitcoin anchoring</li>
-      <li><span class="icon check">&#10003;</span> Pre-execution commitment chain &mdash; proves intent before outcome <span style="color:var(--ink-dim);font-size:.82rem">(non-streaming calls)</span></li>
-      <li><span class="icon check">&#10003;</span> Recomputable vs attested-only classification (R/A badges per step)</li>
-      <li><span class="icon check">&#10003;</span> Public GitHub Action (<code>verify-epi</code>)</li>
-      <li><span class="icon check">&#10003;</span> Integrations: LangChain, LangGraph, LiteLLM, OTel, pytest, AGT</li>
-    </ul>
-    <p class="note">100 free hosted checks/month. Unlimited offline. No server needed. See <a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/KNOWN_LIMITATIONS.md" style="color:var(--accent)">known limitations</a>.</p>
-    <a href="https://github.com/mohdibrahimaiml/epi-recorder" class="cta-btn secondary">Star on GitHub</a>
-  </div>
+  <!-- Category moat: verify on the pricing page -->
+  <section class="verify-now" aria-label="Try offline verify">
+    <div class="verify-now-inner">
+      <p class="verify-now-label">Try it now · no account</p>
+      <h2 class="verify-now-title">Verify a sealed .epi before you talk to us</h2>
+      <p class="verify-now-desc">No other pricing page in this category lets you check the product mid-scroll. Offline verify will never require a subscription.</p>
+      <pre class="verify-code" id="verifySnippet"><span class="cmt"># install + verify a sample (offline)</span>
+pip install epi-recorder
+epi verify sample.epi</pre>
+      <div class="verify-now-actions">
+        <button type="button" class="primary" id="copyVerifyCmd">Copy commands</button>
+        <a href="https://pypi.org/project/epi-recorder/" target="_blank" rel="noopener">PyPI</a>
+        <a href="assets/sample.epi" download>Download sample.epi</a>
+        <a href="/verify/">Browser check</a>
+      </div>
+    </div>
+  </section>
 
-  <div class="pricing-card featured">
-    <div class="badge" style="background:var(--verified)">SELF-SERVE</div>
-    <h3>Hosted</h3>
-    <div class="price" id="price-hosted"><span class="price-placeholder">$144<small>/yr</small></span><span class="save-badge">save 20%</span><span class="trial-badge">7-day trial</span></div>
-    <div class="price-sub">Hosted verification convenience. Cancel anytime.</div>
-    <ul class="features">
-      <li><span class="icon check">&#10003;</span> Everything in Open Source</li>
-      <li><span class="icon check">&#10003;</span> 10,000 hosted checks / month</li>
-      <li><span class="icon check">&#10003;</span> Web-based verify &mdash; no CLI install needed</li>
-      <li><span class="icon check">&#10003;</span> Up to 10 API keys for CI / automation</li>
-      <li><span class="icon check">&#10003;</span> Remote SCITT anchoring</li>
-      <li><span class="icon check">&#10003;</span> Founder email support</li>
-    </ul>
-    <p class="note">Runs on shared infrastructure. Cold starts happen. Check the <a href="/status" style="color:var(--accent)">status page</a>. Offline CLI verify always works regardless of plan.</p>
-    <button id="btn-hosted" class="cta-btn primary" onclick="openCheckout('hosted')">Subscribe &mdash; Hosted</button>
-  </div>
+  <section class="pricing-grid" aria-label="Pricing options">
 
-</section>
+    <!-- 1 · Open Source -->
+    <div class="pricing-card">
+      <h3>Open Source</h3>
+      <div class="price">$0</div>
+      <p class="price-sub">Free forever. MIT. No account required.</p>
+      <p class="spine">Verification will never cost money. That&rsquo;s the point.</p>
+      <ul class="features">
+        <li><span class="icon">&#10003;</span> Recorder, verifier, viewer, <code>.epi</code> format</li>
+        <li><span class="icon">&#10003;</span> Ed25519 seal + offline <code>epi verify</code></li>
+        <li><span class="icon">&#10003;</span> CLI &amp; Python SDK</li>
+        <li><span class="icon">&#10003;</span> Annex, notarization, GitHub Action</li>
+        <li><span class="icon">&#10003;</span> LangChain adapter &amp; framework integrations</li>
+      </ul>
+      <p class="note">Unlimited offline use. Browser private check stays free. See <a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/KNOWN_LIMITATIONS.md" style="color:var(--accent)">known limitations</a>.</p>
+      <div class="cta-stack">
+        <a href="https://pypi.org/project/epi-recorder/" class="cta-btn primary" target="_blank" rel="noopener">pip install epi-recorder</a>
+        <a href="https://github.com/mohdibrahimaiml/epi-recorder" class="cta-btn secondary" target="_blank" rel="noopener">Star on GitHub</a>
+      </div>
+    </div>
 
-<section class="compare-section">
-  <h2>What's free, what's paid</h2>
-  <table class="compare-table">
-    <thead>
-      <tr><th>Capability</th><th>Open Source</th><th>Hosted</th></tr>
-    </thead>
-    <tbody>
-      <tr><td class="row-label">CLI / SDK / offline verify</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">Ed25519 seal &amp; verify</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">RFC 3161 notarization</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">Pre-execution commitment</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">Annex IV + multi-sign + CLI PDF</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">GitHub Action (public)</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">Hosted web verification</td><td>100 / mo</td><td>10,000 / mo</td></tr>
-      <tr><td class="row-label">API keys</td><td>1</td><td>10</td></tr>
-      <tr><td class="row-label">Remote SCITT anchoring</td><td class="dash">&#8212;</td><td class="check">&#10003;</td></tr>
-      <tr><td class="row-label">Support</td><td>Community</td><td>Email</td></tr>
-    </tbody>
-  </table>
-</section>
+    <!-- 2 · Sprint (hero) -->
+    <div class="pricing-card featured">
+      <div class="badge">Available now · 3 slots / month</div>
+      <h3>Agent Evidence Sprint</h3>
+      <div class="price">$1,500</div>
+      <p class="price-sub">Five days. One workflow. Signed artifacts. Findings report.</p>
+      <p class="deal-line">Your enterprise deals stall on &ldquo;prove what your agent did.&rdquo; This is the answer, in a week.</p>
+      <ul class="features">
+        <li><span class="icon">&#10003;</span> Instrument one production-shaped agent path</li>
+        <li><span class="icon">&#10003;</span> Sealed, signed <code>.epi</code> evidence you keep</li>
+        <li><span class="icon">&#10003;</span> Offline verify walkthrough for your team</li>
+        <li><span class="icon">&#10003;</span> Written findings + next-step recommendations</li>
+        <li><span class="icon">&#10003;</span> Founder-led — not a ticket queue</li>
+      </ul>
+      <p class="note">Capacity is real solo capacity: three sprints a month. If we&rsquo;re full, we&rsquo;ll say so.</p>
+      <a class="cta-btn primary" href="mailto:mohdibrahim@epilabs.org?subject=Agent%20Evidence%20Sprint%20%28%241%2C500%29">Book a sprint</a>
+    </div>
 
-<section class="services-section">
-  <h2>Need something bigger?</h2>
+    <!-- 3 · Control plane -->
+    <div class="pricing-card">
+      <h3>Evidence Control Plane</h3>
+      <div class="price"><small style="font-size:1.35rem;font-weight:650;color:var(--ink)">Design partners</small></div>
+      <p class="price-sub">No monthly price. Product is still in development.</p>
+      <ul class="features">
+        <li><span class="icon">&#10003;</span> Org key management</li>
+        <li><span class="icon">&#10003;</span> Hosted receipts &amp; retention</li>
+        <li><span class="icon">&#10003;</span> Shared infrastructure for scale</li>
+        <li><span class="icon">&#10003;</span> Founding pricing + roadmap influence</li>
+        <li><span class="icon">&#10003;</span> Pilots from $5K</li>
+      </ul>
+      <p class="note">We&rsquo;re taking <strong>3–5 design partners</strong> — not selling a SaaS tier that doesn&rsquo;t exist yet. When it ships, pricing will reflect what partners actually paid.</p>
+      <a class="cta-btn secondary" href="mailto:mohdibrahim@epilabs.org?subject=Evidence%20Control%20Plane%20%E2%80%94%20design%20partner">Design partner inquiry</a>
+    </div>
 
-  <div class="service-card">
-    <h4>Compliance-readiness consulting</h4>
-    <div class="price-anchor">Engagements typically start at $15,000</div>
-    <p>Map your agent workflow to real regulatory frameworks &mdash; EU AI Act Annex IV, OMB M-25-21, AIUC-1, or your auditor's checklist. You get a concrete evidence plan tailored to your specific deployment, not a generic deck. Priced per engagement after a scoping call.</p>
-    <a href="mailto:mohdibrahim@epilabs.org?subject=Compliance%20consulting">Get in touch &rarr;</a>
-  </div>
+  </section>
 
-  <div class="service-card">
-    <h4>Enterprise integration &amp; deployment</h4>
-    <p>Custom wrappers for your LLM gateway, CI pipeline integration, signing key management for your team, dedicated hosted instance. Scope, timeline, and pricing discussed upfront after a discovery call. No open-ended SLA sold before we understand what you need.</p>
-    <a href="mailto:mohdibrahim@epilabs.org?subject=Enterprise%20integration">Get in touch &rarr;</a>
-  </div>
+  <section class="faq-section">
+    <h2>Straight answers</h2>
+    <div class="faq-item">
+      <h4>Why is verification free forever?</h4>
+      <p>Cryptographic evidence only works if it&rsquo;s trustless. If you had to pay EPI Labs to verify your own files, it wouldn&rsquo;t be trustless. The CLI is MIT-licensed. That&rsquo;s the spine of the company.</p>
+    </div>
+    <div class="faq-item">
+      <h4>What do I get in a $1,500 sprint?</h4>
+      <p>Five focused days with the founder: one agent workflow instrumented end-to-end, sealed <code>.epi</code> artifacts your team can re-verify offline, and a short findings report. It is priced against unblocking enterprise &ldquo;prove the agent&rdquo; deals — not against billable hours.</p>
+    </div>
+    <div class="faq-item">
+      <h4>Where is Hosted / Pro monthly pricing?</h4>
+      <p>Removed from this page on purpose. We will not post a monthly number for infrastructure that is not ready to back a promise. Free offline verify stays free. Optional shared hosted checks may still appear on <a href="/account" style="color:var(--accent)">Account</a> for existing free-tier usage — they are not the product we sell as a paid SKU today.</p>
+    </div>
+    <div class="faq-item">
+      <h4>What is a design partner?</h4>
+      <p>Someone who needs org keys, hosted receipts, or retention before the control plane is generally available. You get founding pricing, direct roadmap input, and a pilot from $5K. Capacity: a handful of partners, not a self-serve plan grid.</p>
+    </div>
+  </section>
 
-  <div class="service-card">
-    <h4>Custom development &amp; advisory</h4>
-    <p>Regulatory adapter suites, custom DID registry integration, specialized Annex formats for your industry. Funded as a consulting engagement, scoped to your requirements. Resulting code ships open-source where possible.</p>
-    <a href="mailto:mohdibrahim@epilabs.org?subject=Custom%20development">Get in touch &rarr;</a>
-  </div>
-
-  <div class="coming-soon-card">
-    <h4>Compliance Team &mdash; coming soon</h4>
-    <p>We're onboarding a small number of design partners for dedicated, SLA-backed compliance infrastructure. Continuous framework mapping, dedicated hosted instances with real uptime guarantees, and priority support for teams shipping agent evidence at scale. Get in touch to be considered for the first cohort.</p>
-    <a href="mailto:mohdibrahim@epilabs.org?subject=Compliance%20Team%20design%20partner">Get in touch &rarr;</a>
-  </div>
-
-  <div class="coming-soon-card">
-    <h4>Enterprise &mdash; coming soon</h4>
-    <p>Dedicated infrastructure, contractual SLA, custom integration, and negotiated compliance support. Pricing and availability will publish once the infrastructure exists to back an SLA. Current tiers run on shared hosting only.</p>
-    <a href="mailto:mohdibrahim@epilabs.org?subject=Enterprise%20inquiry">Get in touch &rarr;</a>
-  </div>
-</section>
-
-<section class="faq-section">
-  <h2>Frequently asked questions</h2>
-  <div class="faq-item">
-    <h4>Why is the CLI free forever?</h4>
-    <p>Because cryptographic evidence is only trustworthy if it's trustless. If you had to pay EPI Labs to verify your own files, it wouldn't be trustless. The CLI is MIT-licensed: verify, modify, distribute without us. That's the whole point.</p>
-  </div>
-  <div class="faq-item">
-    <h4>What does Hosted give me?</h4>
-    <p>Convenience. Upload a <code>.epi</code> file through your browser and get a verification report without installing anything. 10,000 checks/month, up to 10 API keys, remote SCITT anchoring, and founder email support. Everything the CLI does offline remains free whether you subscribe or not.</p>
-  </div>
-  <div class="faq-item">
-    <h4>What happens during the 7-day free trial?</h4>
-    <p>Full Hosted access. No charges for 7 days. Cancel anytime before the trial ends and you won't be billed. Your plan reverts to Free at the end of the trial if you don't continue.</p>
-  </div>
-  <div class="faq-item">
-    <h4>Why isn't there a team or enterprise price listed?</h4>
-    <p>Self-serve checkout today is <strong>Open Source</strong> + <strong>Hosted</strong> only. Backend plan keys are <code>free</code>, <code>hosted</code> (aliases: pro/starter), <code>team</code>, and <code>enterprise</code>. Team/Enterprise are promoted via invoice + operator set-plan or design-partner engagement &mdash; not a fixed public SKU until dedicated infrastructure can back an SLA. See <a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/KNOWN_LIMITATIONS.md" style="color:var(--accent)">known limitations</a>.</p>
-  </div>
-  <div class="faq-item">
-    <h4>What is notarization and why is it free?</h4>
-    <p>EPI seals evidence with RFC 3161 timestamps from public time authorities and optionally anchors proofs into the Bitcoin blockchain via OpenTimestamps. This proves <em>when</em> evidence was created, not just what it contains, without depending on EPI Labs infrastructure. We ship it free in the CLI because timestamping shouldn't require a subscription.</p>
-  </div>
-  <div class="faq-item">
-    <h4>Is the hosted backend production-grade?</h4>
-    <p>It runs on shared infrastructure. Suitable for individual practitioners. May experience occasional cold starts. Offline CLI verify works regardless. Organizations needing dedicated infrastructure should contact us for an Enterprise engagement. See <a href="/status" style="color:var(--accent)">status page</a> and <a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/KNOWN_LIMITATIONS.md" style="color:var(--accent)">known limitations</a>.</p>
-  </div>
-</section>
+  <p class="pricing-foot">
+    Prefer the long enterprise path? <a href="/enterprise">Enterprise page</a>
+    · <a href="mailto:mohdibrahim@epilabs.org">mohdibrahim@epilabs.org</a>
+  </p>
 
 </main>
-<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+
 <script src="js/theme.js"></script>
+<script src="js/nav.js?v=2"></script>
+<script src="js/instrument-nav.js"></script>
+<script src="js/auth-ui.js"></script>
 <script>
 (function(){
-  var cfg = null;
-  var isYearly = true;  // Annual is the visually highlighted default
-  var paddleReady = false;
-
-  function priceIdFor() {
-    if (!cfg || !cfg.tiers || !cfg.tiers.hosted) return null;
-    return isYearly ? cfg.tiers.hosted.year : cfg.tiers.hosted.month;
-  }
-
-  function loadPrice() {
-    if (!cfg || !paddleReady) return;
-    if (typeof Paddle === "undefined") return;
-    var priceId = priceIdFor();
-    if (!priceId) return;
-    var el = document.getElementById("price-hosted");
-    if (!el) return;
-    Paddle.PricePreview({
-      items: [{ priceId: priceId, quantity: 1 }]
-    }).then(function(result) {
-      if (result && result.data && result.data.details && result.data.details.lineItems && result.data.details.lineItems.length > 0) {
-        var li = result.data.details.lineItems[0];
-        var total = li.formattedTotals ? li.formattedTotals.total : null;
-        if (total) {
-          el.innerHTML = '<span class="price-loaded">' + total + '<small>' + (isYearly ? '/yr' : '/mo') + '</small></span><span class="save-badge">' + (isYearly ? 'save 20%' : '') + '</span><span class="trial-badge">7-day trial</span>';
-        }
-      }
-    }).catch(function() {});
-  }
-
-  window.toggleBilling = function() {
-    isYearly = !isYearly;
-    var btn = document.getElementById("billing-toggle-btn");
-    var mo = document.getElementById("label-monthly");
-    var yr = document.getElementById("label-yearly");
-    if (isYearly) {
-      btn.className = "yearly";
-      mo.className = "";
-      yr.className = "active";
-      yr.textContent = "Yearly \u2014 save 20%";
-    } else {
-      btn.className = "";
-      mo.className = "active";
-      yr.className = "";
-      yr.textContent = "Yearly";
+  var btn = document.getElementById('copyVerifyCmd');
+  if (!btn) return;
+  btn.addEventListener('click', function(){
+    var text = 'pip install epi-recorder\nepi verify sample.epi';
+    function done(){ btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Copy commands'; }, 1600); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(function(){
+        var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(ta); done();
+      });
     }
-    document.getElementById("price-hosted").innerHTML = '<span class="price-placeholder">$' + (isYearly ? '144' : '15') + '<small>' + (isYearly ? '/yr' : '/mo') + '</small></span><span class="save-badge">' + (isYearly ? 'save 20%' : '') + '</span><span class="trial-badge">7-day trial</span>';
-    loadPrice();
-  };
-
-  window.openCheckout = function() {
-    if (!cfg || !cfg.client_token) { window.location.href = "/account?next=" + encodeURIComponent("/pricing"); return; }
-    var priceId = priceIdFor();
-    if (!priceId) { window.location.href = "/account?next=" + encodeURIComponent("/pricing"); return; }
-    if (typeof Paddle === "undefined") { window.location.href = "/account?next=" + encodeURIComponent("/pricing"); return; }
-    var user = null;
-    var token = "";
-    try { var raw = localStorage.getItem("epi_user"); if (raw) user = JSON.parse(raw); } catch (e) {}
-    try { token = localStorage.getItem("epi_token") || ""; } catch (e2) {}
-    // Require sign-in so webhook can attach Hosted to this GitHub user
-    if (!token || !user || !user.id) {
-      window.location.href = "/account?next=" + encodeURIComponent("/pricing") + "&reason=checkout";
-      return;
-    }
-    var opts = {
-      items: [{ priceId: priceId, quantity: 1 }],
-      settings: {
-        displayMode: "overlay",
-        variant: "one-page",
-        successUrl: window.location.origin + "/account?checkout=success"
-      },
-      customData: {
-        user_id: String(user.id),
-        email: user.email || "",
-        github_login: user.login || ""
-      }
-    };
-    if (user.email) opts.customer = { email: user.email };
-    Paddle.Checkout.open(opts);
-  };
-
-  fetch("/api/paddle/config").then(function(r){return r.json()}).then(function(c){
-    cfg = c;
-    if (!cfg.client_token || !cfg.environment) {
-      var b = document.getElementById("btn-hosted");
-      if (b) { b.textContent = "Sign in to get started"; b.onclick = function(){ window.location.href = "/account"; }; }
-      return;
-    }
-    if (typeof Paddle !== "undefined") {
-      Paddle.Environment.set(cfg.environment);
-      Paddle.Initialize({ token: cfg.client_token, checkout: { settings: { displayMode: "overlay", variant: "one-page" } } });
-      paddleReady = true;
-      loadPrice();
-    }
-  }).catch(function(){});
+  });
 })();
 </script>
-<script src="/js/auth-ui.js"></script>
-<script src="js/instrument-nav.js"></script>
 
 <footer class="site-footer">
   <div class="container">
@@ -369,20 +244,11 @@
         <li><a href="/enterprise">Enterprise</a></li>
         <li><a href="/account">Account</a></li>
         <li><a href="/how-it-works">Docs</a></li>
-        <li><a href="/trust">Trust</a></li>
-        <li><a href="/integrations">Integrations</a></li>
-        <li><a href="/use-cases">Use cases</a></li>
-        <li><a href="/status">Status</a></li>
         <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
-        <li><a href="/terms">Terms</a></li>
-        <li><a href="/privacy">Privacy</a></li>
-        <li><a href="/refund">Refunds</a></li>
         <li><a href="mailto:mohdibrahim@epilabs.org">Contact</a></li>
       </ul>
     </div>
   </div>
 </footer>
-
-<script src="/js/wow.js?v=2"></script>
 </body>
 </html>
