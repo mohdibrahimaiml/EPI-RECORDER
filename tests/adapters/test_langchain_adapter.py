@@ -6,6 +6,7 @@ Uses FakeListLLM / direct callback invocation — no network.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import warnings
@@ -241,20 +242,29 @@ def test_failing_tool_full_artifact_forensic_pass(tmp_path: Path):
     ok, gaps = _audit_step_sequence_completeness(steps)
     assert ok is True, gaps
 
-    # Run real CLI verify
+    # CLI verify — use --json so assertions work without a TTY (Windows CI
+    # often yields empty Rich stdout when not attached to a console).
+    env = os.environ.copy()
+    env.setdefault("PYTHONIOENCODING", "utf-8")
     proc = subprocess.run(
-        [sys.executable, "-m", "epi_cli", "verify", str(out)],
+        [sys.executable, "-m", "epi_cli", "verify", "--json", str(out)],
         capture_output=True,
         text=True,
-        timeout=60,
+        timeout=120,
+        env=env,
     )
     combined = (proc.stdout or "") + (proc.stderr or "")
     assert proc.returncode == 0, combined
-    assert "Forensic" in combined
-    assert "PASS" in combined
-    # Decision may be WARN (unsigned identity) or PASS depending on keys — seal must not FAIL
-    assert "SEAL FAIL" not in combined
-    assert "DECISION: FAIL" not in combined
+    assert proc.stdout, f"expected JSON report on stdout, got empty. stderr={proc.stderr!r}"
+    report = json.loads(proc.stdout)
+    facts = report.get("facts") or {}
+    # Forensic completeness: sequence + completeness + chain all true
+    assert facts.get("completeness_ok") is True, report
+    assert facts.get("sequence_ok") is True, report
+    assert facts.get("chain_ok") is True, report
+    assert facts.get("integrity_ok") is True, report
+    decision = (report.get("decision") or {}).get("status")
+    assert decision != "FAIL", report
 
 
 def test_handler_requires_session():
