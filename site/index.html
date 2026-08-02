@@ -13,10 +13,11 @@
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon.ico">
 <link rel="apple-touch-icon" href="favicon.ico">
-<link rel="stylesheet" href="css/epi.css?v=29">
-<link rel="stylesheet" href="css/epi-v2.css?v=9">
-<link rel="stylesheet" href="css/polish.css?v=3">
-<link rel="stylesheet" href="css/wow.css?v=2">
+<link rel="stylesheet" href="css/epi.css?v=30">
+<link rel="stylesheet" href="css/epi-v2.css?v=10">
+<link rel="stylesheet" href="css/polish.css?v=4">
+<link rel="stylesheet" href="css/wow.css?v=3">
+<link rel="stylesheet" href="css/mobile.css?v=1">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"Organization","name":"EPI Labs","url":"https://epilabs.org","logo":"https://epilabs.org/assets/logo.png","description":"Portable sealed .epi evidence files for AI agent runs. Offline verify. MIT open source.","sameAs":["https://github.com/mohdibrahimaiml/epi-recorder","https://pypi.org/project/epi-recorder/"]}
 </script>
@@ -48,13 +49,15 @@
     <button class="nav-mob" id="mobBtn" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
   </div>
 </nav>
-<div class="mob-menu" id="mobMenu">
+<div class="mob-menu" id="mobMenu" hidden>
   <a href="/verify/">Verify</a>
   <a href="/how-it-works">Docs</a>
   <a href="/pricing">Pricing</a>
   <a href="/enterprise">Enterprise</a>
   <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
   <a href="#proof">Try sample</a>
+  <a href="/account">Sign in</a>
+  <button type="button" class="mob-theme-btn theme-toggle-nav" data-theme-toggle aria-label="Toggle color theme">Theme</button>
 </div>
 
 <!-- 2 · HERO (Magic UI / Aceternity-style FX — vanilla) -->
@@ -335,35 +338,16 @@
 
 <script>
 (function(){
-  
-  var nav=document.getElementById('nav');
-  if(nav) window.addEventListener('scroll',function(){nav.classList.toggle('scrolled',scrollY>40)});
-  var mb=document.getElementById('mobBtn'),mm=document.getElementById('mobMenu');
-  if(mb&&mm){
-    mb.addEventListener('click',function(){
-      var o=mm.classList.contains('open');
-      mb.classList.toggle('open');mm.classList.toggle('open');
-      mb.setAttribute('aria-expanded',String(!o));
-      document.body.style.overflow=o?'':'hidden';
-    });
-    mm.querySelectorAll('a').forEach(function(a){
-      a.addEventListener('click',function(){
-        mm.classList.remove('open');mb.classList.remove('open');
-        mb.setAttribute('aria-expanded','false');document.body.style.overflow='';
-      });
-    });
-  }
   document.querySelectorAll('a[href^="#"]').forEach(function(a){
     a.addEventListener('click',function(e){
       var id=this.getAttribute('href');
+      if(!id||id==='#')return;
       var t=document.querySelector(id);
       if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});}
-      if(mm){mm.classList.remove('open');if(mb){mb.classList.remove('open');mb.setAttribute('aria-expanded','false');}document.body.style.overflow='';}
     });
   });
   var obs=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');obs.unobserve(x.target)}})},{threshold:0.1,rootMargin:'0px 0px -30px 0px'});
   document.querySelectorAll('.reveal').forEach(function(el){obs.observe(el)});
-  // Walkthrough chapter jumps (approx times for the silent demo)
   var vid=document.querySelector('.v2-video');
   document.querySelectorAll('.v2-video-chapters button').forEach(function(btn){
     btn.addEventListener('click',function(){
@@ -391,10 +375,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
 <script src="js/epi-verify-core.js?v=33"></script>
 <script src="js/home-verify.js?v=34"></script>
-<script src="js/wow.js?v=2"></script>
-<script src="js/auth-ui.js"></script>
-
+<script src="js/wow.js?v=3"></script>
 <script src="js/theme.js"></script>
+<script src="js/nav.js?v=2"></script>
 <script src="js/instrument-nav.js"></script>
 <script src="js/auth-ui.js"></script>
 

@@ -6,13 +6,19 @@
 <title>EPI Labs | Check a .epi file</title>
 <meta name="description" content="Check a sealed .epi file. One page, two choices: never upload the file (private browser check), or upload for a full plan-backed report.">
 <link rel="icon" href="/favicon.ico">
-<link rel="stylesheet" href="/css/epi.css?v=29">
-<link rel="stylesheet" href="/css/epi-v2.css?v=9">
-<link rel="stylesheet" href="/css/polish.css?v=3">
-<link rel="stylesheet" href="/css/wow.css?v=2">
+<link rel="stylesheet" href="/css/epi.css?v=30">
+<link rel="stylesheet" href="/css/epi-v2.css?v=10">
+<link rel="stylesheet" href="/css/polish.css?v=4">
+<link rel="stylesheet" href="/css/wow.css?v=3">
+<link rel="stylesheet" href="/css/mobile.css?v=1">
 <style>
 body.epi-instrument{background:var(--bg);color:var(--ink-soft)}
 .verify-main{max-width:800px;margin:0 auto;padding:120px 24px 80px}
+@media(max-width:768px){
+  .verify-main{padding:88px 16px 48px}
+  .drop-zone{padding:40px 16px !important}
+  .drop-zone h2{font-size:1.15rem}
+}
 .clarify{font-size:.9rem;color:var(--ink-soft);margin:0 0 18px;line-height:1.55;padding:14px 16px;background:var(--bg-alt);border-radius:10px;border:1px solid var(--border)}
 .clarify strong{color:var(--ink)}
 .mode-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 16px}
@@ -69,13 +75,14 @@ body.epi-instrument{background:var(--bg);color:var(--ink-soft)}
     </button>
   </div>
 </nav>
-<div class="mob-menu" id="mobMenu" style="display:none">
+<div class="mob-menu" id="mobMenu" hidden>
   <a href="/verify/">Verify</a>
   <a href="/how-it-works">Docs</a>
   <a href="/pricing">Pricing</a>
   <a href="/enterprise">Enterprise</a>
   <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
-  </div>
+  <a href="/account">Sign in</a>
+</div>
 <main class="verify-main">
   <div class="section-label">Verify</div>
   <h1 style="font-size:1.9rem;color:var(--ink);margin:0 0 8px">Check a .epi file</h1>
@@ -336,19 +343,12 @@ body.epi-instrument{background:var(--bg);color:var(--ink-soft)}
     else await handleDevice(file);
   }
 
-  var mb = document.getElementById('mobBtn'), mm = document.getElementById('mobMenu');
-  if (mb && mm) mb.addEventListener('click', function(){
-    var open = mm.classList.toggle('open');
-    mm.style.display = open ? 'block' : 'none';
-    mb.setAttribute('aria-expanded', open ? 'true' : 'false');
-  });
 })();
 </script>
+<script src="/js/theme.js"></script>
+<script src="/js/nav.js?v=2"></script>
+<script src="/js/instrument-nav.js"></script>
 <script src="/js/auth-ui.js"></script>
-
-<script src="../js/theme.js"></script>
-<script src="../js/instrument-nav.js"></script>
-<script src="../js/auth-ui.js"></script>
 
 <footer class="site-footer">
   <div class="container">

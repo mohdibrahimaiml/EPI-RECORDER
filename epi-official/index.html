@@ -13,9 +13,11 @@
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon.ico">
 <link rel="apple-touch-icon" href="favicon.ico">
-<link rel="stylesheet" href="css/epi.css?v=28">
-<link rel="stylesheet" href="css/epi-v2.css?v=8">
-<link rel="stylesheet" href="css/polish.css?v=1">
+<link rel="stylesheet" href="css/epi.css?v=30">
+<link rel="stylesheet" href="css/epi-v2.css?v=10">
+<link rel="stylesheet" href="css/polish.css?v=4">
+<link rel="stylesheet" href="css/wow.css?v=3">
+<link rel="stylesheet" href="css/mobile.css?v=1">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"Organization","name":"EPI Labs","url":"https://epilabs.org","logo":"https://epilabs.org/assets/logo.png","description":"Portable sealed .epi evidence files for AI agent runs. Offline verify. MIT open source.","sameAs":["https://github.com/mohdibrahimaiml/epi-recorder","https://pypi.org/project/epi-recorder/"]}
 </script>
@@ -47,17 +49,26 @@
     <button class="nav-mob" id="mobBtn" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
   </div>
 </nav>
-<div class="mob-menu" id="mobMenu">
+<div class="mob-menu" id="mobMenu" hidden>
   <a href="/verify/">Verify</a>
   <a href="/how-it-works">Docs</a>
   <a href="/pricing">Pricing</a>
   <a href="/enterprise">Enterprise</a>
   <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
   <a href="#proof">Try sample</a>
+  <a href="/account">Sign in</a>
+  <button type="button" class="mob-theme-btn theme-toggle-nav" data-theme-toggle aria-label="Toggle color theme">Theme</button>
 </div>
 
-<!-- 2 · HERO -->
-<section class="hero">
+<!-- 2 · HERO (Magic UI / Aceternity-style FX — vanilla) -->
+<section class="hero" id="hero">
+  <div class="hero-fx" aria-hidden="true">
+    <div class="aurora"></div>
+    <div class="dot-grid"></div>
+    <div class="spotlight"></div>
+    <div class="meteors"><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="vignette"></div>
+  </div>
   <div class="hero-content v2-hero-grid">
     <div class="v2-hero-copy">
       <div class="hero-eyebrow">Evidence for the AI economy</div>
@@ -65,7 +76,7 @@
       <p class="hero-sub">Seal AI agent runs. Verify offline. Same bytes in CI and for auditors.</p>
       <p class="hero-sub">Observability shows <em>you</em> what happened. EPI gives <em>anyone</em> a sealed proof that still works without our UI.</p>
       <div class="hero-actions">
-        <a href="#proof" class="btn btn-primary btn-lg btn-beam">Verify a sample <span class="btn-arrow">&rarr;</span></a>
+        <span class="beam-wrap"><a href="#proof" class="btn btn-primary btn-lg">Verify a sample <span class="btn-arrow">&rarr;</span></a></span>
         <a href="#walkthrough" class="btn btn-secondary btn-lg">Watch 20s demo</a>
       </div>
       <div class="v2-install-chip" id="installChip">
@@ -97,6 +108,28 @@
     </div>
   </div>
 </section>
+
+<!-- Magic UI–style marquee -->
+<div class="epi-marquee" aria-hidden="true">
+  <div class="epi-marquee-track">
+    <span><strong>pip</strong> install epi-recorder</span>
+    <span>Ed25519 seal</span>
+    <span>Offline verify</span>
+    <span>OpenAI · Anthropic · LangChain</span>
+    <span>GitHub Action</span>
+    <span>SCITT · RFC 3161</span>
+    <span>Seal ≠ identity ≠ policy</span>
+    <span><strong>.epi</strong> portable evidence</span>
+    <span><strong>pip</strong> install epi-recorder</span>
+    <span>Ed25519 seal</span>
+    <span>Offline verify</span>
+    <span>OpenAI · Anthropic · LangChain</span>
+    <span>GitHub Action</span>
+    <span>SCITT · RFC 3161</span>
+    <span>Seal ≠ identity ≠ policy</span>
+    <span><strong>.epi</strong> portable evidence</span>
+  </div>
+</div>
 
 <!-- 3 · PROOF: verify + video -->
 <section id="proof">
@@ -264,7 +297,7 @@
         <h3>Hosted</h3>
         <div class="price">$15<small>/mo</small></div>
         <p>10k hosted checks, full report mode, CI keys, remote SCITT, email support.</p>
-        <a class="btn btn-primary btn-beam" href="/pricing">Get Hosted</a>
+        <span class="beam-wrap" style="display:inline-flex;width:100%"><a class="btn btn-primary" href="/pricing" style="width:100%;justify-content:center">Get Hosted</a></span>
       </div>
       <div class="v2-plan reveal">
         <h3>Enterprise</h3>
@@ -283,7 +316,7 @@
     <h2 class="section-title">Evidence starts with one command.</h2>
     <p class="section-desc">Founder-led pilots welcome. No fake self-serve enterprise checklist.</p>
     <div class="cta-actions">
-      <a class="btn btn-primary btn-lg btn-beam" href="https://pypi.org/project/epi-recorder/" target="_blank" rel="noopener">pip install epi-recorder</a>
+      <span class="beam-wrap"><a class="btn btn-primary btn-lg" href="https://pypi.org/project/epi-recorder/" target="_blank" rel="noopener">pip install epi-recorder</a></span>
       <a class="btn btn-secondary btn-lg" href="mailto:mohdibrahim@epilabs.org?subject=EPI%20pilot">Email for pilot</a>
       <a class="btn btn-secondary btn-lg" href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/PILOT.md" target="_blank" rel="noopener">Pilot guide</a>
     </div>
@@ -305,35 +338,16 @@
 
 <script>
 (function(){
-  
-  var nav=document.getElementById('nav');
-  if(nav) window.addEventListener('scroll',function(){nav.classList.toggle('scrolled',scrollY>40)});
-  var mb=document.getElementById('mobBtn'),mm=document.getElementById('mobMenu');
-  if(mb&&mm){
-    mb.addEventListener('click',function(){
-      var o=mm.classList.contains('open');
-      mb.classList.toggle('open');mm.classList.toggle('open');
-      mb.setAttribute('aria-expanded',String(!o));
-      document.body.style.overflow=o?'':'hidden';
-    });
-    mm.querySelectorAll('a').forEach(function(a){
-      a.addEventListener('click',function(){
-        mm.classList.remove('open');mb.classList.remove('open');
-        mb.setAttribute('aria-expanded','false');document.body.style.overflow='';
-      });
-    });
-  }
   document.querySelectorAll('a[href^="#"]').forEach(function(a){
     a.addEventListener('click',function(e){
       var id=this.getAttribute('href');
+      if(!id||id==='#')return;
       var t=document.querySelector(id);
       if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});}
-      if(mm){mm.classList.remove('open');if(mb){mb.classList.remove('open');mb.setAttribute('aria-expanded','false');}document.body.style.overflow='';}
     });
   });
   var obs=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');obs.unobserve(x.target)}})},{threshold:0.1,rootMargin:'0px 0px -30px 0px'});
   document.querySelectorAll('.reveal').forEach(function(el){obs.observe(el)});
-  // Walkthrough chapter jumps (approx times for the silent demo)
   var vid=document.querySelector('.v2-video');
   document.querySelectorAll('.v2-video-chapters button').forEach(function(btn){
     btn.addEventListener('click',function(){
@@ -361,9 +375,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
 <script src="js/epi-verify-core.js?v=33"></script>
 <script src="js/home-verify.js?v=34"></script>
-<script src="js/auth-ui.js"></script>
-
+<script src="js/wow.js?v=3"></script>
 <script src="js/theme.js"></script>
+<script src="js/nav.js?v=2"></script>
 <script src="js/instrument-nav.js"></script>
 <script src="js/auth-ui.js"></script>
 

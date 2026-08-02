@@ -27,7 +27,12 @@
       var dark = t === "dark";
       btn.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
       btn.setAttribute("title", dark ? "Light mode" : "Dark mode");
-      btn.innerHTML = dark ? "&#9788;" : "&#9789;"; // sun / moon
+      // Mobile drawer buttons need a label; icon-only on compact nav
+      if (btn.classList.contains("mob-theme-btn") || (btn.closest && btn.closest(".mob-menu"))) {
+        btn.innerHTML = dark ? "&#9788; Light mode" : "&#9789; Dark mode";
+      } else {
+        btn.innerHTML = dark ? "&#9788;" : "&#9789;"; // sun / moon
+      }
       btn.setAttribute("aria-pressed", dark ? "true" : "false");
     });
     return t;
