@@ -42,6 +42,8 @@
 }
 .pricing-card{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-str);padding:28px 22px;position:relative;display:flex;flex-direction:column;transition:border-color .2s,box-shadow .2s}
 .pricing-card.featured{border-color:var(--border-accent);border-width:2px;box-shadow:0 0 0 1px rgba(61,220,151,.12),0 16px 40px rgba(0,0,0,.12)}
+/* Fixed nav hides anchors without scroll-margin */
+#sprint{scroll-margin-top:5.5rem}
 .pricing-card .badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--accent);color:#04120c;padding:5px 14px;border-radius:999px;font-size:.72rem;font-weight:700;letter-spacing:.04em}
 .pricing-card h3{font-size:1rem;color:var(--ink-muted);font-weight:600;margin:8px 0 6px;text-transform:uppercase;letter-spacing:.06em}
 .pricing-card .price{font-size:2.4rem;font-weight:700;color:var(--ink);margin:0 0 4px;letter-spacing:-0.02em}
@@ -161,7 +163,10 @@ epi verify sample.epi</pre>
         <li><span class="icon">&#10003;</span> Founder-led — not a ticket queue</li>
       </ul>
       <p class="note">Capacity is real solo capacity: three sprints a month. If we&rsquo;re full, we&rsquo;ll say so.</p>
-      <a class="cta-btn primary" href="mailto:mohdibrahim@epilabs.org?subject=Agent%20Evidence%20Sprint%20%28%241%2C500%29">Book a sprint</a>
+      <div class="cta-stack">
+        <a class="cta-btn primary" data-book="sprint" href="mailto:mohdibrahim@epilabs.org?subject=Agent%20Evidence%20Sprint%20%28%241%2C500%29" target="_blank" rel="noopener">Book a sprint</a>
+        <a class="cta-btn secondary" href="mailto:mohdibrahim@epilabs.org?subject=Agent%20Evidence%20Sprint%20%28%241%2C500%29">Email instead</a>
+      </div>
     </div>
 
     <!-- 3 · Control plane -->
@@ -212,6 +217,8 @@ epi verify sample.epi</pre>
 <script src="js/theme.js"></script>
 <script src="js/nav.js?v=3"></script>
 <script src="js/instrument-nav.js"></script>
+<script src="js/booking-config.js?v=1"></script>
+<script src="js/booking.js?v=1"></script>
 <script src="js/auth-ui.js"></script>
 <script>
 (function(){

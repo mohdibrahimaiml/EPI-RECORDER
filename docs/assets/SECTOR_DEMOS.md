@@ -20,3 +20,28 @@ Each artifact includes paired `tool.call` / `tool.response` (AUD-CO-01), real `l
 epi verify docs/assets/demo-finance-loan-underwriter.epi
 epi view docs/assets/demo-healthcare-clinical-triage.epi
 ```
+
+## Zero-install HTML export (share in DMs)
+
+Regenerated via `epi export-html` into the static site (not gitignored):
+
+| HTML (open in any browser) | Source `.epi` |
+|----------------------------|---------------|
+| [`/assets/demo/demo-finance-loan-underwriter.html`](../website/assets/demo/demo-finance-loan-underwriter.html) | `docs/assets/demo-finance-loan-underwriter.epi` |
+| `/assets/demo/demo-healthcare-clinical-triage.html` | healthcare `.epi` |
+| `/assets/demo/demo-insurance-claim-adjudication.html` | insurance `.epi` |
+| `/assets/demo/demo-legal-contract-review.html` | legal `.epi` |
+
+Live after deploy: `https://epilabs.org/assets/demo/demo-finance-loan-underwriter.html`
+
+Each export is leak-scanned for `gsk_` / `GROQ_API_KEY` at generation time.
+
+## Booking (Cal.com)
+
+Edit `website/js/booking-config.js` and set:
+
+```js
+sprint: "https://cal.com/YOUR-USER/YOUR-EVENT"
+```
+
+Until that string is non-empty, “Book a sprint” stays on mailto.
