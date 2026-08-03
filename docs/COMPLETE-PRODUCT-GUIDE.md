@@ -43,9 +43,10 @@ Related short docs (do not replace this overview):
 
 **Trust language (important for users and investors):**
 
-- **SEAL OK** = file integrity + signature checks passed.  
-- **Identity** (KNOWN / LOCAL / UNKNOWN) = whether the sealer key is pinned in a trust store — **not** HR badge identity.  
-- Seal OK with unpinned identity is **not** a failed seal.
+- **Seal valid** = file integrity + signature checks passed (artifact is internally consistent under *some* key).  
+- **Identity** (KNOWN / LOCAL / UNKNOWN·NOT_PINNED) = whether the sealer key is pinned in a trust store — **not** HR badge identity.  
+- **Valid seal + unpinned identity is not claim-ready.** Default STANDARD shows **WARN / UNVERIFIED IDENTITY** (not green SEAL OK). Anyone can generate a key, rebuild the chain, and re-sign.  
+- **Insurers / enterprises:** always `epi verify --policy strict` (FAIL until org pin via `epi keys trust`). Full re-sign forgery test: `tests/adversarial/test_resign_forgery.py`.
 
 ---
 

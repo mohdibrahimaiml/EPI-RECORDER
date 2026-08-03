@@ -68,14 +68,16 @@ Typical **first-run** result (local sealer key on this machine):
 
 - **Integrity:** Verified  
 - **Signature:** Valid  
-- **Identity:** often **LOCAL** or **UNKNOWN** until org trust pin  
-- **Decision:** PASS or WARN depending on policy — **WARN does not mean the seal is broken**
+- **Identity:** often **LOCAL** or **UNKNOWN / NOT_PINNED** until org trust pin  
+- **Decision:** under STANDARD, unpinned/LOCAL → **WARN · UNVERIFIED IDENTITY** (valid seal ≠ claim-ready). Under STRICT, unpinned → **FAIL**.
 
-Seal vs identity: integrity/signature answer “was the file tampered with?”; identity answers “do we recognize the sealer key?”
+Seal vs identity: integrity/signature answer “is the artifact internally consistent under some key?”; identity answers “do we recognize the sealer?” Anyone can rebuild the chain and re-sign.
 
 ```bash
+# Insurers / claim acceptance — always:
+epi verify refund.epi --policy strict
+# Dev skim (WARN if identity not org-pinned):
 epi verify refund.epi --json
-epi verify refund.epi --policy strict   # requires trusted sealer
 ```
 
 ### 5. Browser verify

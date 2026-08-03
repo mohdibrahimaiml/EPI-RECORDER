@@ -61,16 +61,19 @@ epi keys bundle-import epi-trust-bundle.zip
 Then:
 
 ```bash
-epi verify path/to/run.epi --policy standard   # often PASS when sealer is known
-epi verify path/to/run.epi --policy strict     # high assurance gate
+# Claim / insurer / regulated acceptance (required):
+epi verify path/to/run.epi --policy strict
+
+# Dev / local skim only (unpinned → WARN · UNVERIFIED IDENTITY, not claim-ready):
+epi verify path/to/run.epi --policy standard
 ```
 
 | Policy | Typical use |
 |--------|-------------|
-| `standard` | Day-to-day: WARN if signer unknown but seal OK |
-| `strict` | Release / regulated: unknown sealer fails |
+| `standard` | Day-to-day: WARN if signer unknown/local (valid seal · not org pin) |
+| `strict` | Release / insurance / external audit: unknown sealer **FAIL** |
 
-**WARN on unknown sealer is intentional** — it forces a human process to pin keys, not a greenwash.
+**WARN on unknown sealer is intentional** — it forces a human process to pin keys. Do not treat WARN as claim acceptance. Full re-sign forgery coverage: `tests/adversarial/test_resign_forgery.py`.
 
 ---
 

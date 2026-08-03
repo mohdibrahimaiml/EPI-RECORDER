@@ -371,9 +371,9 @@
       trust_level = 'NONE';
       message = 'Signature invalid - do not trust';
     } else if (sigResult.valid === true) {
-      trust_level = 'LOW';
+      trust_level = 'UNVERIFIED_IDENTITY';
       identity = 'UNKNOWN';
-      message = 'Valid signature; identity unknown in browser (use epi keys trust + epi verify for HIGH)';
+      message = 'Seal valid · identity not pinned — not claim-ready. Use epi keys trust + epi verify --policy strict';
     } else if (!manifest.signature) {
       trust_level = 'MEDIUM';
       identity = 'NONE';

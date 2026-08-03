@@ -464,7 +464,11 @@ def verify(
     ),
     policy: Annotated[VerificationPolicy, typer.Option(
         "--policy",
-        help="Governance policy to apply: PERMISSIVE (integrity only), STANDARD (standard trust), STRICT (high assurance).",
+        help=(
+            "Governance policy: PERMISSIVE (integrity only), "
+            "STANDARD (dev default — unpinned identity is WARN, not claim-ready), "
+            "STRICT (enterprise/insurance — requires org-pinned sealer; use for claim acceptance)."
+        ),
     )] = VerificationPolicy.STANDARD,
     aiuc1: bool = typer.Option(
         False,

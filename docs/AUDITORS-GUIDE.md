@@ -42,10 +42,16 @@ epi verify <file.epi>
 
 ### Option B: CLI (offline)
 
+> **Insurers / external claim verification:** always run  
+> `epi verify <file.epi> --policy strict`  
+> Default STANDARD may show **WARN** with a cryptographically valid self-signed seal (anyone can rebuild the hash chain and re-sign with a fresh Ed25519 key). STRICT fails until the sealer is org-pinned (`epi keys trust`). See adversarial coverage: `tests/adversarial/test_resign_forgery.py`.
+
 ```bash
+# Claim / audit acceptance (required for insurers):
+epi verify <file.epi> --policy strict
+
+# Dev / local skim (unpinned identity → WARN, not claim-ready):
 epi verify <file.epi>
-# optional:
-epi verify <file.epi> --policy strict   # requires trusted sealer pin
 ```
 
 CLI and browser private checks both evaluate the sealed artifact. Hosted “full report” may include additional server-side context and **does** upload the file.

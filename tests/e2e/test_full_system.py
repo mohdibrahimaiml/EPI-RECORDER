@@ -232,12 +232,12 @@ class TestDidWebOptionalContract:
             # Unpinned remote identity → WARN under standard policy
             assert report["decision"]["status"] == "WARN"
         else:
-            # Sealer key still on this machine → LOCAL self-match → PASS under standard
+            # Sealer key still on this machine → LOCAL self-match → WARN (not org pin)
             assert (
                 "local signing key" in detail.lower()
                 or report["identity"].get("local_key_name")
             )
-            assert report["decision"]["status"] == "PASS"
+            assert report["decision"]["status"] == "WARN"
             assert report["trust_level"] in ("MEDIUM", "LOW")
 
 
