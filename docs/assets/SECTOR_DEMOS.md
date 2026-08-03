@@ -14,6 +14,9 @@ python scripts/generate_sector_demo_epis.py
 | Zero-install HTML | \website/assets/demo/demo-finance-loan-underwriter.html\ (also on site after deploy: \/assets/demo/demo-finance-loan-underwriter.html\) |
 
 \\ash
+# Claim / insurer path — always use strict (FAIL if sealer not org-pinned):
+epi verify docs/assets/demo-finance-loan-underwriter.epi --policy strict
+# Dev skim (unpinned → WARN · UNVERIFIED IDENTITY):
 epi verify docs/assets/demo-finance-loan-underwriter.epi
 # or open the HTML export in any browser
 \

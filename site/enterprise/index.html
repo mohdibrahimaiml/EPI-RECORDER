@@ -123,9 +123,9 @@ epi enterprise pack your-run.epi
     <div class="ent-card">
       <h3>What PASS means</h3>
       <ul>
-        <li><code>--policy strict</code> → integrity + trusted sealer + completeness</li>
+        <li><strong>Claims / insurers:</strong> always <code>epi verify --policy strict</code> (integrity + org-pinned sealer + completeness)</li>
         <li><code>--review</code> Binding True → human review bound to sealed evidence</li>
-        <li>Standard-policy <strong>WARN</strong> with unknown key is expected until trust import</li>
+        <li>Standard default: unpinned sealer → <strong>WARN · UNVERIFIED IDENTITY</strong> (valid seal ≠ known who; not claim-ready)</li>
       </ul>
     </div>
     <div class="ent-card">

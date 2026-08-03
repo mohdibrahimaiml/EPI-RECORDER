@@ -56,7 +56,7 @@ def test_web_viewer_scorecard_and_partial_integrity_copy():
 
 
 def test_verify_warn_uses_yellow_not_red_fail_chrome(tmp_path: Path, monkeypatch):
-    """Unknown sealer: WARN decision with SEAL OK chrome, not red FAIL ✘."""
+    """Unknown sealer: WARN with UNVERIFIED IDENTITY chrome — never SEAL OK / red FAIL."""
     epi, _ = make_decision_epi(
         tmp_path, name="warn_chrome.epi", container_format="envelope-v2"
     )
@@ -71,10 +71,13 @@ def test_verify_warn_uses_yellow_not_red_fail_chrome(tmp_path: Path, monkeypatch
     out = result.output
     assert result.exit_code == 0, out
     assert "WARN" in out
-    assert "SEAL OK" in out or "seal OK" in out.lower()
+    assert "UNVERIFIED IDENTITY" in out
+    assert "SEAL OK" not in out
     # Must not present WARN as a red FAIL seal
     assert "✘ SEAL FAIL" not in out
     assert "Fingerprint:" in out or "fingerprint" in out.lower() or "Key ID" in out
+    # Identity before seal proofs
+    assert out.find("IDENTITY") < out.find("SEAL (Objective")
 
 
 def test_local_key_match_sets_local_identity(tmp_path: Path, monkeypatch):
@@ -139,8 +142,10 @@ def test_local_key_match_sets_local_identity(tmp_path: Path, monkeypatch):
     assert report["identity"]["status"] == "LOCAL"
     assert report["identity"].get("local_key_name") == "default"
     applied = apply_policy(report, VerificationPolicy.STANDARD)
-    assert applied["decision"]["status"] == "PASS"
-    assert "SEAL OK" in applied["decision"]["reason"] or "local" in applied["decision"]["reason"].lower()
+    assert applied["decision"]["status"] == "WARN"
+    reason = applied["decision"]["reason"]
+    assert not reason.strip().upper().startswith("SEAL OK")
+    assert "local" in reason.lower()
 
 
 def test_keys_trust_from_epi_pins_manifest_public_key(tmp_path: Path, monkeypatch):

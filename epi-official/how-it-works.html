@@ -59,13 +59,13 @@
       <div class="truth-kicker">Seal</div>
       <h3>Tampered?</h3>
       <p>Integrity + signature of <em>this file</em>.</p>
-      <div class="truth-ex">SEAL OK ≠ org identity</div>
+      <div class="truth-ex">Valid seal ≠ known who</div>
     </div>
     <div class="truth-card truth-card--identity">
       <div class="truth-kicker">Identity</div>
       <h3>Who sealed?</h3>
-      <p>LOCAL / UNKNOWN / pinned trust. LOCAL on first run is normal.</p>
-      <div class="truth-ex">epi keys trust</div>
+      <p>KNOWN (org pin) / LOCAL / NOT_PINNED. Unpinned → WARN, not claim-ready.</p>
+      <div class="truth-ex">epi keys trust · --policy strict</div>
     </div>
     <div class="truth-card truth-card--policy">
       <div class="truth-kicker">Policy</div>
@@ -80,7 +80,8 @@
 
   <h2>Verify modes</h2>
   <ul>
-    <li><strong>Offline CLI</strong> — <code>epi verify file.epi</code> · no network required for core checks.</li>
+    <li><strong>Claims / insurers</strong> — <code>epi verify file.epi --policy strict</code> (org-pinned sealer required).</li>
+    <li><strong>Offline CLI (dev)</strong> — <code>epi verify file.epi</code> · unpinned identity is WARN · UNVERIFIED IDENTITY.</li>
     <li><strong>Private browser</strong> — file stays in the tab · <a href="/verify/" style="color:var(--accent)">/verify/</a></li>
     <li><strong>Full report</strong> — upload to EPI servers · plan quota · deeper hosted report.</li>
   </ul>

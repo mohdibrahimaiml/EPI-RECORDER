@@ -630,29 +630,30 @@ def apply_policy(report: dict, policy: VerificationPolicy = VerificationPolicy.S
 
     elif policy == VerificationPolicy.STANDARD:
         # Integrity + not revoked + not mismatched.
-        # If a signature is present but the signer is unknown to any trusted
-        # registry, we cannot rule out a key-substitution forgery attack.
-        # We therefore issue a WARN rather than a silent PASS.
+        # A valid self-signature proves internal consistency only — not who
+        # signed. Unpinned (UNKNOWN) and machine-local (LOCAL) sealers are both
+        # WARN so a forger cannot skim "PASS" / "SEAL OK" without an org pin.
+        # Claim / insurer acceptance must use STRICT (KNOWN identity required).
         if identity["status"] == "REVOKED":
             decision["reason"] = "Identity revoked"
         elif identity["status"] == "MISMATCH":
             decision["status"] = "FAIL"
             decision["reason"] = "Identity mismatch - possible impersonation attack"
         elif facts["signature_valid"] is True and identity["status"] == "UNKNOWN":
-            # Signed by an unrecognised key: integrity is provable but origin
-            # cannot be confirmed.  A sophisticated forger can self-sign with a
-            # freshly generated key, so we escalate this to WARN.
             decision["status"] = "WARN"
             decision["reason"] = (
-                "SEAL OK — signature valid; identity not pinned on this computer yet. "
-                "This is not a failed seal. Optional: epi keys trust <file.epi> --name sealer "
-                "(or --policy strict to require a known org sealer)."
+                "Unverified identity — signature valid but signer not pinned in any "
+                "trusted registry. Anyone can generate a key and re-sign a rebuilt "
+                "chain. Optional: epi keys trust <file.epi> --name sealer. "
+                "For claims / audit: epi verify --policy strict (FAIL until org pin)."
             )
         elif facts["signature_valid"] is True and identity["status"] == "LOCAL":
-            decision["status"] = "PASS"
+            decision["status"] = "WARN"
             decision["reason"] = (
-                "SEAL OK — signature valid; sealer matches a key on this computer "
-                f"({identity.get('name') or 'local'}). Not an org trust-list pin."
+                "Local sealer only — signature valid and matches a key on this computer "
+                f"({identity.get('name') or 'local'}), but this is not an org trust-list "
+                "pin. Optional: epi keys trust <file.epi> --name sealer. "
+                "For claims / audit: epi verify --policy strict."
             )
         else:
             decision["status"] = "PASS"

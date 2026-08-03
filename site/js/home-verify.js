@@ -12,30 +12,37 @@ var EPI_MIMETYPE='application/vnd.epi+zip',EPI_ENVELOPE_MAGIC='<!--';
 
 function reportDOM(report){
   var f=report.facts,i=report.identity,m=report.metadata;
+  var idStatus=(i&&i.status)||'UNKNOWN';
+  var pinned=idStatus==='KNOWN';
   var trustColor='var(--verified)',trustIcon='&#10003;';
+  // Green only when seal OK *and* identity pinned. Unpinned valid seal = amber.
   if(!f.integrity_ok||f.signature_valid===false){trustColor='var(--tamper)';trustIcon='&#10007;'}
   else if(!f.has_signature){trustColor='var(--warn)';trustIcon='&#9888;'}
-  else if(f.signature_valid===true){trustColor='var(--verified)';trustIcon='&#10003;'}
+  else if(f.signature_valid===true&&!pinned){trustColor='var(--warn)';trustIcon='&#9888;'}
+  else if(f.signature_valid===true&&pinned){trustColor='var(--verified)';trustIcon='&#10003;'}
   else if(f.signature_valid===null){trustColor='var(--warn)';trustIcon='&#9888;'}
 
   var steps=m.steps_count!==null?(' · '+m.steps_count+' steps'):'';
   var chks=[];
+  // Identity first — claim trust requires known sealer
+  var idDisplay=idStatus==='UNKNOWN'?'NOT_PINNED':idStatus;
+  chks.push('<strong>Identity: '+idDisplay+'</strong>'+(pinned?'':' <span style="color:var(--warn)">(not claim-ready)</span>'));
   if(f.structure_ok)chks.push('Structure valid');
-  if(f.integrity_ok)chks.push('Hashes match');
+  if(f.integrity_ok)chks.push('Hashes match (seal)');
   else chks.push('<span style="color:var(--tamper)">Hashes mismatch ('+Object.keys(f.mismatches||{}).length+')</span>');
   if(f.has_signature){
-    if(f.signature_valid===true)chks.push('Signature: VALID (Ed25519)');
+    if(f.signature_valid===true)chks.push('Signature: VALID (Ed25519) — proves consistency, not who');
     else if(f.signature_valid===false)chks.push('<span style="color:var(--tamper)">Signature: INVALID</span>');
     else chks.push('Signature: UNVERIFIED (browser Ed25519 limited — use epi verify)');
   }else{chks.push('Unsigned')}
   chks.push('Chain: '+(f.chain_ok!==false?'intact':'<span style="color:var(--tamper)">broken</span>'));
-  chks.push('Identity: '+i.status);
 
   var levelLabel=report.trust_level||'';
-  // Avoid "SEAL OK TRUST" — level string already includes seal framing
-  var title=levelLabel.indexOf('SEAL')===0||levelLabel==='UNSIGNED'||levelLabel==='INCOMPLETE'
-    ? levelLabel
-    : (levelLabel+' TRUST');
+  var title=levelLabel;
+  if(levelLabel==='HIGH')title='SEAL · IDENTITY PINNED';
+  else if(levelLabel==='UNVERIFIED_IDENTITY')title='UNVERIFIED IDENTITY';
+  else if(levelLabel.indexOf('SEAL')===0||levelLabel==='UNSIGNED'||levelLabel==='INCOMPLETE')title=levelLabel;
+  else if(levelLabel)title=levelLabel+' TRUST';
   return '<div style="font-size:0.82rem;margin-bottom:0.6rem"><strong style="font-size:1.05rem;color:'+trustColor+'">'+trustIcon+' '+title+'</strong> <span style="color:var(--ink-muted);font-size:0.72rem">v'+m.spec_version+steps+'</span></div>'
     +chks.join('<br>')
     +'<div style="margin-top:0.5rem;font-size:0.68rem;color:var(--ink-dim);border-top:1px solid var(--border);padding-top:0.5rem">'+report.trust_message+'</div>'
@@ -539,14 +546,14 @@ async function processFile(f){
       }catch(e){report.facts.signature_valid=null;report.identity.detail='WebCrypto not available: '+e.message}
     }else if(!manifest.signature){report.facts.signature_valid=null;report.identity.detail='Artifact is unsigned'}
 
-    // Determine trust level (matching Python epi_core/trust.py)
-    // Seal-first framing (matches CLI dual-mode): do not panic-label valid seals as "LOW TRUST"
-    if(report.facts.integrity_ok&&report.facts.signature_valid===true&&report.identity.status==='KNOWN'){report.trust_level='HIGH';report.trust_message='SEAL OK · identity pinned (org trust list)'}
-    else if(report.facts.integrity_ok&&report.facts.signature_valid===true&&report.identity.status!=='KNOWN'){report.trust_level='SEAL OK';report.trust_message='Seal valid · identity not pinned in this browser (normal). Pin with CLI: epi keys trust'}
+    // Trust level: green HIGH only when identity pinned. Valid unpinned seal is
+    // UNVERIFIED_IDENTITY (amber) — never "SEAL OK" (skim must not imply claim safety).
+    if(report.facts.integrity_ok&&report.facts.signature_valid===true&&report.identity.status==='KNOWN'){report.trust_level='HIGH';report.trust_message='Seal valid · identity pinned (org trust list)'}
+    else if(report.facts.integrity_ok&&report.facts.signature_valid===true&&report.identity.status!=='KNOWN'){report.trust_level='UNVERIFIED_IDENTITY';report.trust_message='Seal valid · identity not pinned — not claim-ready. Anyone can re-sign a rebuilt chain. CLI: epi keys trust + epi verify --policy strict'}
     else if(report.facts.integrity_ok&&!report.facts.has_signature){report.trust_level='UNSIGNED';report.trust_message='Integrity intact · no signature — anyone could have produced this file'}
     else if(!report.facts.integrity_ok){report.trust_level='SEAL FAIL';report.trust_message='Integrity compromised — do not trust this copy'}
     else if(report.facts.signature_valid===false){report.trust_level='SEAL FAIL';report.trust_message='Signature invalid — artifact may be tampered'}
-    else{report.trust_level='INCOMPLETE';report.trust_message='Verification incomplete in browser — use epi verify offline for full audit'}
+    else{report.trust_level='INCOMPLETE';report.trust_message='Verification incomplete in browser — use epi verify --policy strict offline for claim audit'}
 
     showReport(report,'');
   }catch(e){showResult('fail','<strong>Verification error</strong><br>'+e.message)}
@@ -572,12 +579,14 @@ function showReport(report,errMsg){
   if(errMsg){showResult('fail',errMsg);return}
   var tl=report.trust_level||'';
   var type='fail';
-  if(tl==='HIGH'||tl==='SEAL OK')type='pass';
-  else if(tl==='UNSIGNED'||tl==='INCOMPLETE'||tl==='MEDIUM'||tl==='LOW')type='warn';
+  // Green only for org-pinned HIGH. Unpinned valid seal is warn, not pass.
+  if(tl==='HIGH')type='pass';
+  else if(tl==='UNVERIFIED_IDENTITY'||tl==='UNSIGNED'||tl==='INCOMPLETE'||tl==='MEDIUM'||tl==='LOW'||tl==='SEAL OK')type='warn';
   else if(tl==='SEAL FAIL'||tl==='NONE')type='fail';
-  // Structure+integrity with non-false signature still counts as seal success
-  if(report.facts&&report.facts.structure_ok&&report.facts.integrity_ok&&report.facts.signature_valid!==false){
-    if(type==='fail')type='pass';
+  // Do not upgrade unpinned integrity to green pass
+  if(type==='fail'&&report.facts&&report.facts.structure_ok&&report.facts.integrity_ok&&report.facts.signature_valid!==false){
+    var idOk=report.identity&&report.identity.status==='KNOWN';
+    type=idOk?'pass':'warn';
   }
   showResult(type,reportDOM(report));
   updateChecks(report);

@@ -995,12 +995,20 @@ def print_trust_report(report: dict, epi_file: Path, verbose: bool = False):
         decision_policy = "none"
         decision_reason = report.get("trust_message", "")
 
-    # Header chrome: WARN (seal OK, identity unpinned) is yellow — not red FAIL
-    if decision_status == "PASS":
-        status_symbol = "[bold green]✔ SEAL[/bold green]"
+    # Header chrome: green only for org-trusted PASS. Unpinned seal is yellow
+    # UNVERIFIED IDENTITY — never "SEAL OK" (skim must not imply claim safety).
+    id_upper = str(identity_status).upper()
+    if decision_status == "PASS" and id_upper == "KNOWN":
+        status_symbol = "[bold green]✔ SEAL · IDENTITY PINNED[/bold green]"
         panel_style = "green"
+    elif decision_status == "PASS":
+        status_symbol = "[bold green]✔ PASS[/bold green]"
+        panel_style = "green"
+    elif decision_status == "WARN" and id_upper == "LOCAL":
+        status_symbol = "[bold yellow]⚠ LOCAL SEALER · NOT ORG-PINNED[/bold yellow]"
+        panel_style = "yellow"
     elif decision_status == "WARN":
-        status_symbol = "[bold yellow]⚠ SEAL OK[/bold yellow]"
+        status_symbol = "[bold yellow]⚠ UNVERIFIED IDENTITY[/bold yellow]"
         panel_style = "yellow"
     else:
         status_symbol = "[bold red]✘ SEAL FAIL[/bold red]"
@@ -1008,17 +1016,59 @@ def print_trust_report(report: dict, epi_file: Path, verbose: bool = False):
 
     content_lines = []
 
-    # Decision Layer — lead with seal vs identity framing
+    # Decision Layer — identity failure mode first when unpinned
     if decision_status == "WARN" and signature_valid is True and integrity_ok:
-        content_lines.append("[bold]DECISION: WARN[/bold]  [dim](seal OK · identity not pinned)[/dim]")
+        if id_upper == "LOCAL":
+            content_lines.append(
+                "[bold]DECISION: WARN[/bold]  "
+                "[dim]— LOCAL SEALER (seal valid · not org-pinned)[/dim]"
+            )
+        else:
+            content_lines.append(
+                "[bold]DECISION: WARN[/bold]  "
+                "[dim]— UNVERIFIED IDENTITY (seal valid · signer unknown)[/dim]"
+            )
     else:
         content_lines.append(f"[bold]DECISION: {decision_status}[/bold]")
     content_lines.append(f"Policy: {decision_policy}")
     content_lines.append(f"Reason: {decision_reason}")
     content_lines.append("")
 
-    # Fact Layer (seal)
-    content_lines.append("[bold underline]SEAL (Objective Proofs)[/bold underline]")
+    # Identity Layer FIRST — trust context before green seal proofs
+    content_lines.append(
+        "[bold underline]IDENTITY (who sealed — required for claim trust)[/bold underline]"
+    )
+    id_status_display = identity_status
+    if id_upper == "UNKNOWN":
+        id_status_display = "NOT_PINNED"
+    if identity_status == "KNOWN":
+        id_color = "green"
+    elif identity_status == "LOCAL":
+        id_color = "yellow"
+    elif identity_status in ("REVOKED", "MISMATCH"):
+        id_color = "red"
+    else:
+        id_color = "yellow"
+    content_lines.append(f"  [{id_color}]- Status:       {id_status_display}[/{id_color}]")
+    content_lines.append(f"  - Name:         {identity_name or '—'}")
+    fp = None
+    if isinstance(identity, dict):
+        fp = identity.get("public_key_fingerprint") or identity.get("public_key_id")
+    if not fp:
+        fp = public_key_id
+    if fp:
+        content_lines.append(f"  - Fingerprint:  {fp}…")
+    local_name = identity.get("local_key_name") if isinstance(identity, dict) else None
+    if local_name:
+        content_lines.append(f"  - Local key:    {local_name} (matches this computer — not org pin)")
+    did_identity = identity.get("did") if isinstance(identity, dict) else None
+    if did_identity:
+        content_lines.append(f"  - DID:          {did_identity}")
+    content_lines.append(f"  - Detail:       {identity_detail}")
+    content_lines.append("")
+
+    # Fact Layer (seal) — objective proofs; valid seal alone is not identity
+    content_lines.append("[bold underline]SEAL (Objective Proofs — not identity)[/bold underline]")
     i_color = "green" if integrity_ok else "red"
     content_lines.append(
         f"  [{i_color}]- Integrity:    {'Verified' if integrity_ok else 'FAILED'}[/{i_color}]"
@@ -1079,37 +1129,6 @@ def print_trust_report(report: dict, epi_file: Path, verbose: bool = False):
         t_text = "VERIFIED" if transparency_ok else "FAILED"
         content_lines.append(f"  [{t_color}]- Transparency: {t_text} (SCITT)[/{t_color}]")
 
-    content_lines.append("")
-
-    # Identity Layer (separate from seal)
-    content_lines.append("[bold underline]IDENTITY (Trust Context — separate from seal)[/bold underline]")
-    id_status_display = identity_status
-    if str(identity_status).upper() == "UNKNOWN":
-        id_status_display = "NOT_PINNED"
-    if identity_status == "KNOWN":
-        id_color = "green"
-    elif identity_status == "LOCAL":
-        id_color = "green"
-    elif identity_status in ("REVOKED", "MISMATCH"):
-        id_color = "red"
-    else:
-        id_color = "yellow"
-    content_lines.append(f"  [{id_color}]- Status:       {id_status_display}[/{id_color}]")
-    content_lines.append(f"  - Name:         {identity_name or '—'}")
-    fp = None
-    if isinstance(identity, dict):
-        fp = identity.get("public_key_fingerprint") or identity.get("public_key_id")
-    if not fp:
-        fp = public_key_id
-    if fp:
-        content_lines.append(f"  - Fingerprint:  {fp}…")
-    local_name = identity.get("local_key_name") if isinstance(identity, dict) else None
-    if local_name:
-        content_lines.append(f"  - Local key:    {local_name} (matches this computer)")
-    did_identity = identity.get("did") if isinstance(identity, dict) else None
-    if did_identity:
-        content_lines.append(f"  - DID:          {did_identity}")
-    content_lines.append(f"  - Detail:       {identity_detail}")
     # AIUC-1 Domain Layer
     aiuc1_data = report.get("aiuc1")
     if aiuc1_data:
@@ -1139,30 +1158,32 @@ def print_trust_report(report: dict, epi_file: Path, verbose: bool = False):
         for w in report["warnings"]:
             content_lines.append(f"  [yellow]![/yellow] {w}")
 
-    # Optional pin step when seal is fine but signer is not org-pinned
+    # Pin / strict guidance when seal is valid but signer is not org-pinned
     if (
         signature_valid is True
-        and str(identity_status).upper() in ("UNKNOWN", "LOCAL", "")
+        and id_upper in ("UNKNOWN", "LOCAL", "")
         and decision_status in ("WARN", "PASS")
     ):
         content_lines.append("")
-        if str(identity_status).upper() == "LOCAL":
+        if id_upper == "LOCAL":
             content_lines.append(
-                "[dim]Seal is fine. Identity shows LOCAL because this PC has the sealer key — "
-                "not the same as an org trust pin.[/dim]"
+                "[dim]Seal is cryptographically valid. Identity is LOCAL (key on this PC) — "
+                "not an org trust pin. A full re-sign forgery also looks like this.[/dim]"
             )
         else:
             content_lines.append(
-                "[dim]Seal is fine. Identity is not pinned here (normal). Optional for teams:[/dim]"
+                "[dim]Seal is cryptographically valid. Identity is not pinned — "
+                "anyone can re-sign a rebuilt chain with a fresh key.[/dim]"
             )
         content_lines.append(
             f'[dim]  epi keys trust "{epi_file}" --name sealer[/dim]'
         )
         content_lines.append(
-            f'[dim]  epi verify "{epi_file}"[/dim]'
+            f'[dim]  epi verify "{epi_file}" --policy strict[/dim]'
         )
         content_lines.append(
-            "[dim]Pin only when you accept that sealer. Unknown/not pinned ≠ failed seal.[/dim]"
+            "[dim]For insurers / claim acceptance: always use --policy strict "
+            "(FAIL until org pin).[/dim]"
         )
 
     content = "\n".join(content_lines)

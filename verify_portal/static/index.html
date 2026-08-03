@@ -206,7 +206,7 @@
         <div class="truth-kicker">01 · Seal</div>
         <h3>Was this file tampered with?</h3>
         <p>SHA-256 member hashes + Ed25519 over the canonical manifest. Offline. No EPI server required.</p>
-        <div class="truth-ex">epi verify · browser private check · SEAL OK</div>
+        <div class="truth-ex">epi verify · valid seal ≠ known who</div>
       </div>
       <div class="truth-card truth-card--identity reveal">
         <div class="truth-icon" aria-hidden="true">
@@ -214,8 +214,8 @@
         </div>
         <div class="truth-kicker">02 · Identity</div>
         <h3>Do we trust who sealed it?</h3>
-        <p>LOCAL / UNKNOWN / pinned trust / DID:web. First-run LOCAL is normal — the sealer key is on this machine, not an org pin.</p>
-        <div class="truth-ex">epi keys trust · STRICT policy · not HR identity</div>
+        <p>KNOWN (org pin) / LOCAL / NOT_PINNED. Unpinned is WARN — not claim-ready. Insurers: <code>--policy strict</code>.</p>
+        <div class="truth-ex">epi keys trust · --policy strict</div>
       </div>
       <div class="truth-card truth-card--policy reveal">
         <div class="truth-icon" aria-hidden="true">
