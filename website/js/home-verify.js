@@ -14,7 +14,9 @@ function reportDOM(report){
   var f=report.facts,i=report.identity,m=report.metadata;
   var trustColor='var(--verified)',trustIcon='&#10003;';
   if(!f.integrity_ok||f.signature_valid===false){trustColor='var(--tamper)';trustIcon='&#10007;'}
-  else if(!f.has_signature||i.status==='UNKNOWN'){trustColor='var(--warn)';trustIcon='&#9888;'}
+  else if(!f.has_signature){trustColor='var(--warn)';trustIcon='&#9888;'}
+  else if(f.signature_valid===true){trustColor='var(--verified)';trustIcon='&#10003;'}
+  else if(f.signature_valid===null){trustColor='var(--warn)';trustIcon='&#9888;'}
 
   var steps=m.steps_count!==null?(' · '+m.steps_count+' steps'):'';
   var chks=[];
@@ -29,7 +31,12 @@ function reportDOM(report){
   chks.push('Chain: '+(f.chain_ok!==false?'intact':'<span style="color:var(--tamper)">broken</span>'));
   chks.push('Identity: '+i.status);
 
-  return '<div style="font-size:0.82rem;margin-bottom:0.6rem"><strong style="font-size:1.05rem;color:'+trustColor+'">'+trustIcon+' '+report.trust_level+' TRUST</strong> <span style="color:var(--ink-muted);font-size:0.72rem">v'+m.spec_version+steps+'</span></div>'
+  var levelLabel=report.trust_level||'';
+  // Avoid "SEAL OK TRUST" — level string already includes seal framing
+  var title=levelLabel.indexOf('SEAL')===0||levelLabel==='UNSIGNED'||levelLabel==='INCOMPLETE'
+    ? levelLabel
+    : (levelLabel+' TRUST');
+  return '<div style="font-size:0.82rem;margin-bottom:0.6rem"><strong style="font-size:1.05rem;color:'+trustColor+'">'+trustIcon+' '+title+'</strong> <span style="color:var(--ink-muted);font-size:0.72rem">v'+m.spec_version+steps+'</span></div>'
     +chks.join('<br>')
     +'<div style="margin-top:0.5rem;font-size:0.68rem;color:var(--ink-dim);border-top:1px solid var(--border);padding-top:0.5rem">'+report.trust_message+'</div>'
     +(i.detail?'<div style="margin-top:0.3rem;font-size:0.68rem;color:var(--ink-dim)">'+i.detail+'</div>':'');
@@ -45,7 +52,10 @@ function updateChecks(report){
     set('chk3',f.signature_valid===true,'03 · Signature '+(f.signature_valid===true?'VALID — Ed25519 verified':f.signature_valid===null?'CHECK — browser Ed25519 limited (use epi verify)':'<span style="color:var(--tamper)">INVALID — tampered</span>'));
   }else{set('chk3',false,'03 · Signature — none present (unsigned)')}
   set('chk4',f.chain_ok!==false,'04 · Chain '+(f.chain_ok!==false?'INTACT':'<span style="color:var(--tamper)">BROKEN</span>'));
-  set('chk5',f.has_signature,'05 · Identity — '+report.identity.status+(report.identity.name?' ('+report.identity.name+')':''));
+  // Identity is not org-pinned in the browser — never claim KNOWN/HIGH here
+  var idLabel = report.identity && report.identity.status ? report.identity.status : 'UNKNOWN';
+  set('chk5', false, '05 · Identity — '+idLabel+' (not pinned in browser · use epi keys trust / CLI)');
+  set('chk6', false, '06 · Full audit — notarization, SCITT, policy: run <code style="font-size:0.75em">epi verify</code> offline');
 }
 
 async function sha256(buf){var h=await crypto.subtle.digest('SHA-256',buf);return Array.from(new Uint8Array(h)).map(function(b){return b.toString(16).padStart(2,'0')}).join('')}
@@ -530,12 +540,13 @@ async function processFile(f){
     }else if(!manifest.signature){report.facts.signature_valid=null;report.identity.detail='Artifact is unsigned'}
 
     // Determine trust level (matching Python epi_core/trust.py)
-    if(report.facts.integrity_ok&&report.facts.signature_valid===true&&report.identity.status==='KNOWN'){report.trust_level='HIGH';report.trust_message='Cryptographically verified — signer identity confirmed'}
-    else if(report.facts.integrity_ok&&report.facts.signature_valid===true&&report.identity.status!=='KNOWN'){report.trust_level='LOW';report.trust_message='Valid signature from unverified identity — verify signer independently'}
-    else if(report.facts.integrity_ok&&!report.facts.has_signature){report.trust_level='MEDIUM';report.trust_message='Unsigned — integrity intact, no signer identity'}
-    else if(!report.facts.integrity_ok){report.trust_level='NONE';report.trust_message='Integrity compromised — do not trust'}
-    else if(report.facts.signature_valid===false){report.trust_level='NONE';report.trust_message='Signature invalid — artifact may be tampered'}
-    else{report.trust_level='NONE';report.trust_message='Verification inconclusive — do not trust'}
+    // Seal-first framing (matches CLI dual-mode): do not panic-label valid seals as "LOW TRUST"
+    if(report.facts.integrity_ok&&report.facts.signature_valid===true&&report.identity.status==='KNOWN'){report.trust_level='HIGH';report.trust_message='SEAL OK · identity pinned (org trust list)'}
+    else if(report.facts.integrity_ok&&report.facts.signature_valid===true&&report.identity.status!=='KNOWN'){report.trust_level='SEAL OK';report.trust_message='Seal valid · identity not pinned in this browser (normal). Pin with CLI: epi keys trust'}
+    else if(report.facts.integrity_ok&&!report.facts.has_signature){report.trust_level='UNSIGNED';report.trust_message='Integrity intact · no signature — anyone could have produced this file'}
+    else if(!report.facts.integrity_ok){report.trust_level='SEAL FAIL';report.trust_message='Integrity compromised — do not trust this copy'}
+    else if(report.facts.signature_valid===false){report.trust_level='SEAL FAIL';report.trust_message='Signature invalid — artifact may be tampered'}
+    else{report.trust_level='INCOMPLETE';report.trust_message='Verification incomplete in browser — use epi verify offline for full audit'}
 
     showReport(report,'');
   }catch(e){showResult('fail','<strong>Verification error</strong><br>'+e.message)}
@@ -559,17 +570,21 @@ function showResult(type,msg){
 
 function showReport(report,errMsg){
   if(errMsg){showResult('fail',errMsg);return}
-  var type=report.trust_level==='HIGH'?'pass':report.trust_level==='MEDIUM'?'warn':'fail';
-  // Integrity+structure green is a seal success even when identity is LOW
+  var tl=report.trust_level||'';
+  var type='fail';
+  if(tl==='HIGH'||tl==='SEAL OK')type='pass';
+  else if(tl==='UNSIGNED'||tl==='INCOMPLETE'||tl==='MEDIUM'||tl==='LOW')type='warn';
+  else if(tl==='SEAL FAIL'||tl==='NONE')type='fail';
+  // Structure+integrity with non-false signature still counts as seal success
   if(report.facts&&report.facts.structure_ok&&report.facts.integrity_ok&&report.facts.signature_valid!==false){
-    if(type==='fail'&&report.trust_level==='LOW')type='pass';
+    if(type==='fail')type='pass';
   }
   showResult(type,reportDOM(report));
   updateChecks(report);
 }
 
 function resetChecks(){
-  ['chk1','chk2','chk3','chk4','chk5'].forEach(function(id){var el=document.getElementById(id);if(el){el.classList.remove('pass');el.innerHTML='<span class="check-dot"></span> '+el.innerHTML.replace(/^.*?\d{2}\s*·\s*/,'')}});
+  ['chk1','chk2','chk3','chk4','chk5','chk6'].forEach(function(id){var el=document.getElementById(id);if(el){el.classList.remove('pass');el.innerHTML='<span class="check-dot"></span> '+el.innerHTML.replace(/^.*?\d{2}\s*·\s*/,'')}});
   if(dr)dr.style.display='none';
   setDropSealState(null);
 }
