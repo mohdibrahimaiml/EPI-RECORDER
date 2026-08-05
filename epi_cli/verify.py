@@ -530,6 +530,9 @@ def verify_command(
         seq_comp_gaps = []
         step_count_ok = True  # AUD-CO-02: safe default for old artifacts
         steps: list[dict] = []
+        actual_step_count = 0
+        claimed_step_count = manifest.total_steps
+        audit_result = {}
 
         try:
             import hashlib as _hashlib

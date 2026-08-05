@@ -114,6 +114,35 @@ def _read_text_if_exists(path: Path) -> str | None:
         return None
 
 
+def _bake_signature_status(manifest: ManifestModel) -> dict:
+    """Verify the manifest signature at bake time instead of hardcoding False.
+
+    Returns a dict matching the ``caseData.signature`` shape expected by the
+    browser viewer (``{valid, reason, [signer]}``).
+    """
+    if not manifest.signature:
+        return {
+            "valid": None,
+            "reason": "No signer attached to this case file",
+        }
+
+    try:
+        from epi_core.trust import verify_embedded_manifest_signature
+
+        sig_valid, signer_name, sig_message = verify_embedded_manifest_signature(manifest)
+        return {
+            "valid": sig_valid is True,
+            "reason": sig_message,
+            "signer": signer_name,
+        }
+    except Exception:
+        # Crypto dependency unavailable — degrade to browser-side check
+        return {
+            "valid": None,
+            "reason": "Signature verification deferred to viewer",
+        }
+
+
 def _read_steps_if_exists(path: Path) -> list[dict]:
     if not path.exists():
         return []
@@ -264,14 +293,7 @@ class EPIContainer:
                 "checked": len(manifest.file_manifest),
                 "mismatches": [],
             },
-            "signature": {
-                "valid": False,
-                "reason": (
-                    "Open this case file through epi view to verify the signer and file integrity."
-                    if manifest.signature
-                    else "No signer attached to this case file"
-                ),
-            },
+            "signature": _bake_signature_status(manifest),
             "notarization": _read_json_if_exists(source_dir / "artifacts" / "notarization" / "notarization.json"),
             "envelope": {
                 "version": EPI_ENVELOPE_VERSION,
