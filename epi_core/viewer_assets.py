@@ -16,12 +16,12 @@ def _repo_root() -> Path:
 
 
 def _read_text(package_dir: str, filename: str) -> str | None:
+    fallback = _repo_root() / package_dir / filename
+    if fallback.exists():
+        return fallback.read_text(encoding="utf-8")
     try:
         return resources.files(package_dir).joinpath(filename).read_text(encoding="utf-8")
     except Exception:
-        fallback = _repo_root() / package_dir / filename
-        if fallback.exists():
-            return fallback.read_text(encoding="utf-8")
         return None
 
 
@@ -158,7 +158,7 @@ def inline_viewer_assets(
     air-gapped review flows while still allowing a small preload payload to be
     injected ahead of the runtime scripts.
     """
-    html = template_html
+    html = template_html.replace("\r\n", "\n")
     jszip_js = _escape_inline_script_source(jszip_js)
     crypto_js = _escape_inline_script_source(crypto_js)
     app_js = _escape_inline_script_source(app_js)
