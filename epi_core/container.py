@@ -569,11 +569,27 @@ class EPIContainer:
             # contiguous byte sequence in the source — eliminating collision
             # risk with inlined step content or viewer HTML.
             src.seek(EPI_ENVELOPE_HEADER_SIZE)
-            buffer = src.read(4 * 1024 * 1024)
-            marker_idx = buffer.find(EPI_ZIP_MARKER)
+            found_offset = -1
+            chunk_size = 65536
+            overlap = len(EPI_ZIP_MARKER) - 1
+            search_buf = b""
+            curr_pos = EPI_ENVELOPE_HEADER_SIZE
 
-            if marker_idx != -1:
-                src.seek(EPI_ENVELOPE_HEADER_SIZE + marker_idx + len(EPI_ZIP_MARKER))
+            while True:
+                chunk = src.read(chunk_size)
+                if not chunk:
+                    break
+                search_buf += chunk
+                idx = search_buf.find(EPI_ZIP_MARKER)
+                if idx != -1:
+                    found_offset = curr_pos - (len(search_buf) - len(chunk)) + idx
+                    break
+                if len(search_buf) > overlap:
+                    search_buf = search_buf[-overlap:]
+                curr_pos += len(chunk)
+
+            if found_offset != -1:
+                src.seek(found_offset + len(EPI_ZIP_MARKER))
             else:
                 # Artifact has no viewer HTML shell — payload starts at header boundary
                 src.seek(EPI_ENVELOPE_HEADER_SIZE)
@@ -1461,10 +1477,12 @@ class EPIContainer:
 
         with EPIContainer._payload_zip_path(epi_path) as payload_zip:
             with zipfile.ZipFile(payload_zip, "r") as zf:
-                # Prevent zip-slip path traversal
+                resolved_dest = dest_dir.resolve()
                 for member in zf.infolist():
                     member_path = (dest_dir / member.filename).resolve()
-                    if not str(member_path).startswith(str(dest_dir.resolve())):
+                    try:
+                        member_path.relative_to(resolved_dest)
+                    except ValueError:
                         raise ValueError(f"Path traversal detected in .epi archive: {member.filename}")
                     zf.extract(member, dest_dir)
 

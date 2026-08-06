@@ -129,10 +129,6 @@ def get_canonical_hash(
     if model.__class__.__name__ == "StepModel":
         return _get_json_canonical_hash(model_dict)
 
-    # Auto-detect from spec_version when no override is given
-    # StepModel has no spec_version -- force JSON
-    if model.__class__.__name__ == "StepModel":
-        format = "json"
     spec_version = model_dict.get("spec_version", "")
     try:
         # Strip any leading "v" (e.g. "v2.0" → "2.0") before parsing
