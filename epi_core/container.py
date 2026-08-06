@@ -114,33 +114,22 @@ def _read_text_if_exists(path: Path) -> str | None:
         return None
 
 
-def _bake_signature_status(manifest: ManifestModel) -> dict:
-    """Verify the manifest signature at bake time instead of hardcoding False.
+def _bake_signature_status(manifest: "ManifestModel") -> bool | None:
+    """Run real Ed25519 verification at bake time.
 
-    Returns a dict matching the ``caseData.signature`` shape expected by the
-    browser viewer (``{valid, reason, [signer]}``).
+    Returns:
+      True  — signature cryptographically valid
+      False — signature present but invalid (tampered)
+      None  — no signature at all
     """
-    if not manifest.signature:
-        return {
-            "valid": None,
-            "reason": "No signer attached to this case file",
-        }
-
+    from epi_core.trust import verify_embedded_manifest_signature
+    if not manifest or not manifest.signature:
+        return None
     try:
-        from epi_core.trust import verify_embedded_manifest_signature
-
-        sig_valid, signer_name, sig_message = verify_embedded_manifest_signature(manifest)
-        return {
-            "valid": sig_valid is True,
-            "reason": sig_message,
-            "signer": signer_name,
-        }
+        valid, _name, _msg = verify_embedded_manifest_signature(manifest)
+        return valid
     except Exception:
-        # Crypto dependency unavailable — degrade to browser-side check
-        return {
-            "valid": None,
-            "reason": "Signature verification deferred to viewer",
-        }
+        return None
 
 
 def _read_steps_if_exists(path: Path) -> list[dict]:
@@ -293,7 +282,14 @@ class EPIContainer:
                 "checked": len(manifest.file_manifest),
                 "mismatches": [],
             },
-            "signature": _bake_signature_status(manifest),
+            "signature": {
+                "valid": _bake_signature_status(manifest),
+                "reason": (
+                    "Signature verified at pack time."
+                    if manifest.signature
+                    else "No signer attached to this case file"
+                ),
+            },
             "notarization": _read_json_if_exists(source_dir / "artifacts" / "notarization" / "notarization.json"),
             "envelope": {
                 "version": EPI_ENVELOPE_VERSION,
