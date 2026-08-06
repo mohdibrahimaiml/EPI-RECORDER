@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Insurance Claim Adjudication — EPI Evidence</title>
+<style>
+:root{--bg:#f8f9fa;--card:#fff;--border:#e2e8f0;--ink:#1a202c;--muted:#718096;--pass:#16a34a;--warn:#d97706;--fail:#dc2626;--blue:#2563eb}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:"Inter","system-ui",sans-serif;line-height:1.6;padding:24px 24px 80px;max-width:920px;margin:0 auto}
+h1{font-size:22px;margin-bottom:4px;letter-spacing:-0.5px}
+h2{font-size:15px;margin:28px 0 10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);padding-bottom:6px}
+p{margin:6px 0}
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin:10px 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);display:block;margin-bottom:2px}
+.value{font-size:14px;font-weight:600}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;letter-spacing:0.5px}
+.badge-pass{background:#dcfce7;color:var(--pass)}
+.badge-warn{background:#fef3c7;color:var(--warn)}
+.badge-fail{background:#fee2e2;color:var(--fail)}
+.badge-info{background:#dbeafe;color:var(--blue)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--border)}
+th{font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:1px}
+.mono{font-family:"JetBrains Mono","Cascadia Code","Consolas",monospace;font-size:12px}
+.footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+</style>
+</head>
+<body>
+
+<h1>Insurance Claim Adjudication</h1>
+<p style="color:var(--muted);font-size:13px">EPI Evidence Record — File: <code class="mono">demo-insurance-claim-adjudication.epi</code></p>
+
+<h2>Claim Summary</h2>
+<div class="card grid">
+  <div><label>Claim ID</label><div class="value mono">CLM-2026-04-00042</div></div>
+  <div><label>Policyholder</label><div class="value">Maria Gonzalez</div></div>
+  <div><label>Claim Type</label><div class="value">Auto — collision damage</div></div>
+  <div><label>Incident Date</label><div class="value">2026-04-07</div></div>
+  <div><label>Reported Date</label><div class="value">2026-04-08</div></div>
+  <div><label>Adjudicator</label><div class="value">AI Claims Engine v2.4.0</div></div>
+</div>
+
+<h2>Decision</h2>
+<div class="card" style="border-left:4px solid var(--warn)">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <span class="value">AUTO — APPROVED WITH CONDITIONS</span>
+    <span class="badge badge-warn">CONDITIONAL</span>
+  </div>
+  <p style="font-size:13px;color:var(--muted)">
+    Claim approved for $4,800 subject to receipt of police report. Agent
+    recorded a review handoff to the senior adjuster queue before finalizing.
+  </p>
+</div>
+
+<h2>Verification</h2>
+<div class="card">
+  <table>
+    <tr><td>Integrity</td><td><span class="badge badge-pass">VERIFIED</span></td></tr>
+    <tr><td>Signature</td><td><span class="badge badge-pass">VALID</span></td></tr>
+    <tr><td>Chain</td><td><span class="badge badge-pass">INTACT</span></td></tr>
+    <tr><td>Completeness</td><td><span class="badge badge-pass">OK</span></td></tr>
+    <tr><td>Policy</td><td><span class="badge badge-pass">SATISFIED</span></td></tr>
+  </table>
+  <p style="font-size:11px;color:var(--muted);margin-top:8px">Seal ID: <code class="mono" style="font-size:11px">6090c0d94782bb06</code></p>
+</div>
+
+<h2>Governance Rules</h2>
+<div class="card">
+  <table>
+    <tr><th>Rule</th><th>Severity</th><th>Status</th></tr>
+    <tr><td>identify_claimant_before_decision</td><td>Critical</td><td><span class="badge badge-pass">PASSED</span></td></tr>
+    <tr><td>high_value_claim_requires_human_review</td><td>Critical</td><td><span class="badge badge-warn">PENDING</span></td></tr>
+    <tr><td>police_report_required_above_5000</td><td>High</td><td><span class="badge badge-warn">PENDING</span></td></tr>
+    <tr><td>coverage_must_be_verified_before_pay</td><td>High</td><td><span class="badge badge-pass">PASSED</span></td></tr>
+    <tr><td>never_output_policyholder_ssn</td><td>Critical</td><td><span class="badge badge-pass">PASSED</span></td></tr>
+  </table>
+  <div style="margin-top:10px;font-size:12px;color:var(--muted)">Policy: <code>insurance.claim-adjudication</code> — 5 rules · 3 passed · 2 pending · 0 failed</div>
+</div>
+
+<h2>Evidence Timeline</h2>
+<div class="card" style="padding:0">
+  <table>
+    <tr><th>Time</th><th>Kind</th><th>Summary</th></tr>
+    <tr><td class="mono">08:12:00</td><td><span class="badge badge-info">START</span></td><td>Session: Claim investigation started</td></tr>
+    <tr><td class="mono">08:12:01</td><td><span class="badge badge-info">TOOL</span></td><td>lookup_policy(&#123;claim_id: "CLM-2026-04-00042"&#125;)</td></tr>
+    <tr><td class="mono">08:12:02</td><td><span class="badge badge-info">TOOL</span></td><td>lookup_claimant(&#123;policyholder: "M. Gonzalez"&#125;)</td></tr>
+    <tr><td class="mono">08:12:03</td><td><span class="badge badge-info">LLM</span></td><td>Queried claude-3-haiku · 3 messages</td></tr>
+    <tr><td class="mono">08:12:05</td><td><span class="badge badge-warn">POLICY</span></td><td>high_value_claim_requires_human_review → review_required</td></tr>
+    <tr><td class="mono">08:12:05</td><td><span class="badge badge-warn">HANDOFF</span></td><td>Review required for claims above $5000 · queued to adjusters</td></tr>
+    <tr><td class="mono">08:12:06</td><td><span class="badge badge-info">DECISION</span></td><td>Approve with conditions: $4,800 subject to police report</td></tr>
+  </table>
+</div>
+
+<h2>Policy Source</h2>
+<div class="card" style="border-left:4px solid var(--blue)">
+  <span class="badge badge-info">AUTO-EXTRACTED</span>
+  <span style="font-size:13px;margin-left:8px">Policy auto-extracted from <code>policy.check</code> steps recorded by the agent. Not a formally authored policy. Run <code>epi policy init</code> for domain-specific rules.</span>
+</div>
+
+<h2>Integrity</h2>
+<div class="card grid">
+  <div><label>Files Checked</label><div class="value">9</div></div>
+  <div><label>Mismatches</label><div class="value">0</div></div>
+  <div><label>Chain</label><div class="value"><span class="badge badge-pass">INTACT</span></div></div>
+  <div><label>Completeness</label><div class="value"><span class="badge badge-pass">OK</span></div></div>
+</div>
+<p style="font-size:11px;color:var(--muted)">
+  This measures whether the sealed record has been altered since sealing — it does not verify
+  that the recording process captured every action the agent actually took.
+</p>
+
+<h2>Human Attestation</h2>
+<div class="card" style="border-left:4px solid var(--muted)">
+  <span class="badge badge-info" style="background:#e8e8e8;color:#555">PENDING</span>
+  <span style="font-size:13px;margin-left:8px">No reviewer has signed off on this claim yet. A human adjuster must approve or reject the conditional decision.</span>
+</div>
+
+<div class="footer">
+  <span>Generated by <strong>EPI Recorder v4.4.0</strong> — Evidence for AI agents</span>
+  <span class="mono" style="font-size:11px">https://epilabs.org</span>
+</div>
+
+</body>
+</html>
