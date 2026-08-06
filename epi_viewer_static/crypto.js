@@ -450,10 +450,81 @@ const noble = (function () {
 globalThis.noble = noble;
 
 // ==========================================
+// Raw-text number-preserving JSON utilities
+// (ported from home-verify.js to preserve Python's "900.0" float format
+// that standard JSON.parse strips to 900 — critical for signature verification)
+// ==========================================
+
+function _tokenizeJSON(str) {
+  var tokens = [], i = 0;
+  while (i < str.length) {
+    var c = str[i];
+    if (c === ' ' || c === '\t' || c === '\n' || c === '\r') { i++; continue; }
+    if (c === '"') {
+      i++; var s = '';
+      while (i < str.length) {
+        var ch = str[i];
+        if (ch === '\\') { i++; s += str[i]; i++; }
+        else if (ch === '"') { break; }
+        else { s += ch; i++; }
+        i++;
+      }
+      tokens.push({type: 'string', value: s}); i++; continue;
+    }
+    if (c === '{' || c === '}' || c === '[' || c === ']' || c === ':' || c === ',') { tokens.push({type: c}); i++; continue; }
+    if (str.substring(i, i+4) === 'true') { tokens.push({type: 'true', value: true}); i += 4; continue; }
+    if (str.substring(i, i+5) === 'false') { tokens.push({type: 'false', value: false}); i += 5; continue; }
+    if (str.substring(i, i+4) === 'null') { tokens.push({type: 'null', value: null}); i += 4; continue; }
+    if (c === '-' || (c >= '0' && c <= '9')) {
+      var start = i;
+      if (str[i] === '-') i++;
+      while (i < str.length && str[i] >= '0' && str[i] <= '9') i++;
+      if (i < str.length && str[i] === '.') { i++; while (i < str.length && str[i] >= '0' && str[i] <= '9') i++; }
+      if (i < str.length && (str[i] === 'e' || str[i] === 'E')) { i++; if (str[i] === '+' || str[i] === '-') i++; while (i < str.length && str[i] >= '0' && str[i] <= '9') i++; }
+      tokens.push({type: 'number', raw: str.substring(start, i)}); continue;
+    }
+    throw new Error('Unexpected character ' + c + ' at ' + i);
+  }
+  return tokens;
+}
+
+function _normalizeDatetimeRec(obj) {
+  if (obj && typeof obj === 'object' && obj.__num !== undefined) return;
+  if (typeof obj === 'string') return; // normalization happens at serialization
+  if (Array.isArray(obj)) { obj.forEach(_normalizeDatetimeRec); return; }
+  if (obj && typeof obj === 'object') {
+    for (var k in obj) {
+      if (typeof obj[k] === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(obj[k])) {
+        var v = obj[k].replace(/\.\d+/, '');
+        if (!v.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(v)) v += 'Z';
+        obj[k] = v;
+      } else {
+        _normalizeDatetimeRec(obj[k]);
+      }
+    }
+  }
+}
+
+function _sortedJson(obj) {
+  if (obj && typeof obj === 'object' && obj.__num !== undefined) return obj.__num;
+  if (obj === null) return 'null';
+  if (typeof obj === 'string') return JSON.stringify(obj);
+  if (typeof obj === 'number') return String(Number.isFinite(obj) ? obj : 'null');
+  if (typeof obj === 'boolean') return String(obj);
+  if (Array.isArray(obj)) return '[' + obj.map(_sortedJson).join(',') + ']';
+  var keys = Object.keys(obj).sort(), p = [];
+  for (var i = 0; i < keys.length; i++) {
+    var k = keys[i];
+    if (obj[k] !== undefined) p.push(JSON.stringify(k) + ':' + _sortedJson(obj[k]));
+  }
+  return '{' + p.join(',') + '}';
+}
+
+// ==========================================
 // EPI Viewer Verification Logic
 // ==========================================
 
-async function verifyManifestSignature(manifest) {
+async function verifyManifestSignature(manifest, rawManifestText) {
     console.log("Verifying manifest signature...", manifest);
 
     // 1. Check if signature exists
@@ -481,21 +552,26 @@ async function verifyManifestSignature(manifest) {
     const pubKeyBytes = noble.etc.hexToBytes(manifest.public_key);
 
     // 4. Compute Canonical JSON Hash of Manifest (excluding signature)
-    const manifestCopy = JSON.parse(JSON.stringify(manifest));
-    delete manifestCopy.signature;
+    //
+    // CRITICAL: Python's json.dumps preserves ".0" on floats (900.0 stays 900.0).
+    // JS's JSON.parse strips ".0" (900.0 becomes 900). So if we parse-and-reserialize,
+    // the hash differs from what Python signed.
+    //
+    // Fix: when rawManifestText is available, use it directly for canonicalization.
+    // Strip the signature field from the raw text, sort keys, normalize datetimes,
+    // and compute the hash — matching Python's get_canonical_hash exactly.
 
-    // Normalize datetime strings to match Python's canonical form:
-    // strips microseconds and ensures Z suffix (matches epi_core/serialize.py _normalize_value)
+    // Normalize datetime strings to match Python's canonical form
     const normalizeDatetime = (s) => {
         if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(s)) {
-            let v = s.replace(/\.\d+/, ''); // strip microseconds
+            let v = s.replace(/\.\d+/, '');
             if (!v.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(v)) v += 'Z';
             return v;
         }
         return s;
     };
 
-    // Recursive canonical JSON stringify (RFC 8785 style, matches Python get_canonical_hash)
+    // Recursive canonical JSON stringify (RFC 8785 style)
     const canonicalJson = (obj) => {
         if (obj === null) return 'null';
         if (typeof obj === 'string') return JSON.stringify(normalizeDatetime(obj));
@@ -512,8 +588,43 @@ async function verifyManifestSignature(manifest) {
         return result + '}';
     };
 
-    const jsonString = canonicalJson(manifestCopy);
-    const msgBytes = new TextEncoder().encode(jsonString);
+    // Use raw text when available to preserve Python's "900.0" formatting.
+    // Port the tokenizeJSON / parseJSONPreserveNumbers / sortedJSON approach
+    // from home-verify.js so that floats like 900.0 don't get stripped to 900.
+    let canonicalStr;
+    if (rawManifestText) {
+        try {
+            // Tokenize and parse preserving raw number text
+            const tokens = _tokenizeJSON(rawManifestText);
+            let pos = 0;
+            function parseValue() {
+                const tok = tokens[pos];
+                if (tok.type === 'number') { pos++; return { __num: tok.raw }; }
+                if (tok.type === 'string') { pos++; return tok.value; }
+                if (tok.type === 'true' || tok.type === 'false' || tok.type === 'null') { pos++; return tok.value; }
+                if (tok.type === '[') { pos++; const arr = []; while (tokens[pos] && tokens[pos].type !== ']') { arr.push(parseValue()); if (tokens[pos].type === ',') pos++; } pos++; return arr; }
+                if (tok.type === '{') { pos++; const obj = {}; while (tokens[pos] && tokens[pos].type !== '}') { const key = tokens[pos].value; pos++; pos++; obj[key] = parseValue(); if (tokens[pos].type === ',') pos++; } pos++; return obj; }
+                throw new Error('Unexpected token ' + tok.type);
+            }
+            const parsed = parseValue();
+            delete parsed.signature;
+            // normalize datetimes
+            _normalizeDatetimeRec(parsed);
+            // sorted JSON preserving __num raw text
+            canonicalStr = _sortedJson(parsed);
+        } catch (e) {
+            // Fallback to standard approach
+            const manifestCopy = JSON.parse(JSON.stringify(manifest));
+            delete manifestCopy.signature;
+            canonicalStr = canonicalJson(manifestCopy);
+        }
+    } else {
+        const manifestCopy = JSON.parse(JSON.stringify(manifest));
+        delete manifestCopy.signature;
+        canonicalStr = canonicalJson(manifestCopy);
+    }
+
+    const msgBytes = new TextEncoder().encode(canonicalStr);
 
     try {
         // 5. Verify Hash

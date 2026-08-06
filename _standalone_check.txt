@@ -1,0 +1,3 @@
+=== STANDALONE EXPORT HTML ===
+  signature.valid: True (type=bool)
+  manifest.signature: True

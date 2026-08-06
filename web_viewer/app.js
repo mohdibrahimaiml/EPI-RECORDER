@@ -337,8 +337,10 @@ function renderHeader(caseData, context) {
   // Status pills
   const pillsEl = document.getElementById('header-pills');
   const intOk = caseData.integrity?.ok !== false;
-  // Prefer live context sig_valid, fall back to case payload signature.valid
-  const sigValid = context != null ? context.signature_valid : caseData.signature?.valid;
+  // Prefer live context sig_valid, but only when it's been explicitly set.
+  // An empty/missing context must not override the preloaded case payload.
+  const hasLiveSig = context != null && Object.prototype.hasOwnProperty.call(context, 'signature_valid');
+  const sigValid = hasLiveSig ? context.signature_valid : caseData.signature?.valid;
   const sigVerified = sigValid === true;
 
   pillsEl.innerHTML = '';
@@ -415,9 +417,13 @@ async function verifyCaseInBrowser(caseData) {
   const hasSig = !!(manifest.signature || (caseData.signature && caseData.signature.present));
 
   // ── Signature (Ed25519 over canonical manifest hash) ──
+  // Pass raw manifest JSON text to preserve Python's float format (900.0 vs 900)
+  const rawManifestText = caseData.files && caseData.files['manifest.json']
+    ? atob(caseData.files['manifest.json'])
+    : null;
   if (typeof globalThis.verifyManifestSignature === 'function' && manifest.signature) {
     try {
-      const vr = await globalThis.verifyManifestSignature(manifest);
+      const vr = await globalThis.verifyManifestSignature(manifest, rawManifestText);
       result.signature_valid = vr && vr.valid === true;
       result.signature_reason = (vr && vr.reason) || null;
       result.client_verified = true;
