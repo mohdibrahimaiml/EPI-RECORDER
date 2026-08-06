@@ -337,8 +337,10 @@ function renderHeader(caseData, context) {
   // Status pills
   const pillsEl = document.getElementById('header-pills');
   const intOk = caseData.integrity?.ok !== false;
-  // Prefer live context sig_valid, fall back to case payload signature.valid
-  const sigValid = context != null ? context.signature_valid : caseData.signature?.valid;
+  // Prefer live context sig_valid, but only when it's been explicitly set.
+  // An empty/missing context must not override the preloaded case payload.
+  const hasLiveSig = context != null && Object.prototype.hasOwnProperty.call(context, 'signature_valid');
+  const sigValid = hasLiveSig ? context.signature_valid : caseData.signature?.valid;
   const sigVerified = sigValid === true;
 
   pillsEl.innerHTML = '';

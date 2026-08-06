@@ -337,8 +337,10 @@ function renderHeader(caseData, context) {
   // Status pills
   const pillsEl = document.getElementById('header-pills');
   const intOk = caseData.integrity?.ok !== false;
-  // Prefer live context sig_valid, fall back to case payload signature.valid
-  const sigValid = context != null ? context.signature_valid : caseData.signature?.valid;
+  // Prefer live context sig_valid, but only when it's been explicitly set.
+  // An empty/missing context must not override the preloaded case payload.
+  const hasLiveSig = context != null && Object.prototype.hasOwnProperty.call(context, 'signature_valid');
+  const sigValid = hasLiveSig ? context.signature_valid : caseData.signature?.valid;
   const sigVerified = sigValid === true;
 
   pillsEl.innerHTML = '';
@@ -789,9 +791,19 @@ function renderVerdict(caseData) {
     }
   } else if (analysis) {
     if (analysis.fault_detected === true) {
-      systemVerdict = 'FAILED';
-      verdictClass = 'failed';
-      verdictDisplay = 'FAILED';
+      const isPolicyViolation = analysis.primary_fault && (
+        analysis.primary_fault.fault_type === 'POLICY_VIOLATION' ||
+        analysis.primary_fault.category === 'policy_violation'
+      );
+      if (isPolicyViolation) {
+        systemVerdict = 'FAILED';
+        verdictClass = 'failed';
+        verdictDisplay = 'FAILED';
+      } else {
+        systemVerdict = 'WARNING';
+        verdictClass = 'pending';
+        verdictDisplay = 'WARNING';
+      }
     } else if (analysis.fault_detected === false) {
       systemVerdict = 'PASSED';
       verdictClass = 'passed';
@@ -872,11 +884,19 @@ function renderVerdict(caseData) {
       ...(analysis.secondary_flags || [])
     ];
 
-    const hasFaultType = (type) => allFlags.some(f =>
-      f.fault_type === type || f.category === type
-    );
+    const matchesPassKey = (f, key) => {
+      if (!f) return false;
+      if (f.fault_type === key || f.category === key || f.rule_id === key) return true;
+      if (key === 'ERROR_CONTINUATION' && (f.rule_id === 'P1' || f.fault_type === 'ERROR_CONTINUATION')) return true;
+      if (key === 'CONSTRAINT_VIOLATION' && (f.rule_id === 'P2' || f.fault_type === 'CONSTRAINT_VIOLATION' || f.policy_type === 'constraint_guard')) return true;
+      if (key === 'SEQUENCE_VIOLATION' && (f.rule_id === 'P3' || f.fault_type === 'SEQUENCE_VIOLATION' || f.policy_type === 'sequence_guard')) return true;
+      if (key === 'CONTEXT_DROP' && (f.rule_id === 'P4' || f.fault_type === 'CONTEXT_DROP')) return true;
+      return false;
+    };
+
+    const hasFaultType = (type) => allFlags.some(f => matchesPassKey(f, type));
     const isHeuristicFault = (type) => allFlags.some(f =>
-      (f.fault_type === type || f.category === type) && f.category === 'heuristic_observation'
+      matchesPassKey(f, type) && (f.category === 'heuristic_observation' || f.fault_type !== 'POLICY_VIOLATION')
     );
 
     const checks = [
@@ -1175,8 +1195,17 @@ function renderAnalysis(caseData) {
     ];
 
     html += `<div class="analysis-diag-matrix">` + checks.map(ch => {
-      const flagged = allFlags.some(f => f.fault_type === ch.key || f.category === ch.key);
-      const isHeuristic = allFlags.some(f => (f.fault_type === ch.key || f.category === ch.key) && f.category === 'heuristic_observation');
+      const matchesKey = (f, key) => {
+        if (!f) return false;
+        if (f.fault_type === key || f.category === key || f.rule_id === key) return true;
+        if (key === 'ERROR_CONTINUATION' && (f.rule_id === 'P1' || f.fault_type === 'ERROR_CONTINUATION')) return true;
+        if (key === 'CONSTRAINT_VIOLATION' && (f.rule_id === 'P2' || f.fault_type === 'CONSTRAINT_VIOLATION')) return true;
+        if (key === 'SEQUENCE_VIOLATION' && (f.rule_id === 'P3' || f.fault_type === 'SEQUENCE_VIOLATION')) return true;
+        if (key === 'CONTEXT_DROP' && (f.rule_id === 'P4' || f.fault_type === 'CONTEXT_DROP')) return true;
+        return false;
+      };
+      const flagged = allFlags.some(f => matchesKey(f, ch.key));
+      const isHeuristic = allFlags.some(f => matchesKey(f, ch.key) && (f.category === 'heuristic_observation' || f.fault_type !== 'POLICY_VIOLATION'));
       const label = flagged ? (isHeuristic ? 'PATTERN NOTED' : 'FLAGGED') : 'OK';
       const cls = flagged ? (isHeuristic ? 'warn' : 'flagged') : 'ok';
       return `
