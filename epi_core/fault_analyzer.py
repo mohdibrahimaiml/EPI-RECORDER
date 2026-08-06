@@ -990,8 +990,11 @@ class FaultAnalyzer:
                 next_num = next_step.get("index", i + 1) + 1
                 flags.append(FaultFlag(
                     step_index=step.get("index", i),
-                    fault_type="HEURISTIC_OBSERVATION",
+                    fault_type="ERROR_CONTINUATION",
                     severity="medium",
+                    rule_id="P1",
+                    rule_name="Error Continuation",
+                    category="heuristic_observation",
                     plain_english=(
                         f"Step {step_num} returned an error signal. "
                         f"Step {next_num} continued without referencing or handling the error."
@@ -1080,23 +1083,27 @@ class FaultAnalyzer:
                         rule_id = rule_name = None
                         policy_rule = None
                         if c_key.startswith("__policy_"):
-                            parts = c_key.split("_")
-                            if len(parts) >= 3:
-                                rule_id = parts[2]
+                            parts = c_key[10:].split("_")
+                            if parts:
+                                rule_id = parts[0]
                                 matching = [r for r in policy_constraint_rules if r.id == rule_id]
                                 if matching:
                                     policy_rule = matching[0]
                                     rule_name = policy_rule.name
 
-                        fault_type = "POLICY_VIOLATION" if rule_id else "HEURISTIC_OBSERVATION"
+                        fault_type = "POLICY_VIOLATION" if rule_id else "CONSTRAINT_VIOLATION"
                         severity = "critical" if rule_id else "medium"
+                        eff_rule_id = rule_id or "P2"
+                        eff_rule_name = rule_name or "Constraint Violation"
+                        eff_category = "policy_violation" if rule_id else "heuristic_observation"
 
                         flags.append(FaultFlag(
                             step_index=step_idx,
                             fault_type=fault_type,
                             severity=severity,
-                            rule_id=rule_id,
-                            rule_name=rule_name,
+                            rule_id=eff_rule_id,
+                            rule_name=eff_rule_name,
+                            category=eff_category,
                             plain_english=(
                                 f"At step {c_step_num} the agent received a constraint value "
                                 f"of {c_val:,.2f} (field: {c_key_path.split('.')[-1]}). "
@@ -1985,8 +1992,11 @@ class FaultAnalyzer:
 
                 flags.append(FaultFlag(
                     step_index=last_seen_idx,
-                    fault_type="HEURISTIC_OBSERVATION",
+                    fault_type="CONTEXT_DROP",
                     severity="low",
+                    rule_id="P4",
+                    rule_name="Context Drop",
+                    category="heuristic_observation",
                     plain_english=(
                         f"Entity identifier '{entity_id}' appeared in the early execution steps "
                         f"but was absent from the final {split_a} steps. "

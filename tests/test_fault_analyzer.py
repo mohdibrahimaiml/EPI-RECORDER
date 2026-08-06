@@ -431,9 +431,11 @@ class TestPass2ConstraintViolation:
         analyzer = FaultAnalyzer(policy=policy)
         result = analyzer.analyze(CONSTRAINT_VIOLATION_STEPS)
         if result.primary_fault:
-            # With matching policy, primary fault should be policy violation
-            assert result.primary_fault.fault_type == "POLICY_VIOLATION" or \
-                   result.primary_fault.fault_type == "HEURISTIC_OBSERVATION"
+            assert result.primary_fault.fault_type in (
+                "POLICY_VIOLATION",
+                "CONSTRAINT_VIOLATION",
+                "HEURISTIC_OBSERVATION",
+            )
 
     def test_fault_chain_has_source_and_violation(self):
         analyzer = FaultAnalyzer()
