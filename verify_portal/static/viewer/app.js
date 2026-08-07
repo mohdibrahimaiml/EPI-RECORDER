@@ -417,9 +417,13 @@ async function verifyCaseInBrowser(caseData) {
   const hasSig = !!(manifest.signature || (caseData.signature && caseData.signature.present));
 
   // ── Signature (Ed25519 over canonical manifest hash) ──
+  // Pass raw manifest JSON text to preserve Python's float format (900.0 vs 900)
+  const rawManifestText = caseData.files && caseData.files['manifest.json']
+    ? atob(caseData.files['manifest.json'])
+    : null;
   if (typeof globalThis.verifyManifestSignature === 'function' && manifest.signature) {
     try {
-      const vr = await globalThis.verifyManifestSignature(manifest);
+      const vr = await globalThis.verifyManifestSignature(manifest, rawManifestText);
       result.signature_valid = vr && vr.valid === true;
       result.signature_reason = (vr && vr.reason) || null;
       result.client_verified = true;
