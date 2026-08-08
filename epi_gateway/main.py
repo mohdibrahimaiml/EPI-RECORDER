@@ -959,6 +959,23 @@ def create_app(
                 _gateway_metrics.inc("capture_errors")
         return response
 
+    @app.get("/")
+    async def root_info():
+        return {
+            "ok": True,
+            "service": "EPI Bridge Gateway API",
+            "version": __version__,
+            "status": "online",
+            "endpoints": {
+                "health": "/health",
+                "docs": "/docs",
+                "cases": "/api/cases",
+                "ready": "/ready",
+                "metrics": "/metrics",
+            },
+            "web_viewer": "http://127.0.0.1:8000/web_viewer/index.html",
+        }
+
     @app.get("/health")
     async def health_check():
         snapshot = runtime_worker.snapshot()
