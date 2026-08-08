@@ -1373,6 +1373,7 @@ class EPIContainer:
         source_dir: Path,
         manifest: ManifestModel,
         payload_path: Path,
+        signer_function: Callable[[ManifestModel], ManifestModel] | None = None,
         **kwargs,
     ) -> str:
         viewer_version = str(kwargs.get("viewer_version", "minimal"))
@@ -1398,9 +1399,11 @@ class EPIContainer:
             zf.writestr("viewer.html", viewer_html_bytes, compress_type=zipfile.ZIP_DEFLATED)
 
             # Update the viewer.html hash in the manifest so that verify_integrity
-            # correctly detects a stale viewer after refresh (signature will be
-            # invalid — that is intentional and correct; re-sign to fix it).
+            # correctly detects a stale viewer after refresh.
             manifest.file_manifest["viewer.html"] = hashlib.sha256(viewer_html_bytes).hexdigest()
+
+            if signer_function is not None:
+                manifest = signer_function(manifest)
 
             zf.writestr(
                 "manifest.json",
@@ -1428,16 +1431,24 @@ class EPIContainer:
     def refresh_viewer(
         epi_path: Path,
         output_path: Path | None = None,
+        signer_function: Callable[[ManifestModel], ManifestModel] | None = None,
+        clear_signature: bool = False,
     ) -> Path:
         source_path = Path(epi_path)
         if not source_path.exists():
             raise FileNotFoundError(f"EPI file not found: {source_path}")
 
-        import warnings
-        warnings.warn("refresh_viewer invalidates the manifest signature. Re-sign after refresh.")
         destination = Path(output_path) if output_path is not None else source_path
         container_format = EPIContainer.detect_container_format(source_path)
         manifest = EPIContainer.read_manifest(source_path)
+
+        if clear_signature and not signer_function:
+            manifest.signature = None
+            manifest.public_key = None
+            manifest.signer = None
+        elif signer_function is None and getattr(manifest, "signature", None):
+            import warnings
+            warnings.warn("refresh_viewer invalidates the manifest signature. Re-sign after refresh.")
 
         temp_dir = EPIContainer._make_temp_dir("epi_refresh_viewer_")
         unpack_dir = temp_dir / "unpacked"
@@ -1450,7 +1461,10 @@ class EPIContainer:
                 with zipfile.ZipFile(payload_zip, "r") as zf:
                     zf.extractall(unpack_dir)
 
-            viewer_html = EPIContainer._rebuild_payload_with_viewer(unpack_dir, manifest, temp_payload)
+            viewer_html = EPIContainer._rebuild_payload_with_viewer(
+                unpack_dir, manifest, temp_payload, signer_function=signer_function
+            )
+
             EPIContainer._write_artifact_from_payload(
                 temp_payload,
                 temp_output,
@@ -1464,6 +1478,8 @@ class EPIContainer:
             return destination
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
+
+
 
     @staticmethod
     def unpack(epi_path: Path, dest_dir: Path | None = None) -> Path:

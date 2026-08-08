@@ -1251,7 +1251,8 @@ def keys(
 
     elif action == "export":
         try:
-            public_key_b64 = key_manager.export_public_key(name)
+            effective_name = key if key and name == "default" else name
+            public_key_b64 = key_manager.export_public_key(effective_name)
             fmt = export_format.lower().strip()
             if fmt == "hex":
                 import base64
@@ -1264,7 +1265,7 @@ def keys(
                 console.print(f"[red][FAIL] Unknown export format:[/red] {export_format}")
                 console.print("[dim]Valid formats: base64, hex[/dim]")
                 raise typer.Exit(1)
-            console.print(f"\n[bold]Public key for '{name}':[/bold] [dim]({label})[/dim]")
+            console.print(f"\n[bold]Public key for '{effective_name}':[/bold] [dim]({label})[/dim]")
             console.print(f"[cyan]{public_key_out}[/cyan]\n")
         except FileNotFoundError as e:
             console.print(f"[red][FAIL] Error:[/red] {e}")
