@@ -410,8 +410,10 @@ def _run_demo_script(script_path: Path, env: dict) -> bool:
     try:
         result = subprocess.run(
             [sys.executable, str(script_path)],
-            env=env,
+            env={**env, "PYTHONUTF8": "1"},
             timeout=60,
+            encoding="utf-8",
+            errors="replace",
         )
         return result.returncode == 0
     except subprocess.TimeoutExpired:

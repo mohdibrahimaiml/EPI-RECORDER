@@ -277,6 +277,8 @@ def kit(
             [sys.executable, "-m", "epi_cli", "verify", str(artifact)],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=180,
         )
         _write(work / "verify.txt", (p.stdout or "") + "\n" + (p.stderr or ""))
