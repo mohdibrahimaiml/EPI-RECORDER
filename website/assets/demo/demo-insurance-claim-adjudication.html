@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -4475,7 +4475,11 @@ function normalizeReview(raw) {
 
     const notes = raw.reviews
       .map((r, i) => {
-        const line = `${i + 1}. ${(r.outcome || 'review').toUpperCase().replace(/_/g, ' ')}`;
+        let label = (r.outcome || 'review').toUpperCase().replace(/_/g, ' ');
+        if (r.outcome === 'dismissed') label = 'FLAG CLEARED (APPROVED)';
+        else if (r.outcome === 'confirmed_fault') label = 'FAULT CONFIRMED (REJECTED)';
+        else if (r.outcome === 'skipped') label = 'REVIEW SKIPPED';
+        const line = `${i + 1}. ${label}`;
         return r.notes ? `${line}: ${r.notes}` : line;
       })
       .join('\n');

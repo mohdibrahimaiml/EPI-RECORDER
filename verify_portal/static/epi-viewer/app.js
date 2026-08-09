@@ -119,7 +119,7 @@ function formatReviewOutcome(value) {
         return "Confirmed issue";
     }
     if (normalized === "dismissed") {
-        return "Dismissed after review";
+        return "Flag cleared (Approved)";
     }
     if (normalized === "skipped") {
         return "Review skipped";
