@@ -92,7 +92,7 @@ def sync() -> None:
     for dest in TARGETS:
         preserve = PRESERVE_UNDER_STATIC if dest.name == "static" else set()
         n = _copy_tree(SOURCE, dest, preserve_top=preserve)
-        print(f"Synced {n} files → {dest.relative_to(ROOT)}")
+        print(f"Synced {n} files -> {dest.relative_to(ROOT)}")
         total += n
 
     _purge_stale_pricing_dirs()
