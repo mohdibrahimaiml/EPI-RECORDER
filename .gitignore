@@ -218,3 +218,5 @@ epi_policy.json
 # Local agent noise
 .commandcode/
 
+
+.env
