@@ -223,8 +223,7 @@ set EPI_NOTARIZE=0
 ## Docs
 
 - docs/ENTERPRISE-EVIDENCE-PLAYBOOK.md
-- docs/ENTERPRISE-TRUST-BUNDLE.md
-- docs/ENTERPRISE-CAPABILITY.md
+- docs/EPI_MASTER_DOCUMENTATION.md
 - docs/SELF-HOSTED-RUNBOOK.md
 """
     _write(out / "README.md", readme)
