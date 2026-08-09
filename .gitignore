@@ -80,8 +80,13 @@ installer/windows/Output/
 
 # EPI-specific
 *.epi
-# Allow documented sample artifacts in docs/
+# Allow documented sample artifacts in docs/, examples/, and site/assets/demo/
 !docs/assets/*.epi
+!site/assets/demo/*.epi
+!examples/*.epi
+
+# Allow HTML files in site, website, and examples
+!examples/*.html
 # Allow deterministic test vectors
 !tests/test_vectors/*.epi
 .epi/
