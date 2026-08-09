@@ -14,7 +14,7 @@ inputs:
 runs:  
   using: 'composite'  
   steps:  
-    - name: Install EPI Recorder  
-      run: pip install epi-recorder  
+    - name: Install EPI Recorder from repository source  
+      run: pip install .  
       shell: bash  
     - name: Generate evidence  
