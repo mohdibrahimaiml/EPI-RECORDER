@@ -33,6 +33,7 @@ from uuid import uuid4
 ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "docs" / "assets"
 SITE_DEMO_DIR = ROOT / "site" / "assets" / "demo"
+WEBSITE_DEMO_DIR = ROOT / "website" / "assets" / "demo"
 EXAMPLES_DIR = ROOT / "examples"
 DEMO_DIR = ROOT / "demo_workflows"
 
@@ -942,6 +943,7 @@ def main() -> int:
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     SITE_DEMO_DIR.mkdir(parents=True, exist_ok=True)
+    WEBSITE_DEMO_DIR.mkdir(parents=True, exist_ok=True)
     EXAMPLES_DIR.mkdir(parents=True, exist_ok=True)
     DEMO_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -972,10 +974,11 @@ def main() -> int:
 
         if abs_target.exists():
             shutil.copy2(abs_target, SITE_DEMO_DIR / name)
+            shutil.copy2(abs_target, WEBSITE_DEMO_DIR / name)
             shutil.copy2(abs_target, EXAMPLES_DIR / name)
             shutil.copy2(abs_target, DEMO_DIR / name)
 
-            # Export HTML into EXAMPLES_DIR and SITE_DEMO_DIR
+            # Export HTML into EXAMPLES_DIR, SITE_DEMO_DIR, and WEBSITE_DEMO_DIR
             html_name = name.replace(".epi", ".html")
             html_out = EXAMPLES_DIR / html_name
             try:
@@ -985,6 +988,7 @@ def main() -> int:
                     capture_output=True,
                 )
                 shutil.copy2(html_out, SITE_DEMO_DIR / html_name)
+                shutil.copy2(html_out, WEBSITE_DEMO_DIR / html_name)
                 print(f"  exported viewer HTML -> {html_out.name}")
             except Exception as e:
                 print(f"  WARN: failed to export HTML for {name}: {e}", file=sys.stderr)
