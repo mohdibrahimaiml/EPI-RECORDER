@@ -130,6 +130,7 @@ def finance_loan(api_key: str, out: Path) -> None:
         tags=["demo", "finance", "loan", "underwriting"],
         notes="Realistic demo: credit pull, income verify, policy rules, LLM decision.",
     ) as epi:
+        shutil.copy2(ROOT / "demo_policies" / "finance_loan_policy.json", epi.temp_dir / "epi_policy.json")
         epi.log(
             "agent.run.start",
             {
@@ -252,6 +253,7 @@ def healthcare_triage(api_key: str, out: Path) -> None:
         tags=["demo", "healthcare", "triage", "clinical"],
         notes="Demo only — not medical advice. Escalation path logged as evidence.",
     ) as epi:
+        shutil.copy2(ROOT / "demo_policies" / "healthcare_triage_policy.json", epi.temp_dir / "epi_policy.json")
         epi.log(
             "agent.run.start",
             {
@@ -362,6 +364,7 @@ def insurance_claim(api_key: str, out: Path) -> None:
         tags=["demo", "insurance", "claims", "adjudication"],
         notes="Homeowners policy line-item audit against policy limits.",
     ) as epi:
+        shutil.copy2(ROOT / "demo_policies" / "insurance_claim_policy.json", epi.temp_dir / "epi_policy.json")
         epi.log(
             "agent.run.start",
             {
@@ -466,6 +469,7 @@ def legal_contract(api_key: str, out: Path) -> None:
         tags=["demo", "legal", "contracts", "risk"],
         notes="Compares vendor MSA against internal legal playbook guidelines.",
     ) as epi:
+        shutil.copy2(ROOT / "demo_policies" / "legal_contract_policy.json", epi.temp_dir / "epi_policy.json")
         epi.log(
             "agent.run.start",
             {
@@ -572,6 +576,7 @@ def banking_aml(api_key: str, out: Path) -> None:
         tags=["demo", "banking", "aml", "bsa", "compliance"],
         notes="International wire transfer above $10,000 threshold check.",
     ) as epi:
+        shutil.copy2(ROOT / "demo_policies" / "banking_aml_policy.json", epi.temp_dir / "epi_policy.json")
         epi.log(
             "agent.run.start",
             {
@@ -659,6 +664,7 @@ def hiring_screening(api_key: str, out: Path) -> None:
         tags=["demo", "hiring", "screening", "fairness", "hr"],
         notes="Enforces strict protected-class non-discrimination policy rules.",
     ) as epi:
+        shutil.copy2(ROOT / "demo_policies" / "hiring_screening_policy.json", epi.temp_dir / "epi_policy.json")
         epi.log(
             "agent.run.start",
             {
@@ -756,6 +762,7 @@ def insurance_underwriting(api_key: str, out: Path) -> None:
         tags=["demo", "insurance", "underwriting", "property"],
         notes="Enforces mandatory senior underwriter review above risk threshold.",
     ) as epi:
+        shutil.copy2(ROOT / "demo_policies" / "insurance_underwriting_policy.json", epi.temp_dir / "epi_policy.json")
         epi.log(
             "agent.run.start",
             {
@@ -849,6 +856,7 @@ def lending_affordability(api_key: str, out: Path) -> None:
         tags=["demo", "lending", "mortgage", "affordability"],
         notes="Documented DTI affordability constraint evaluation.",
     ) as epi:
+        shutil.copy2(ROOT / "demo_policies" / "lending_affordability_policy.json", epi.temp_dir / "epi_policy.json")
         epi.log(
             "agent.run.start",
             {

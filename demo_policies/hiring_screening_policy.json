@@ -1,0 +1,31 @@
+{
+  "policy_format_version": "1.0",
+  "policy_id": "policy.hiring.screening.v1",
+  "system_name": "Fair Hiring Candidate Screening",
+  "system_version": "1.0",
+  "policy_version": "2026.02",
+  "profile_id": "hiring-screening-v1",
+  "rules": [
+    {
+      "id": "eeoc_protected_class_sanitization",
+      "name": "EEOC Non-Discrimination Attribute Stripping",
+      "severity": "critical",
+      "description": "Demographic & protected-class attributes must be sanitized prior to candidate evaluation.",
+      "type": "prohibition_guard",
+      "prohibited_pattern": "protected_class_bias"
+    },
+    {
+      "id": "recruiter_interview_approval",
+      "name": "Technical Interview Schedule Approval",
+      "severity": "medium",
+      "description": "Scheduling technical interviews requires lead recruiter approval.",
+      "type": "approval_guard",
+      "approval_action": "schedule_technical_interview",
+      "approved_by": "recruiter.lead@tech.example"
+    }
+  ],
+  "context_tracking": {
+    "identity_fields": ["candidate_id", "role_id"],
+    "exempt_fields": ["policy_ref", "eeoc_ref"]
+  }
+}

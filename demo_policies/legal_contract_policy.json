@@ -1,0 +1,32 @@
+{
+  "policy_format_version": "1.0",
+  "policy_id": "policy.legal.contract.v1",
+  "system_name": "SaaS Vendor Contract Review",
+  "system_version": "1.0",
+  "policy_version": "2026.04",
+  "profile_id": "legal-contract-v1",
+  "rules": [
+    {
+      "id": "playbook_liability_cap_check",
+      "name": "Legal Playbook Limitation of Liability Cap",
+      "severity": "medium",
+      "description": "Limitation of liability exceeding 12-month fee cap playbook guideline requires negotiation.",
+      "type": "constraint_guard",
+      "watch_for": ["max_allowed_multiplier"],
+      "violation_if": "contract liability multiplier exceeds playbook guideline"
+    },
+    {
+      "id": "general_counsel_redline_approval",
+      "name": "General Counsel Redline Package Approval",
+      "severity": "high",
+      "description": "Sending redline packages on flagged MSA contracts requires General Counsel review.",
+      "type": "approval_guard",
+      "approval_action": "send_redline_package",
+      "approved_by": "gc.desk@company.example"
+    }
+  ],
+  "context_tracking": {
+    "identity_fields": ["doc_id"],
+    "exempt_fields": ["playbook_version", "policy_ref"]
+  }
+}

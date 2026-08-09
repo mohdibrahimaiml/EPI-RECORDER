@@ -835,7 +835,8 @@ function renderVerdict(caseData) {
   verdictEl.className = 'verdict-text ' + verdictClass;
 
   // Compliance stats + risk level
-  if (pe) {
+  const isNoPolicy = !pe || pe.policy_source === 'no_policy' || (pe.controls_evaluated || 0) === 0;
+  if (pe && !isNoPolicy) {
     const total = pe.controls_evaluated || 0;
     const results = pe.results || [];
     const passed = results.filter(r => r.status === 'passed' || r.status === 'pass').length;
@@ -854,6 +855,13 @@ function renderVerdict(caseData) {
       riskEl.textContent = `Risk: ${String(riskLevel).toUpperCase()}`;
       riskEl.className = 'risk-level-badge ' + (rl === 'high' ? 'high' : rl === 'low' ? 'low' : 'medium');
     } else if (riskEl) {
+      riskEl.textContent = '';
+      riskEl.className = 'risk-level-badge';
+    }
+  } else {
+    document.getElementById('compliance-stats').textContent = 'No policy configured — baseline heuristics only';
+    const riskEl = document.getElementById('risk-level-badge');
+    if (riskEl) {
       riskEl.textContent = '';
       riskEl.className = 'risk-level-badge';
     }

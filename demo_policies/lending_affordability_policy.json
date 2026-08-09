@@ -1,0 +1,32 @@
+{
+  "policy_format_version": "1.0",
+  "policy_id": "policy.lending.affordability.v1",
+  "system_name": "Mortgage Refinance ATR/QM Affordability",
+  "system_version": "1.0",
+  "policy_version": "2026.02",
+  "profile_id": "lending-affordability-v1",
+  "rules": [
+    {
+      "id": "cfpb_atr_qm_dti_cap",
+      "name": "CFPB ATR/QM Statutory Debt-to-Income Cap (43%)",
+      "severity": "high",
+      "description": "Calculated DTI ratio must satisfy CFPB Qualified Mortgage statutory cap of 43.0%.",
+      "type": "constraint_guard",
+      "watch_for": ["max_allowed_dti"],
+      "violation_if": "calculated DTI exceeds max_allowed_dti"
+    },
+    {
+      "id": "mortgage_compliance_approval",
+      "name": "QM Affordability Certificate Approval",
+      "severity": "high",
+      "description": "Issuing QM affordability certificates requires mortgage compliance officer approval.",
+      "type": "approval_guard",
+      "approval_action": "issue_qm_affordability_certificate",
+      "approved_by": "mortgage.compliance@lender.example"
+    }
+  ],
+  "context_tracking": {
+    "identity_fields": ["application_id", "applicant_id"],
+    "exempt_fields": ["policy_ref"]
+  }
+}

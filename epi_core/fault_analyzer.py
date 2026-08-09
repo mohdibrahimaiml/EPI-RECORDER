@@ -84,6 +84,16 @@ _ID_VALUE_PATTERNS = re.compile(
 _ENTITY_ID_EXEMPT_KEYS = {
     "policy_number",
     "policy_clause",
+    "policy_ref",
+    "protocol_id",
+    "playbook_version",
+    "playbook_id",
+    "role_id",
+    "constraint",
+    "disclaimer",
+    "policy_version",
+    "eeoc_ref",
+    "bsa_ref",
 }
 
 
@@ -1934,6 +1944,7 @@ class FaultAnalyzer:
         _TERMINAL_KINDS = {
             "review.handoff", "agent.run.end", "session.end",
             "environment.captured", "agent.run.start",
+            "agent.approval.request", "agent.approval.response", "security.redaction",
         }
 
         split_a = max(1, len(steps) // 3)
@@ -1941,6 +1952,8 @@ class FaultAnalyzer:
 
         early_steps = steps[:split_a]
         late_steps = [s for s in steps[split_b:] if (s.get("kind") or "") not in _TERMINAL_KINDS]
+        if not late_steps:
+            return flags
 
         # Determine exempt fields: policy-declared + global defaults
         exempt_fields = set(_ENTITY_ID_EXEMPT_KEYS)
