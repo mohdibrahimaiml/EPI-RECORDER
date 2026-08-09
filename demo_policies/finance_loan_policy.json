@@ -1,0 +1,32 @@
+{
+  "policy_format_version": "1.0",
+  "policy_id": "policy.finance.loan.v1",
+  "system_name": "Consumer Loan Underwriting",
+  "system_version": "1.0",
+  "policy_version": "2026.03",
+  "profile_id": "finance-loan-v1",
+  "rules": [
+    {
+      "id": "credit_box_minimum_fico",
+      "name": "Minimum Credit Box FICO Score Check",
+      "severity": "high",
+      "description": "Applicant FICO score must satisfy minimum credit box threshold (680).",
+      "type": "constraint_guard",
+      "watch_for": ["min_fico"],
+      "violation_if": "applicant FICO is below minimum threshold"
+    },
+    {
+      "id": "underwriter_approval_required",
+      "name": "Loan Commitment Release Approval",
+      "severity": "high",
+      "description": "Issuing loan commitments requires lead underwriter approval.",
+      "type": "approval_guard",
+      "approval_action": "issue_loan_commitment",
+      "approved_by": "underwriter.lead@bank.example"
+    }
+  ],
+  "context_tracking": {
+    "identity_fields": ["application_id", "applicant_id"],
+    "exempt_fields": ["policy_version", "policy_ref"]
+  }
+}

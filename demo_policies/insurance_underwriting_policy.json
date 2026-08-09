@@ -1,0 +1,32 @@
+{
+  "policy_format_version": "1.0",
+  "policy_id": "policy.insurance.underwriting.v1",
+  "system_name": "Commercial Property Underwriting",
+  "system_version": "1.0",
+  "policy_version": "2026.01",
+  "profile_id": "insurance-underwriting-v1",
+  "rules": [
+    {
+      "id": "automated_bind_limit_check",
+      "name": "Automated Binding Valuation Limit ($1,000,000)",
+      "severity": "high",
+      "description": "Quotes exceeding $1,000,000 replacement valuation require senior underwriter referral.",
+      "type": "constraint_guard",
+      "watch_for": ["max_auto_bind_limit_usd"],
+      "violation_if": "requested property limit exceeds max_auto_bind_limit_usd"
+    },
+    {
+      "id": "senior_underwriter_bind_approval",
+      "name": "High-Risk Commercial Policy Bind Approval",
+      "severity": "critical",
+      "description": "Binding commercial policies on high-valuation properties requires chief underwriter approval.",
+      "type": "approval_guard",
+      "approval_action": "bind_commercial_policy",
+      "approved_by": "chief_underwriter@insurer.example"
+    }
+  ],
+  "context_tracking": {
+    "identity_fields": ["quote_id"],
+    "exempt_fields": ["policy_ref"]
+  }
+}

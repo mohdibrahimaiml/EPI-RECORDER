@@ -1,0 +1,32 @@
+{
+  "policy_format_version": "1.0",
+  "policy_id": "policy.insurance.claim.v1",
+  "system_name": "Homeowners Claim Adjudication",
+  "system_version": "1.0",
+  "policy_version": "2026.03",
+  "profile_id": "insurance-claim-v1",
+  "rules": [
+    {
+      "id": "policy_coverage_limit_audit",
+      "name": "Policy Dwelling Coverage Limit Audit",
+      "severity": "high",
+      "description": "Gross claim amount must not exceed policy dwelling limit.",
+      "type": "constraint_guard",
+      "watch_for": ["dwelling_limit_usd"],
+      "violation_if": "claim estimate exceeds policy dwelling limit"
+    },
+    {
+      "id": "payout_approval_required",
+      "name": "Claim Payout Check Release Approval",
+      "severity": "high",
+      "description": "Issuing claim payout checks requires claims adjuster lead approval.",
+      "type": "approval_guard",
+      "approval_action": "issue_payout_check",
+      "approved_by": "adjuster.lead@insurer.example"
+    }
+  ],
+  "context_tracking": {
+    "identity_fields": ["claim_id", "policy_number", "estimate_id"],
+    "exempt_fields": ["policy_ref"]
+  }
+}
