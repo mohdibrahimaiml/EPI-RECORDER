@@ -803,6 +803,13 @@ app.command(
     rich_help_panel="Everyday",
 )(export_summary_command)
 
+from epi_cli.scitt import scitt_register
+app.command(
+    name="register",
+    help="Register an .epi artifact on the transparency ledger and embed cryptographic receipt.",
+    rich_help_panel="Everyday",
+)(scitt_register)
+
 from epi_cli.importer import app as import_app
 app.add_typer(
     import_app,
