@@ -367,7 +367,7 @@ function renderHeader(caseData, context) {
   pillsEl.appendChild(sigPill);
 
   // Human review status pill
-  const humanReview = normalizeReview(caseData.review);
+  const humanReview = normalizeReview(caseData.review || caseData);
   if (humanReview) {
     const reviewPill = document.createElement('span');
     const rs = humanReview.status;
@@ -767,7 +767,7 @@ function renderVerdict(caseData) {
   const rawDecision = String(decisionContent.decision || decisionContent.verdict || decisionContent.policy_decision || decisionContent.status || '').toUpperCase();
 
   // Check human review — it overrides the system verdict when present
-  const humanReview = normalizeReview(caseData.review);
+  const humanReview = normalizeReview(caseData.review || caseData);
 
   // Determine verdict class and display text
   let verdictClass = 'pending';
@@ -1245,6 +1245,31 @@ function renderAnalysis(caseData) {
 function normalizeReview(raw) {
   if (!raw) return null;
 
+  // Support object passing
+  if (typeof raw === 'object' && raw.review) {
+    return normalizeReview(raw.review);
+  }
+
+  // Extract from recording steps if caseData object is passed or raw has steps
+  if (typeof raw === 'object' && Array.isArray(raw.steps) && !raw.reviewed_by && !raw.reviewer) {
+    const steps = raw.steps || [];
+    const appStep = steps.find(s => s.kind === 'agent.approval.response');
+    if (appStep && appStep.content) {
+      const c = appStep.content;
+      const reviewer = c.reviewer || c.reviewed_by || c.user || 'compliance_officer';
+      const isApproved = c.decision === 'approved' || c.approved === true || c.status === 'approved';
+      const isRejected = c.decision === 'rejected' || c.approved === false || c.status === 'rejected';
+      const status = isApproved ? 'approved' : isRejected ? 'rejected' : 'escalated';
+      return {
+        reviewed_by: reviewer,
+        status: status,
+        notes: c.reason || c.notes || (c.action ? `Action ${c.action} approved by human supervisor.` : 'Approved by human supervisor.'),
+        reviewed_at: appStep.timestamp || null,
+      };
+    }
+    return null;
+  }
+
   // Legacy key fix: "reviewer" -> "reviewed_by"
   const reviewedBy = raw.reviewed_by || raw.reviewer || null;
   if (!reviewedBy) return null;
@@ -1299,7 +1324,7 @@ function normalizeReview(raw) {
 }
 
 function renderAttestation(caseData) {
-  const review = normalizeReview(caseData.review);
+  const review = normalizeReview(caseData.review || caseData);
 
   if (review) {
     // Show completed review
