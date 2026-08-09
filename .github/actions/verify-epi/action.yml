@@ -53,9 +53,9 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
 
-    - name: Install EPI Recorder
+    - name: Install EPI Recorder from repository source
       shell: bash
-      run: pip install epi-recorder
+      run: pip install .
 
     - name: Verify EPI recordings
       id: verify

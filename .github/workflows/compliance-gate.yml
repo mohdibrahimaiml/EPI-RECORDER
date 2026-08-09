@@ -38,7 +38,7 @@ jobs:
 
       - name: Install EPI
         shell: bash
-        run: pip install epi-recorder
+        run: pip install .
 
       - name: Verify independently (no shared secrets)
         shell: bash
