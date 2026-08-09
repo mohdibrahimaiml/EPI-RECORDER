@@ -1901,7 +1901,7 @@ def doctor(
         try:
             importlib.import_module(pkg)
             _ok(pkg, desc)
-        except ImportError:
+        except Exception:
             _fail(f"{pkg} missing ({desc})", f"pip install {pkg}")
 
     console.print()
@@ -1910,7 +1910,7 @@ def doctor(
         try:
             importlib.import_module(pkg)
             _ok(pkg, desc)
-        except ImportError:
+        except Exception:
             console.print(f"  [dim][-]  {pkg} not installed ({desc})[/dim]")
 
     # ── 7. epi command on PATH ────────────────────────────────────────────
