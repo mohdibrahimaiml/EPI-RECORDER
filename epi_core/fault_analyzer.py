@@ -1076,6 +1076,18 @@ class FaultAnalyzer:
             if not is_commitment:
                 continue
 
+            # Escalation, referral, hold, or human review decisions enforce constraints by halting automated
+            # processing — they are policy successes, not unapproved commitment violations.
+            decision_str = str(
+                content.get("decision")
+                or content.get("recommendation")
+                or content.get("determination")
+                or content.get("action")
+                or ""
+            ).lower()
+            if any(term in decision_str for term in ("flag", "escalate", "refer", "hold", "review", "pending", "sar_eval")):
+                continue
+
             for key, committed_val in numbers:
                 if not _key_matches_commitment(key):
                     continue
