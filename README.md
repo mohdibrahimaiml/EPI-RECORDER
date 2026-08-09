@@ -62,6 +62,7 @@ with record("demo.epi", goal="show the golden path"):
 ```bash
 python demo.py
 epi verify demo.epi
+epi-register demo.epi
 epi view demo.epi
 ```
 
@@ -69,6 +70,7 @@ epi view demo.epi
 |------|---------|----------------|
 | **Record + seal** | `python demo.py` | Signed `demo.epi` (secrets redacted by default) |
 | **Verify** | `epi verify demo.epi` | Integrity + signature checks offline |
+| **Register** | `epi-register demo.epi` | Transparency ledger receipt embedded in `.epi` |
 | **View** | `epi view demo.epi` | Self-contained browser viewer (screenshot above) |
 
 Typical first-run verify:
@@ -176,13 +178,14 @@ More: [docs/FRAMEWORK-INTEGRATIONS-5-MINUTES.md](docs/FRAMEWORK-INTEGRATIONS-5-M
 |---------|---------|
 | `epi demo` | Guided demo: record → seal → verify |
 | `epi verify <file.epi>` | Offline integrity + signature check |
+| `epi-register <file.epi>` | Register artifact on transparency ledger & embed receipt |
 | `epi view <file.epi>` | Open offline viewer (screenshot above) |
 | `epi analyze <file.epi>` | Fault / policy summary from sealed analysis |
 | `epi policy init` | Create `epi_policy.json` rulebook |
 | `epi run <script.py>` | Run a script under recording |
 | `epi keys generate` / `list` / `trust` | Local signing keys |
 | `epi enterprise setup` / `pack` | Org kit + auditor pack |
-| `epi scitt register <file.epi>` | Optional transparency anchor |
+| `epi scitt register <file.epi>` | SCITT transparency anchor (advanced) |
 | `epi import agt <path>` | Import Microsoft AGT evidence |
 
 Policy + fault analyzer guide: [docs/POLICY-AND-FAULT-ANALYZER.md](docs/POLICY-AND-FAULT-ANALYZER.md)
