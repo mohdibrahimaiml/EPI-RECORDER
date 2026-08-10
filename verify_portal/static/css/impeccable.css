@@ -1,20 +1,25 @@
 /* ==========================================================================
-   EPI LABS — IMPECCABLE DESIGN SYSTEM OVERRIDES
+   EPI LABS — IMPECCABLE DESIGN SYSTEM CSS
    Based on Impeccable Principles (pbakaus/impeccable)
-   Transforming epilabs.org into an infrastructure-grade slate portal
+   High-contrast, infrastructure-grade, zero-carditis layout for epilabs.org
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
 
-/* --- 1. Core Variables & Theme Tokens --- */
 :root {
   --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', Consolas, monospace;
 
+  /* Dark Theme Tokens (Default) */
   --bg-canvas: #0B0F19;
   --bg-surface-1: #111827;
   --bg-surface-2: #1E293B;
+  --bg-surface-glass: rgba(17, 24, 39, 0.75);
+
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-bright: rgba(6, 182, 212, 0.3);
+  --border-emerald: rgba(16, 185, 129, 0.3);
 
   --text-primary: #F8FAFC;
   --text-secondary: #94A3B8;
@@ -22,253 +27,466 @@
   --text-code: #38BDF8;
 
   --accent-cyan: #06B6D4;
+  --accent-cyan-glow: rgba(6, 182, 212, 0.25);
   --accent-emerald: #10B981;
+  --accent-emerald-glow: rgba(16, 185, 129, 0.25);
   --accent-amber: #F59E0B;
   --accent-crimson: #EF4444;
 
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-bright: rgba(6, 182, 212, 0.35);
-  --border-emerald: rgba(16, 185, 129, 0.35);
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-pill: 9999px;
 
-  --shadow-glow-cyan: 0 0 30px rgba(6, 182, 212, 0.25);
-  --shadow-glow-emerald: 0 0 30px rgba(16, 185, 129, 0.25);
+  --shadow-subtle: 0 4px 20px rgba(0, 0, 0, 0.3);
+  --shadow-glow-cyan: 0 0 30px rgba(6, 182, 212, 0.2);
+  --shadow-glow-emerald: 0 0 30px rgba(16, 185, 129, 0.2);
+
+  --transition-fast: 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-normal: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 [data-theme="light"] {
   --bg-canvas: #F8FAFC;
   --bg-surface-1: #FFFFFF;
   --bg-surface-2: #F1F5F9;
+  --bg-surface-glass: rgba(255, 255, 255, 0.85);
+
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-bright: rgba(6, 182, 212, 0.4);
+  --border-emerald: rgba(16, 185, 129, 0.4);
+
   --text-primary: #0F172A;
   --text-secondary: #475569;
   --text-muted: #64748B;
-  --border-subtle: rgba(0, 0, 0, 0.08);
-  --border-bright: rgba(6, 182, 212, 0.4);
+  --text-code: #0284C7;
+
+  --shadow-subtle: 0 4px 20px rgba(0, 0, 0, 0.06);
+  --shadow-glow-cyan: 0 0 25px rgba(6, 182, 212, 0.15);
 }
 
-/* --- 2. Global Reset & Overrides --- */
-body, .v2-home, .epi-instrument {
-  background-color: var(--bg-canvas) !important;
-  color: var(--text-primary) !important;
-  font-family: var(--font-body) !important;
-  line-height: 1.6 !important;
-  -webkit-font-smoothing: antialiased !important;
+/* Global Reset & Base Styles */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-h1, h2, h3, h4, h5, h6, .section-title, .hero-title, .v2-hero-copy h1 {
-  font-family: var(--font-display) !important;
-  font-weight: 800 !important;
-  color: var(--text-primary) !important;
-  letter-spacing: -0.025em !important;
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
-p, .hero-sub, .section-desc {
-  color: var(--text-secondary) !important;
-  font-family: var(--font-body) !important;
+/* Typography Hierarchy */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
-code, pre, .cmd, .n, .v2-file-name, .v2-install-chip code, .epi-badge {
-  font-family: var(--font-mono) !important;
+h1 { font-size: clamp(2.5rem, 5vw, 4.25rem); font-weight: 800; }
+h2 { font-size: clamp(1.8rem, 3.5vw, 2.75rem); }
+h3 { font-size: clamp(1.25rem, 2vw, 1.75rem); }
+
+p {
+  color: var(--text-secondary);
+  font-size: 1.125rem;
 }
 
-/* --- 3. Navigation Bar (Impeccable Glassmorphism) --- */
-#nav, nav, .nav-inner {
-  background: rgba(11, 15, 25, 0.85) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  border-bottom: 1px solid var(--border-subtle) !important;
+code, pre {
+  font-family: var(--font-mono);
 }
 
-.nav-links a {
-  font-family: var(--font-display) !important;
-  font-weight: 600 !important;
-  color: var(--text-secondary) !important;
-  transition: all 0.15s ease !important;
+/* Impeccable Header Navigation */
+.imp-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: var(--bg-surface-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 1rem 2rem;
+  transition: var(--transition-normal);
 }
 
-.nav-links a:hover {
-  color: var(--text-primary) !important;
+.imp-nav-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-/* --- 4. Hero Section & Typography --- */
-.hero, #hero {
-  background: radial-gradient(circle at 50% 20%, rgba(6, 182, 212, 0.14) 0%, rgba(16, 185, 129, 0.05) 45%, transparent 75%) !important;
-  padding-top: 8.5rem !important;
-  padding-bottom: 5rem !important;
-  border-bottom: 1px solid var(--border-subtle) !important;
+.imp-nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: var(--text-primary);
 }
 
-.hero-eyebrow {
-  color: var(--accent-cyan) !important;
-  font-family: var(--font-mono) !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.08em !important;
-  text-transform: uppercase !important;
-  font-size: 0.85rem !important;
-  background: rgba(6, 182, 212, 0.12) !important;
-  border: 1px solid var(--border-bright) !important;
-  padding: 0.35rem 0.85rem !important;
-  border-radius: 9999px !important;
-  display: inline-block !important;
-  margin-bottom: 1.25rem !important;
+.imp-nav-logo img {
+  height: 32px;
+  width: auto;
 }
 
-.v2-hero-copy h1 {
-  font-size: clamp(2.5rem, 5.5vw, 4.25rem) !important;
-  line-height: 1.12 !important;
-  margin-bottom: 1.5rem !important;
+.imp-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  list-style: none;
 }
 
-.v2-hero-copy h1 em {
-  font-style: normal !important;
-  background: linear-gradient(135deg, #06B6D4 0%, #10B981 100%) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
+.imp-nav-links a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: var(--transition-fast);
 }
 
-.epi-badge {
-  background: rgba(6, 182, 212, 0.15) !important;
-  color: var(--accent-cyan) !important;
-  border: 1px solid var(--border-bright) !important;
-  padding: 0.2rem 0.6rem !important;
-  border-radius: 6px !important;
-  font-size: 0.85rem !important;
-  vertical-align: middle !important;
+.imp-nav-links a:hover {
+  color: var(--text-primary);
 }
 
-/* --- 5. Interactive Buttons & Install Chip --- */
-.btn-primary, .btn-lg.btn-primary {
-  background: linear-gradient(135deg, #06B6D4 0%, #0891B2 100%) !important;
-  color: #FFFFFF !important;
-  border: none !important;
-  box-shadow: var(--shadow-glow-cyan) !important;
-  font-family: var(--font-display) !important;
-  font-weight: 700 !important;
-  border-radius: 10px !important;
-  padding: 0.85rem 1.85rem !important;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+.imp-badge {
+  background: rgba(6, 182, 212, 0.15);
+  color: var(--accent-cyan);
+  border: 1px solid var(--border-bright);
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.btn-primary:hover {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 0 45px rgba(6, 182, 212, 0.45) !important;
+.imp-badge-emerald {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-emerald);
+  border-color: var(--border-emerald);
 }
 
-.btn-secondary, .btn-lg.btn-secondary {
-  background: var(--bg-surface-1) !important;
-  color: var(--text-primary) !important;
-  border: 1px solid var(--border-subtle) !important;
-  font-family: var(--font-display) !important;
-  font-weight: 600 !important;
-  border-radius: 10px !important;
-  padding: 0.85rem 1.85rem !important;
-  transition: all 0.2s ease !important;
+/* Impeccable Hero Section (Asymmetric 2-Column Grid) */
+.imp-hero {
+  position: relative;
+  padding: 9rem 2rem 5rem;
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 4rem;
+  align-items: center;
 }
 
-.btn-secondary:hover {
-  background: var(--bg-surface-2) !important;
-  border-color: var(--border-bright) !important;
-  transform: translateY(-2px) !important;
+.imp-hero-aurora {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, rgba(16, 185, 129, 0.08) 40%, transparent 70%);
+  pointer-events: none;
+  z-index: -1;
+  filter: blur(60px);
 }
 
-.v2-install-chip {
-  background: var(--bg-surface-1) !important;
-  border: 1px solid var(--border-bright) !important;
-  border-radius: 10px !important;
-  box-shadow: var(--shadow-glow-cyan) !important;
-  padding: 0.6rem 0.8rem 0.6rem 1.25rem !important;
+.imp-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--accent-cyan);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 1.25rem;
 }
 
-.v2-install-chip code {
-  color: var(--text-code) !important;
-  font-size: 1rem !important;
+.imp-hero-title {
+  margin-bottom: 1.5rem;
 }
 
-.v2-install-chip button {
-  background: var(--accent-cyan) !important;
-  color: #FFFFFF !important;
-  font-family: var(--font-display) !important;
-  font-weight: 700 !important;
-  border-radius: 6px !important;
-  border: none !important;
-  padding: 0.4rem 0.9rem !important;
-  transition: all 0.15s ease !important;
+.imp-hero-title em {
+  font-style: normal;
+  background: linear-gradient(135deg, #06B6D4 0%, #10B981 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-.v2-install-chip button:hover {
-  background: #0891B2 !important;
+.imp-hero-subtitle {
+  font-size: 1.25rem;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  max-width: 580px;
 }
 
-/* --- 6. De-nested File Card & Dropzone (No Carditis) --- */
-.v2-file-card {
-  background: var(--bg-surface-1) !important;
-  border: 1px solid var(--border-subtle) !important;
-  border-top: 3px solid var(--accent-cyan) !important;
-  border-radius: 16px !important;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45) !important;
-  padding: 1.75rem !important;
+.imp-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
 }
 
-.v2-seal-pill {
-  background: rgba(16, 185, 129, 0.15) !important;
-  color: var(--accent-emerald) !important;
-  border: 1px solid var(--border-emerald) !important;
-  font-family: var(--font-mono) !important;
-  font-weight: 700 !important;
-  border-radius: 9999px !important;
-  padding: 0.25rem 0.75rem !important;
+/* Impeccable Buttons */
+.imp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.75rem;
+  border-radius: var(--radius-md);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: var(--transition-fast);
 }
 
-.drop-zone {
-  background: rgba(6, 182, 212, 0.03) !important;
-  border: 2px dashed var(--border-bright) !important;
-  border-radius: 16px !important;
-  padding: 3rem 2rem !important;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+.imp-btn-primary {
+  background: linear-gradient(135deg, #06B6D4 0%, #0891B2 100%);
+  color: #FFFFFF;
+  box-shadow: var(--shadow-glow-cyan);
 }
 
-.drop-zone:hover {
-  border-color: var(--accent-emerald) !important;
-  background: rgba(16, 185, 129, 0.06) !important;
+.imp-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 40px rgba(6, 182, 212, 0.35);
 }
 
-.truth-card {
-  background: var(--bg-surface-1) !important;
-  border: 1px solid var(--border-subtle) !important;
-  border-radius: 16px !important;
-  padding: 2.25rem !important;
-  transition: all 0.25s ease !important;
+.imp-btn-secondary {
+  background: var(--bg-surface-1);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
 }
 
-.truth-card:hover {
-  border-color: var(--border-bright) !important;
-  transform: translateY(-3px) !important;
-  box-shadow: var(--shadow-glow-cyan) !important;
+.imp-btn-secondary:hover {
+  background: var(--bg-surface-2);
+  border-color: var(--border-bright);
+  transform: translateY(-2px);
 }
 
-.truth-kicker {
-  font-family: var(--font-mono) !important;
-  font-weight: 700 !important;
-  color: var(--accent-cyan) !important;
+/* Interactive Install Chip */
+.imp-install-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-subtle);
+  padding: 0.5rem 0.75rem 0.5rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  color: var(--text-code);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--shadow-subtle);
+  transition: var(--transition-fast);
 }
 
-/* --- 7. Command Strip & Step Workflow --- */
-.command-strip ol li {
-  background: var(--bg-surface-1) !important;
-  border: 1px solid var(--border-subtle) !important;
-  border-radius: 14px !important;
-  padding: 1.5rem !important;
-  transition: all 0.2s ease !important;
+.imp-install-chip:hover {
+  border-color: var(--border-bright);
 }
 
-.command-strip ol li:hover {
-  border-color: var(--border-bright) !important;
-  background: var(--bg-surface-2) !important;
+.imp-install-chip button {
+  background: var(--bg-surface-2);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
 }
 
-.command-strip .n {
-  background: rgba(6, 182, 212, 0.15) !important;
-  color: var(--accent-cyan) !important;
-  font-family: var(--font-mono) !important;
-  font-weight: 700 !important;
-  border-radius: 8px !important;
+.imp-install-chip button:hover {
+  color: var(--text-primary);
+  background: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+  color: #FFFFFF;
+}
+
+/* Interactive Drag-and-Drop Verifier Card */
+.imp-verifier-box {
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  box-shadow: var(--shadow-subtle);
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition-normal);
+}
+
+.imp-verifier-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #06B6D4, #10B981);
+}
+
+.imp-dropzone {
+  border: 2px dashed var(--border-bright);
+  background: rgba(6, 182, 212, 0.03);
+  border-radius: var(--radius-md);
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.imp-dropzone:hover, .imp-dropzone.dragover {
+  border-color: var(--accent-emerald);
+  background: rgba(16, 185, 129, 0.06);
+}
+
+.imp-drop-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+/* De-nested Feature Grid (No Carditis) */
+.imp-section {
+  padding: 6rem 2rem;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.imp-section-header {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto 4rem;
+}
+
+.imp-section-header h2 {
+  margin-bottom: 1rem;
+}
+
+.imp-pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2.5rem;
+}
+
+.imp-pillar {
+  padding: 2rem;
+  border-left: 2px solid var(--accent-cyan);
+  background: rgba(255, 255, 255, 0.01);
+  transition: var(--transition-normal);
+}
+
+.imp-pillar:hover {
+  border-left-color: var(--accent-emerald);
+  background: var(--bg-surface-1);
+}
+
+.imp-pillar-num {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  margin-bottom: 0.75rem;
+}
+
+.imp-pillar h3 {
+  margin-bottom: 0.75rem;
+}
+
+/* Live Sector Demos Section */
+.imp-demos-flex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.imp-demo-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-subtle);
+  padding: 0.6rem 1.25rem;
+  border-radius: var(--radius-pill);
+  color: var(--text-primary);
+  text-decoration: none;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: var(--transition-fast);
+}
+
+.imp-demo-pill:hover {
+  border-color: var(--border-bright);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow-cyan);
+}
+
+/* Footer */
+.imp-footer {
+  border-top: 1px solid var(--border-subtle);
+  padding: 4rem 2rem 2rem;
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.imp-footer a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: var(--transition-fast);
+}
+
+.imp-footer a:hover {
+  color: var(--text-primary);
+}
+
+/* Responsive Media Queries */
+@media (max-width: 1024px) {
+  .imp-hero {
+    grid-template-columns: 1fr;
+    padding-top: 7rem;
+    gap: 3rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .imp-nav-links {
+    display: none;
+  }
+  .imp-hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
