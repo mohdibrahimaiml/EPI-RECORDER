@@ -124,7 +124,7 @@ function summarizeStep(step) {
       }
 
       case 'tool.call': {
-        const name = c.name || c.tool_name || (c.agt_data && (c.agt_data.tool || c.agt_data.tool_name)) || 'unknown';
+        const name = c.tool || c.name || c.tool_name || (c.agt_data && (c.agt_data.tool || c.agt_data.tool_name)) || 'unknown';
         const inputStr = JSON.stringify(c.input || c.tool_input || c.parameters || c.agt_data || {});
         return `Called ${name}(${trunc(inputStr, 100)})`;
       }
@@ -149,7 +149,7 @@ function summarizeStep(step) {
 
       case 'agent.approval.response': {
         const reviewer = c.reviewer || c.reviewed_by || 'reviewer';
-        const approved = c.approved === true || c.status === 'approved';
+        const approved = c.approved === true || String(c.status || c.decision || '').toLowerCase() === 'approved';
         const action = c.action || '';
         return `${reviewer} ${approved ? 'approved' : 'rejected'}${action ? ': ' + trunc(action, 140) : ''}`;
       }
@@ -179,9 +179,9 @@ function summarizeStep(step) {
       }
 
       case 'policy.check': {
-        const ruleId = c.rule_id || c.control_id || c.id || c.matched_rule || c.policy_name || (c.agt_data && c.agt_data.policy_name) || c.rule || 'policy';
+        const ruleId = c.constraint || c.policy_ref || c.rule_id || c.control_id || c.id || c.matched_rule || c.policy_name || (c.agt_data && c.agt_data.policy_name) || (typeof c.rule === 'string' ? c.rule : '') || 'policy';
         const status = (c.result || c.status || c.policy_decision || c.outcome || '').toUpperCase() || 'NOTED';
-        const ruleText = c.rule || c.message || c.plain_english || '';
+        const ruleText = c.detail || (typeof c.rule === 'string' ? c.rule : '') || c.message || c.plain_english || '';
         return `Rule ${ruleId}: ${status}${ruleText ? ' — ' + trunc(ruleText, 120) : ''}`;
       }
 
@@ -575,21 +575,34 @@ function renderIntegrity(caseData, context) {
     filesEl.className = 'diag-status unknown';
   }
 
+  const stepsArr = caseData.steps || [];
+  const noHashMismatches = !integrity.mismatches || integrity.mismatches.length === 0;
+
   const chainEl = document.getElementById('diag-chain');
-  if (context?.facts?.sequence_ok != null) {
-    const ok = context.facts.sequence_ok;
-    chainEl.textContent = ok ? 'OK' : 'BROKEN';
-    chainEl.className = 'diag-status ' + (ok ? 'ok' : 'flagged');
+  const isChainOk = (context?.facts?.sequence_ok != null)
+    ? context.facts.sequence_ok
+    : (caseData.facts?.sequence_ok != null)
+      ? caseData.facts.sequence_ok
+      : (stepsArr.length > 0 && noHashMismatches);
+
+  if (isChainOk != null) {
+    chainEl.textContent = isChainOk ? 'OK' : 'BROKEN';
+    chainEl.className = 'diag-status ' + (isChainOk ? 'ok' : 'flagged');
   } else {
     chainEl.textContent = '—';
     chainEl.className = 'diag-status unknown';
   }
 
   const compEl = document.getElementById('diag-completeness');
-  if (context?.facts?.completeness_ok != null) {
-    const ok = context.facts.completeness_ok;
-    compEl.textContent = ok ? 'OK' : 'INCOMPLETE';
-    compEl.className = 'diag-status ' + (ok ? 'ok' : 'flagged');
+  const isCompOk = (context?.facts?.completeness_ok != null)
+    ? context.facts.completeness_ok
+    : (caseData.facts?.completeness_ok != null)
+      ? caseData.facts.completeness_ok
+      : (stepsArr.length > 0 && noHashMismatches);
+
+  if (isCompOk != null) {
+    compEl.textContent = isCompOk ? 'OK' : 'INCOMPLETE';
+    compEl.className = 'diag-status ' + (isCompOk ? 'ok' : 'flagged');
   } else {
     compEl.textContent = '—';
     compEl.className = 'diag-status unknown';
