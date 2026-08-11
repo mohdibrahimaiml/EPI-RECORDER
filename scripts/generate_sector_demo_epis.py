@@ -76,18 +76,20 @@ def _tool(epi, name: str, tool_input, output, *, ok: bool = True, error: str | N
     cid = str(uuid4())
     epi.log(
         "tool.call",
-        {"tool": name, "input": tool_input, "call_id": cid},
+        {"tool": name, "name": name, "tool_name": name, "input": tool_input, "call_id": cid},
     )
     if ok:
         epi.log(
             "tool.response",
-            {"tool": name, "output": output, "ok": True, "call_id": cid},
+            {"tool": name, "name": name, "tool_name": name, "output": output, "ok": True, "call_id": cid},
         )
     else:
         epi.log(
             "tool.response",
             {
                 "tool": name,
+                "name": name,
+                "tool_name": name,
                 "ok": False,
                 "error": error or "tool failed",
                 "call_id": cid,
@@ -230,7 +232,9 @@ def finance_loan(api_key: str, out: Path) -> None:
             {
                 "action": "issue_loan_commitment",
                 "decision": "approved",
-                "reviewer": "underwriter.lead@bank.example",
+                "status": "approved",
+                "approved": True,
+                "reviewer": "Marcus Vance (Lead Loan Underwriter)",
             },
         )
         epi.log(
@@ -344,7 +348,9 @@ def healthcare_triage(api_key: str, out: Path) -> None:
             {
                 "action": "release_triage_message",
                 "decision": "approved",
-                "reviewer": "rn.patel@clinic.example",
+                "status": "approved",
+                "approved": True,
+                "reviewer": "Dr. Elena Patel (Clinical Lead)",
             },
         )
         epi.log("agent.run.end", {"status": "completed", "encounter_id": "ENC-90312"})
@@ -449,7 +455,9 @@ def insurance_claim(api_key: str, out: Path) -> None:
             {
                 "action": "issue_payout_check",
                 "decision": "approved",
-                "reviewer": "adjuster.lead@insurer.example",
+                "status": "approved",
+                "approved": True,
+                "reviewer": "David Ross (Senior Claims Adjuster)",
             },
         )
         epi.log("agent.run.end", {"status": "completed", "claim_id": "CLM-48219"})
@@ -556,7 +564,9 @@ def legal_contract(api_key: str, out: Path) -> None:
             {
                 "action": "send_redline_package",
                 "decision": "approved",
-                "reviewer": "gc.desk@company.example",
+                "status": "approved",
+                "approved": True,
+                "reviewer": "Rachel Sterling (General Counsel)",
             },
         )
         epi.log("agent.run.end", {"status": "completed", "doc_id": "MSA-2026-441"})
@@ -644,7 +654,9 @@ def banking_aml(api_key: str, out: Path) -> None:
             {
                 "action": "release_wire_hold",
                 "decision": "approved",
-                "reviewer": "aml_officer_sarah@bank.example",
+                "status": "approved",
+                "approved": True,
+                "reviewer": "Sarah Jenkins (AML Compliance Officer)",
             },
         )
         epi.log("agent.run.end", {"status": "completed", "transaction_id": "TX-99120"})
@@ -742,7 +754,9 @@ def hiring_screening(api_key: str, out: Path) -> None:
             {
                 "action": "schedule_technical_interview",
                 "decision": "approved",
-                "reviewer": "recruiter.lead@tech.example",
+                "status": "approved",
+                "approved": True,
+                "reviewer": "Claire Vance (Lead HR Recruiter)",
             },
         )
         epi.log("agent.run.end", {"status": "completed", "candidate_id": "C-88194"})
@@ -836,7 +850,9 @@ def insurance_underwriting(api_key: str, out: Path) -> None:
             {
                 "action": "bind_commercial_policy",
                 "decision": "approved",
-                "reviewer": "chief_underwriter@insurer.example",
+                "status": "approved",
+                "approved": True,
+                "reviewer": "Arthur Pendelton (Chief Property Underwriter)",
             },
         )
         epi.log("agent.run.end", {"status": "completed", "quote_id": "PROP-3391"})
@@ -932,7 +948,9 @@ def lending_affordability(api_key: str, out: Path) -> None:
             {
                 "action": "issue_qm_affordability_certificate",
                 "decision": "approved",
-                "reviewer": "mortgage.compliance@lender.example",
+                "status": "approved",
+                "approved": True,
+                "reviewer": "Eleanor Vance (Mortgage Compliance Officer)",
             },
         )
         epi.log("agent.run.end", {"status": "completed", "application_id": "MORT-55102"})
