@@ -71,6 +71,10 @@ def chat(
     google_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
     openai_key = os.environ.get("OPENAI_API_KEY")
 
+    # Always initialise _goog_exc so the exception handler below never raises a
+    # secondary NameError when the Google import branch was skipped or failed.
+    _goog_exc: object = None
+
     if not google_key and not openai_key:
         console.print(Panel(
             "[yellow]No API key found![/yellow]\n\n"

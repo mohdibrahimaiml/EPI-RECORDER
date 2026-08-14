@@ -137,19 +137,41 @@ def _leaf_hashes(entries: list[dict[str, Any]]) -> list[bytes]:
 def _compute_audit_path(
     leaf_hashes: list[bytes], leaf_index: int
 ) -> list[tuple[bytes, bool]]:
-    """Build a Merkle audit path for ``leaf_index``."""
+    """Build a Merkle audit path for ``leaf_index``.
+
+    Each step in the returned path is a ``(sibling_hash, sibling_is_left)`` pair
+    where ``sibling_is_left=True`` means the sibling node sits to the *left* of
+    the current node at that level (i.e. the current node is the *right* child),
+    and ``False`` means the sibling is to the *right*.
+
+    This convention is consumed by :func:`epi_core.scitt._verify_audit_path`
+    which reconstructs the parent hash as::
+
+        if sibling_is_left:
+            parent = sha256(0x01 + sibling + current)
+        else:
+            parent = sha256(0x01 + current + sibling)
+
+    Encoding:
+    - Even index → right child → sibling is at index+1 → sibling is on the *right*
+                                                         → sibling_is_left = False
+    - Odd index  → right child → sibling is at index-1 → sibling is on the *left*
+                                                         → sibling_is_left = True
+    """
     path: list[tuple[bytes, bool]] = []
     level = list(leaf_hashes)
     index = leaf_index
 
     while len(level) > 1:
         if index % 2 == 0:
+            # Current node is a left child; sibling is one position to the right.
             sibling_index = index + 1 if index + 1 < len(level) else index
-            is_left = False
+            sibling_is_left = False  # sibling is on the RIGHT
         else:
+            # Current node is a right child; sibling is one position to the left.
             sibling_index = index - 1
-            is_left = True
-        path.append((level[sibling_index], is_left))
+            sibling_is_left = True   # sibling is on the LEFT
+        path.append((level[sibling_index], sibling_is_left))
 
         next_level: list[bytes] = []
         for i in range(0, len(level), 2):

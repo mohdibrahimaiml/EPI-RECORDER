@@ -1,29 +1,110 @@
-import json
+"""
+audit_payload.py — Verify payload hash integrity of a .epi file.
+
+Uses EPIContainer public APIs for manifest/header parsing (no hardcoded binary
+offsets) and computes the SHA-256 digest via chunked streaming reads to avoid
+loading the entire ZIP payload into RAM.
+
+Usage:
+    python audit_payload.py <path-to-file.epi>
+"""
+from __future__ import annotations
+
 import hashlib
-import os
+import sys
+from pathlib import Path
 
-with open(os.path.join("audit_dir", "manifest.json"), "r", encoding="utf-8") as f:
-    manifest = json.load(f)
+from epi_core.container import EPIContainer
 
-# Read the zip payload hash from the EPI header.
-# We'll just hash the refund_case.epi file starting after the EPI1 envelope.
-# Actually, the envelope is something like: b"EPI1", 2 bytes version, 32 bytes hash.
-with open("refund_case.epi", "rb") as f:
-    header = f.read(4)
-    if header == b"EPI1":
-        version = f.read(2)
-        expected_payload_hash = f.read(32).hex()
-        payload = f.read()
-        actual_payload_hash = hashlib.sha256(payload).hexdigest()
-        print(f"Header Payload Hash: {expected_payload_hash}")
-        print(f"Actual Payload Hash: {actual_payload_hash}")
-        
-        manifest_payload_hash = manifest.get("trust", {}).get("payload_hash")
-        print(f"Manifest Payload Hash: {manifest_payload_hash}")
-        
-        if actual_payload_hash != expected_payload_hash:
-            print("Payload tampering detected! The ZIP file was modified after sealing, but the outer envelope header wasn't updated (or vice versa).")
+_CHUNK_SIZE = 64 * 1024  # 64 KB per read; keeps memory usage flat on large files
+
+
+def _stream_sha256(path: Path, offset: int = 0) -> str:
+    """Return the hex SHA-256 of the file contents starting at *offset*.
+
+    Reading is done in :data:`_CHUNK_SIZE` chunks so that multi-GB `.epi` files
+    do not cause memory spikes.
+    """
+    h = hashlib.sha256()
+    with path.open("rb") as fh:
+        if offset:
+            fh.seek(offset)
+        while True:
+            chunk = fh.read(_CHUNK_SIZE)
+            if not chunk:
+                break
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def main(epi_path: Path) -> int:
+    if not epi_path.exists():
+        print(f"[ERROR] File not found: {epi_path}", file=sys.stderr)
+        return 1
+
+    # ── 1. Read the manifest using the public EPIContainer API ──────────────
+    # This correctly handles all supported envelope versions (EPI1, EPI2,
+    # HTML+ZIP polyglot, etc.) without hardcoding binary header offsets.
+    try:
+        manifest = EPIContainer.read_manifest(epi_path)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[ERROR] Could not read manifest: {exc}", file=sys.stderr)
+        return 1
+
+    manifest_payload_hash: str | None = None
+    trust_block = getattr(manifest, "trust", None)
+    if isinstance(trust_block, dict):
+        manifest_payload_hash = trust_block.get("payload_hash")
+    elif trust_block is not None:
+        # Pydantic model — access attribute directly if present
+        manifest_payload_hash = getattr(trust_block, "payload_hash", None)
+
+    print(f"Manifest payload_hash:  {manifest_payload_hash or '(not present)'}")
+
+    # ── 2. Determine how many bytes to skip (envelope header) ───────────────
+    # EPIContainer exposes the raw envelope header length so we don't have to
+    # re-implement the offset arithmetic here.  Fallback to 0 if unavailable.
+    try:
+        header_size: int = EPIContainer.envelope_header_size(epi_path)  # type: ignore[attr-defined]
+    except AttributeError:
+        # Older builds without envelope_header_size — skip the magic header only.
+        # Read the first 4 bytes to check the magic; if EPI1, skip 38 bytes
+        # (4 magic + 2 version + 32 hash).  This is the ONLY place a format
+        # assumption is made and it is well-documented here.
+        with epi_path.open("rb") as fh:
+            magic = fh.read(4)
+        if magic == b"EPI1":
+            header_size = 4 + 2 + 32  # EPI1 | 2-byte version | 32-byte SHA-256
+        elif magic == b"EPI2":
+            header_size = 4 + 2 + 32  # same layout for EPI2
         else:
-            print("Payload hash matches envelope.")
+            header_size = 0
+            print("[WARN] Unknown magic bytes — hashing entire file content.")
+
+    # ── 3. Stream-hash the payload (everything after the header) ────────────
+    actual_hash = _stream_sha256(epi_path, offset=header_size)
+
+    print(f"Actual payload SHA-256: {actual_hash}")
+
+    # ── 4. Compare ──────────────────────────────────────────────────────────
+    if manifest_payload_hash is None:
+        print("[INFO] No payload_hash in manifest; skipping comparison.")
+        return 0
+
+    if actual_hash == manifest_payload_hash:
+        print("[OK] Payload hash matches manifest — file integrity confirmed.")
+        return 0
     else:
-        print("Not an EPI envelope format.")
+        print(
+            "[FAIL] Payload hash MISMATCH — the ZIP payload was modified after "
+            "sealing, or the envelope header and manifest are out of sync."
+        )
+        return 1
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        epi_path = Path("refund_case.epi")
+    else:
+        epi_path = Path(sys.argv[1])
+    sys.exit(main(epi_path))
