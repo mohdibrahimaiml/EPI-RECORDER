@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import SimpleNamespace
+import argparse
 import ctypes
 import ipaddress
 import os
@@ -156,9 +157,11 @@ def pytest_addoption(parser):  # type: ignore[no-untyped-def]
             default=None,
             help="No-op fallback when pytest-timeout is not installed.",
         )
-    except ValueError:
-        # pytest raises ValueError when the same option is already registered
-        # (e.g. by the real pytest-timeout plugin).  Ignore silently.
+    except (ValueError, argparse.ArgumentError):
+        # When pytest-timeout (or another plugin) is installed it registers
+        # --timeout first.  argparse raises ArgumentError on the conflict;
+        # older pytest versions surface it as ValueError.  Both are safe to
+        # swallow here — we only care about the no-plugin case.
         pass
     try:
         parser.addoption(
@@ -167,7 +170,8 @@ def pytest_addoption(parser):  # type: ignore[no-untyped-def]
             default=True,
             help="No-op fallback when pytest-playwright is not installed.",
         )
-    except ValueError:
+    except (ValueError, argparse.ArgumentError):
+        # Same rationale as --timeout above.
         pass
 
 
