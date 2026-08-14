@@ -90,12 +90,18 @@ def verify(sec:str=typer.Argument("all"),dir:Path=Path(".")):
         d=json.loads(f.read_text());sg=d.get("approval",{}).get("signature","")
         if not sg:console.print(f"  UNSIGNED Section {s}");continue
         try:
-            p=sg.split(":",2);pb=_pub(p[1]);c=_canon(d);ed=Ed25519PublicKey.from_public_bytes(pb)
-            ed.verify(bytes.fromhex(p[2]),c.encode("utf-8"))
-            console.print(f"  VALID Section {s} (key:{p[1]})");pg+=1
-        except Exception as ex:console.print(f"  INVALID Section {s}:{ex}");fl+=1
-    console.print(Panel(f"{pg} valid,{fl} invalid",title="Verify"))
-    if fl:raise typer.Exit(1)
+            p = sg.split(":", 2)
+            if len(p) != 3:
+                raise ValueError(
+                    f"Malformed signature in section {s!r} — "
+                    f"expected 'ed25519:<key_name>:<hex>' but got {sg!r}"
+                )
+            pb = _pub(p[1]); c = _canon(d); ed = Ed25519PublicKey.from_public_bytes(pb)
+            ed.verify(bytes.fromhex(p[2]), c.encode("utf-8"))
+            console.print(f"  VALID Section {s} (key:{p[1]})"); pg += 1
+        except Exception as ex: console.print(f"  INVALID Section {s}:{ex}"); fl += 1
+    console.print(Panel(f"{pg} valid,{fl} invalid", title="Verify"))
+    if fl: raise typer.Exit(1)
 
 @annex_app.command("multi-sign")
 def multi_sign(signer:str=typer.Argument(...,help="Name/role e.g. CTO"),key_name:str=typer.Option("annex","--key","-k",help="Key to sign with"),dir:Path=Path("."),secs:str=typer.Option("all","--secs","-s",help="Sections 1-9 or all"),strict_rbac:bool=typer.Option(False,"--strict-rbac",help="Require explicit role bindings for all signers"),allow_unbound:bool=typer.Option(True,"--allow-unbound-roles",help="Allow signing by unbound keys (non-production)")):

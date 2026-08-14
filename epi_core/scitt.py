@@ -132,7 +132,28 @@ def _compute_leaf_hash(tree_index: int, entry_hash: bytes) -> bytes:
 def _verify_audit_path(
     leaf_hash: bytes, leaf_index: int, audit_path: list[tuple[bytes, bool]], root: bytes
 ) -> bool:
-    """Verify an audit path by recomputing the root."""
+    """Verify an audit path by recomputing the Merkle root from ``leaf_hash``.
+
+    Each element of ``audit_path`` is a ``(sibling_hash, is_left_sibling)`` pair:
+
+    * ``is_left_sibling = True``  → the sibling is to the *left* of the current
+      node at this level; concatenate as ``sha256(0x01 + sibling + current)``.
+    * ``is_left_sibling = False`` → the sibling is to the *right*; concatenate
+      as ``sha256(0x01 + current + sibling)``.
+
+    This convention matches the encoding produced by
+    :func:`epi_core.local_scitt._compute_audit_path`.
+
+    Args:
+        leaf_hash:  SHA-256 leaf hash of the entry being proved.
+        leaf_index: Tree position of the entry (unused in verification but kept
+                    for API symmetry with callers that pass it).
+        audit_path: Proof path from :func:`epi_core.local_scitt._compute_audit_path`.
+        root:       Expected Merkle root to compare against.
+
+    Returns:
+        ``True`` if the recomputed root matches *root*, ``False`` otherwise.
+    """
     h = leaf_hash
     for sibling, is_left_sibling in audit_path:
         if is_left_sibling:
