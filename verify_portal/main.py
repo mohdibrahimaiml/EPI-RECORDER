@@ -1327,6 +1327,7 @@ Use Case:
             urllib.request.urlopen(req, timeout=10)
         else:
             # Fallback SMTP
+            smtp_host = os.getenv("SMTP_HOST", "localhost")
             with smtplib.SMTP(smtp_host, int(os.getenv("SMTP_PORT", "587")), timeout=10) as server:
                 server.starttls()
                 server.login(os.getenv("SMTP_USER", ""), os.getenv("SMTP_PASS", ""))

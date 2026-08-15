@@ -591,7 +591,7 @@ def verify_command(
                         "steps_hash"
                     )
                     if claimed_hash:
-                        actual_hash = _hashlib.sha256(zf.read(steps_member)).hexdigest()
+                        actual_hash = _hashlib.sha256(EPIContainer.read_member_bytes(epi_file, "steps.jsonl")).hexdigest()
                         steps_hash_ok = actual_hash == claimed_hash
 
                     # 5. prev_hash Chain Verification
