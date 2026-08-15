@@ -3,6 +3,7 @@ Test: does the raw-text canonical hash approach produce the same SHA-256
 as Python's get_canonical_hash for the demo artifact?
 """
 import json, hashlib, base64, re
+import zipfile
 from pathlib import Path
 from epi_core.schemas import ManifestModel
 from epi_core.serialize import get_canonical_hash

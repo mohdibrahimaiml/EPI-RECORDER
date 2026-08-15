@@ -25,7 +25,7 @@ def normalize(v):
             v = v.astimezone(timezone.utc).replace(microsecond=0)
         return v.strftime("%Y-%m-%dT%H:%M:%SZ")
     if isinstance(v, dict):
-        return {k: normalize(x) for k, v2 in [(k, v)] for x in [v2]}
+        return {k2: normalize(v2) for k2, v2 in v.items()}
     if isinstance(v, list):
         return [normalize(x) for x in v]
     return v
