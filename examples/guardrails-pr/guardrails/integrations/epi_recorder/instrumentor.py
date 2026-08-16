@@ -169,7 +169,7 @@ class EPIInstrumentor:
         if session is None:
             return wrapped(*args, **kwargs)
         idx = self._get_arg(wrapped, args, kwargs, "index", 0)
-        session.log(llm.call, {"provider": "guardrails", "model": "stream"})
+        session.log("llm.call", {"provider": "guardrails", "model": "stream"})
         return wrapped(*args, **kwargs)
 
     def _wrap_validator_after_run(
