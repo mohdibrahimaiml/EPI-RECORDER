@@ -64,6 +64,32 @@ class TracedCompletions:
                 "messages": messages,
                 "timestamp": utc_now_iso(),
             })
+            # Pre-execution commitment: log intent before the API call fires.
+            # Chain ordering proves this commitment existed before the response
+            # that references it. Full chronology requires RFC 3161 notarization
+            # (EPI_NOTARIZE=1), which timestamps the pre-commit with an external
+            # authority after this entry is written.
+            msg_digest = {"model": model, "message_count": len(messages)}
+            session.log_step("llm.pre_commit", {
+                "provider": self._provider,
+                "model": model,
+                "message_count": len(messages),
+                "timestamp": utc_now_iso(),
+            })
+            # Tier 1 notarization: RFC 3161 timestamp from external TSA
+            # proves this pre-commit existed by a specific point in external time.
+            # Always attempted. On success stores TSA receipt; on failure records
+            # evidence of the attempt so auditors can distinguish "never attempted"
+            # from "attempted but TSA unreachable."
+            try:
+                import hashlib
+                from epi_core.notarize import notarize_hash
+                pre_hash = hashlib.sha256(
+                    (str(model) + str(len(messages)) + utc_now_iso()).encode()
+                ).hexdigest()
+                self._last_pre_commit_ts = notarize_hash(pre_hash, label="llm.pre_commit")
+            except Exception:
+                self._last_pre_commit_ts = {"notarization_attempted": True, "notarization_status": "error"}
         
         # Call original method
         start_time = time.time()

@@ -448,6 +448,7 @@ class AgentRun:
         approved: bool,
         reviewer: Optional[str] = None,
         notes: Optional[str] = None,
+        approval_source: str = "raw_api_unverified",
         **metadata: Any,
     ) -> None:
         self._log(
@@ -457,6 +458,7 @@ class AgentRun:
                 "approved": approved,
                 "reviewer": reviewer,
                 "notes": notes,
+                "approval_source": approval_source,
                 **metadata,
             },
         )
@@ -468,6 +470,7 @@ class AgentRun:
         approved: bool,
         reviewer: Optional[str] = None,
         notes: Optional[str] = None,
+        approval_source: str = "raw_api_unverified",
         **metadata: Any,
     ) -> None:
         await self._alog(
@@ -477,6 +480,7 @@ class AgentRun:
                 "approved": approved,
                 "reviewer": reviewer,
                 "notes": notes,
+                "approval_source": approval_source,
                 **metadata,
             },
         )
@@ -698,6 +702,36 @@ class AgentRun:
         return False
 
 
+_PLACEHOLDER_WORKFLOW_NAMES = frozenset(
+    {"", "untitled", "unnamed", "workflow", "unknown", "unknown artifact"}
+)
+
+
+def _resolve_workflow_display_name(
+    workflow_name: Optional[str] = None,
+    *,
+    goal: Optional[str] = None,
+    output_path: Optional[Path | str] = None,
+) -> str:
+    """
+    Pick a human-visible workflow title for session.start / viewer header.
+
+    Prefer an explicit non-placeholder name, then goal, then the output file stem.
+    """
+    name = (workflow_name or "").strip()
+    if name and name.lower() not in _PLACEHOLDER_WORKFLOW_NAMES:
+        return name
+    goal_text = (goal or "").strip()
+    if goal_text:
+        # Keep titles readable in the forensic header
+        return goal_text if len(goal_text) <= 96 else goal_text[:93].rstrip() + "..."
+    if output_path is not None:
+        stem = Path(output_path).stem.strip()
+        if stem and stem.lower() not in _PLACEHOLDER_WORKFLOW_NAMES:
+            return stem.replace("_", " ").replace("-", " ")
+    return "untitled"
+
+
 class EpiRecorderSession:
     """
     Context manager for recording EPI packages.
@@ -754,10 +788,22 @@ class EpiRecorderSession:
             raise ValueError(f"did_web must start with 'did:web:', got: {did_web}")
 
         self.output_path = Path(output_path)
-        self.workflow_name = workflow_name or "untitled"
+        # Prefer explicit name, then goal, then output stem — never silent "untitled"
+        # when the caller already gave a goal or path (viewer title / verify cmd).
+        self.workflow_name = _resolve_workflow_display_name(
+            workflow_name, goal=goal, output_path=self.output_path
+        )
         self.tags = tags or []
         self.auto_sign = auto_sign
         self.redact = redact
+        if not redact:
+            warnings.warn(
+                "EPI recording started with redact=False. Secrets in steps may be "
+                "written into the .epi artifact. Prefer redact=True (default) or "
+                "set EPI_REDACT=1.",
+                UserWarning,
+                stacklevel=2,
+            )
         self.default_key_name = default_key_name
         
         # New metadata fields
@@ -901,6 +947,25 @@ class EpiRecorderSession:
             # Auto-SCITT anchor if configured
             if signed:
                 self._auto_scitt_anchor()
+
+            # Privacy-first opt-in telemetry: record that an artifact was created.
+            # This is a no-op unless the user ran `epi telemetry enable`.
+            try:
+                from epi_core import telemetry as telemetry_core
+                telemetry_core.record_first_use()
+                telemetry_core.track_event(
+                    "epi.record.completed",
+                    {
+                        "command": "record",
+                        "source": "sdk",
+                        "success": exc_type is None,
+                        "artifact_count": 1,
+                        "artifact_bytes": self.output_path.stat().st_size,
+                    },
+                )
+            except Exception:
+                # Telemetry must never break recording.
+                pass
 
             self._print_session_summary(signed)
 
@@ -1048,6 +1113,16 @@ class EpiRecorderSession:
             raise RuntimeError("Cannot log step outside of context manager")
         
         self.recording_context.add_step(kind, content)
+
+    def log(self, kind: str, content: Dict[str, Any] | None = None, **kwargs: Any) -> None:
+        """Alias for log_step. Accepts content dict or keyword fields."""
+        if content is None:
+            content = dict(kwargs)
+        elif kwargs:
+            merged = dict(content)
+            merged.update(kwargs)
+            content = merged
+        self.log_step(kind, content)
     
     async def alog_step(self, kind: str, content: Dict[str, Any]) -> None:
         """
@@ -1486,12 +1561,22 @@ class EpiRecorderSession:
         if parts:
             breakdown = " \u00b7 ".join(parts)
             print(f"      {breakdown}", file=target)
-        print(f"      epi view {self.output_path.name}\n", file=target)
+        # Seal-time policy/fault snapshot (reads sealed analysis — no extra user command)
+        try:
+            from epi_core.artifact_summary import format_artifact_run_summary_lines
+
+            for line in format_artifact_run_summary_lines(
+                self.output_path, signed=signed
+            ):
+                print(f"      {line}", file=target)
+        except Exception:
+            print(f"      epi view {self.output_path.name}", file=target)
+        print(file=target)
 
     def _capture_environment(self) -> None:
         """Capture environment snapshot and save to temp directory."""
         try:
-            env_data = capture_full_environment()
+            env_data = capture_full_environment(include_all_env_vars=False, redact_env_vars=True)
             env_file = self.temp_dir / "environment.json"
             env_file.write_text(json.dumps(env_data, indent=2), encoding="utf-8")
             
@@ -1576,18 +1661,28 @@ class EpiRecorderSession:
 
                 # Re-pack from the extracted workspace so file manifests, viewer content,
                 # and the outer envelope stay coherent after signing.
-                temp_output = self.output_path.with_suffix('.epi.tmp')
-                EPIContainer.pack(
-                    tmp_path,
-                    manifest,
-                    temp_output,
-                    signer_function=lambda current: sign_manifest(
-                        current, private_key, self.default_key_name
-                    ),
-                    preserve_generated=True,
-                    container_format=current_format,
-                    generate_analysis=False,
-                )
+                # Suppress notarization: first pack already notarized.
+                # Re-timestamping tsa_reply.tsr after hashing causes mismatch.
+                old_notarize = os.environ.get("EPI_NOTARIZE")
+                os.environ["EPI_NOTARIZE"] = "0"
+                try:
+                    temp_output = self.output_path.with_suffix('.epi.tmp')
+                    EPIContainer.pack(
+                        tmp_path,
+                        manifest,
+                        temp_output,
+                        signer_function=lambda current: sign_manifest(
+                            current, private_key, self.default_key_name
+                        ),
+                        preserve_generated=True,
+                        container_format=current_format,
+                        generate_analysis=False,
+                    )
+                finally:
+                    if old_notarize is None:
+                        os.environ.pop("EPI_NOTARIZE", None)
+                    else:
+                        os.environ["EPI_NOTARIZE"] = old_notarize
                 
                 # Successfully created signed file, now safely replace original
                 self.output_path.unlink()
@@ -1778,36 +1873,54 @@ def record(
                     return func(*args, **kwargs)
             return sync_wrapper
 
-    # Check if this is being used as a decorator with arguments
-    # If the first argument is not a path but keyword arguments are provided,
-    # we need to return a decorator function
-    if output_path is None and (workflow_name is not None or goal is not None or notes is not None or
-                               metrics is not None or approved_by is not None or metadata_tags is not None):
-        return _wrap
+    class _RecordHandle:
+        """Supports both `with record(...)` and `@record(...)` for the same call."""
 
-    # Handle decorator usage: record is called without parentheses
+        def __init__(self, name_hint: str = "workflow"):
+            self._name_hint = name_hint
+            self._session: EpiRecorderSession | None = None
+
+        def __enter__(self):
+            self._session = _make_session(self._name_hint)
+            return self._session.__enter__()
+
+        def __exit__(self, exc_type, exc, tb):
+            assert self._session is not None
+            return self._session.__exit__(exc_type, exc, tb)
+
+        def __call__(self, func: Callable) -> Callable:
+            return _wrap(func)
+
+    # Bare decorator: @record
     if callable(output_path):
-        func = output_path
-        return _wrap(func)
-    
-    # Normal context manager usage
-    resolved_path = _resolve_output_path(output_path)
-    return EpiRecorderSession(
-        resolved_path,
-        workflow_name,
-        tags=tags,
-        auto_sign=auto_sign,
-        redact=redact,
-        default_key_name=default_key_name,
-        goal=goal,
-        notes=notes,
-        metrics=metrics,
-        approved_by=approved_by,
-        metadata_tags=metadata_tags,
-        legacy_patching=legacy_patching,
-        capture_prints=capture_prints,
-        capture_stderr=capture_stderr,
-    )
+        return _wrap(output_path)
+
+    # Path provided: normal context manager
+    if output_path is not None:
+        resolved_path = _resolve_output_path(output_path)
+        return EpiRecorderSession(
+            resolved_path,
+            workflow_name,
+            tags=tags,
+            auto_sign=auto_sign,
+            redact=redact,
+            default_key_name=default_key_name,
+            goal=goal,
+            notes=notes,
+            metrics=metrics,
+            approved_by=approved_by,
+            metadata_tags=metadata_tags,
+            legacy_patching=legacy_patching,
+            capture_prints=capture_prints,
+            capture_stderr=capture_stderr,
+        )
+
+    # Zero-config / metadata-only: works as both context manager and decorator
+    #   with record(goal="..."): ...
+    #   @record(goal="...")
+    #   def main(): ...
+    hint = workflow_name or "workflow"
+    return _RecordHandle(hint)
 
 
 class _BootstrapSessionProxy:
@@ -1818,6 +1931,15 @@ class _BootstrapSessionProxy:
 
     def log_step(self, kind: str, content: Dict[str, Any]) -> None:
         self._recording_context.add_step(kind, content)
+
+    def log(self, kind: str, content: Dict[str, Any] | None = None, **kwargs: Any) -> None:
+        if content is None:
+            content = dict(kwargs)
+        elif kwargs:
+            merged = dict(content)
+            merged.update(kwargs)
+            content = merged
+        self.log_step(kind, content)
 
     async def alog_step(self, kind: str, content: Dict[str, Any]) -> None:
         self.log_step(kind, content)

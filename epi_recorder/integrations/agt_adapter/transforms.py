@@ -23,6 +23,8 @@ EVENT_TYPE_TO_KIND = {
     "policy_violation": "policy.violation",
     "rogue_detection": "security.alert",
     "agent_invocation": "agent.delegate",
+    "agent_action": "tool.call",
+    "policy_decision": "policy.check",
 }
 
 KIND_TO_EVENT_TYPE = {v: k for k, v in EVENT_TYPE_TO_KIND.items()}
@@ -132,9 +134,11 @@ def map_agent_did(did: str, report: MappingReport) -> str:
     """
     if did.startswith("did:web:"):
         host = did[8:].split(":")[0]  # Remove did:web: prefix
-        name = host.split(".")[0]  # Take first subdomain
+        name = host.split(".")[0] if "." in host else host
+    elif ":" in did:
+        name = did.split(":")[-1]
     else:
-        name = did.split(":")[-1] if ":" in did else did
+        name = did
 
     report.field_mappings.append(
         FieldMapping(
@@ -176,7 +180,7 @@ def build_step_content(entry: dict, report: MappingReport) -> dict:
         )
 
     # Map policy_decision if present
-    if "policy_decision" in entry and entry["policy_decision"]:
+    if "policy_decision" in entry and entry["policy_decision"] is not None:
         content["policy_decision"] = entry["policy_decision"]
         report.field_mappings.append(
             FieldMapping(
@@ -188,7 +192,7 @@ def build_step_content(entry: dict, report: MappingReport) -> dict:
         )
 
     # Map trace_id if present
-    if "trace_id" in entry and entry["trace_id"]:
+    if "trace_id" in entry and entry["trace_id"] is not None:
         content["trace_id"] = entry["trace_id"]
         report.field_mappings.append(
             FieldMapping(

@@ -6,12 +6,18 @@ from epi_cli.main import app
 runner = CliRunner()
 
 
-def test_telemetry_status_does_not_create_install_id(tmp_path):
+def test_telemetry_status_creates_install_id_locally(tmp_path):
+    """First CLI run creates an install_id locally but does not enable telemetry or send anything."""
     result = runner.invoke(app, ["telemetry", "status"], env={"EPI_HOME": str(tmp_path)})
 
     assert result.exit_code == 0
     assert "Enabled: no" in result.output
-    assert (tmp_path / "telemetry.json").exists() is False
+    config_path = tmp_path / "telemetry.json"
+    assert config_path.exists() is True
+    import json
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    assert config.get("install_id")
+    assert config.get("enabled") is not True
 
 
 def test_telemetry_enable_with_pilot_signup(monkeypatch, tmp_path):
@@ -22,6 +28,7 @@ def test_telemetry_enable_with_pilot_signup(monkeypatch, tmp_path):
         return True
 
     monkeypatch.setattr("epi_core.telemetry.send_json", _fake_send)
+    monkeypatch.setattr("epi_cli.telemetry.require_service", lambda *a, **k: None)
     result = runner.invoke(
         app,
         [
@@ -48,3 +55,50 @@ def test_telemetry_enable_with_pilot_signup(monkeypatch, tmp_path):
     assert sent
     assert sent[0][1]["email"] == "pilot@example.com"
     assert sent[0][1]["link_telemetry"] is True
+
+
+import os
+
+from rich.console import Console
+
+from epi_cli import telemetry_hint
+
+
+def test_telemetry_hint_for_demo_and_share_shows_contextual_cta(monkeypatch, tmp_path):
+    monkeypatch.setenv("EPI_HOME", str(tmp_path))
+    monkeypatch.delenv("EPI_TELEMETRY_OPT_IN", raising=False)
+    monkeypatch.setattr(telemetry_hint, "_is_interactive", lambda: True)
+
+    console = Console(force_terminal=True, width=80)
+
+    for context in ("demo", "share"):
+        output = ""
+
+        def _capture(*objects, sep=" ", end="\n", **kwargs):  # noqa: ANN001, ANN003
+            nonlocal output
+            output += sep.join(str(o) for o in objects) + end
+
+        monkeypatch.setattr(console, "print", _capture)
+        telemetry_hint.maybe_print_telemetry_hint(console, context)
+
+        assert "EPI Pilot" in output or "pilot" in output.lower()
+        assert "epi telemetry enable" in output
+
+
+def test_telemetry_hint_is_silent_when_hints_disabled(monkeypatch, tmp_path):
+    monkeypatch.setenv("EPI_HOME", str(tmp_path))
+    monkeypatch.delenv("EPI_TELEMETRY_OPT_IN", raising=False)
+    monkeypatch.setenv("EPI_TELEMETRY_HINTS", "off")
+    monkeypatch.setattr(telemetry_hint, "_is_interactive", lambda: True)
+
+    console = Console(force_terminal=True, width=80)
+    output = ""
+
+    def _capture(text, *, end="\n", **kwargs):  # noqa: ANN001, ANN003
+        nonlocal output
+        output += str(text) + end
+
+    monkeypatch.setattr(console, "print", _capture)
+    telemetry_hint.maybe_print_telemetry_hint(console, "demo")
+
+    assert output == ""

@@ -31,6 +31,7 @@ FROZEN_REPORT_KEYS = {
     "created_at",
     "spec_version",
     "trust_message",
+    "steps_count",
 }
 
 FROZEN_FAILURE_KEYS = {
@@ -102,6 +103,8 @@ def test_report_nested_facts_keys():
         "has_signature",
         "mismatches",
         "transparency_ok",
+        "completeness_gaps",
+        "forensic_reason",
     }
     assert facts_keys == expected_facts, (
         f"facts keys changed: {facts_keys ^ expected_facts}"
@@ -125,6 +128,8 @@ def test_report_nested_identity_keys():
         "detail",
         "registry_verified",
         "public_key_id",
+        "public_key_fingerprint",
+        "local_key_name",
         "did",
         "scitt",
     }

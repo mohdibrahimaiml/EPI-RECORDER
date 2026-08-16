@@ -15,6 +15,7 @@ FROZEN_STEP_FIELDS = {
     "prev_hash",
     "governance",
     "source_type",
+    "verification_class",
 }
 
 

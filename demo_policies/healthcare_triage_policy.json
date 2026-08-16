@@ -1,0 +1,32 @@
+{
+  "policy_format_version": "1.0",
+  "policy_id": "policy.healthcare.triage.v1",
+  "system_name": "Clinical Virtual Triage",
+  "system_version": "1.0",
+  "policy_version": "2026.01",
+  "profile_id": "healthcare-triage-v1",
+  "rules": [
+    {
+      "id": "acs_red_flag_screening",
+      "name": "Acute Coronary Syndrome Red-Flag Screening",
+      "severity": "critical",
+      "description": "Chest pressure in patients with CV risk factors requires mandatory ED emergency care routing.",
+      "type": "constraint_guard",
+      "watch_for": ["symptom"],
+      "violation_if": "high risk ACS symptoms routed away from ED"
+    },
+    {
+      "id": "nurse_triage_approval_required",
+      "name": "High-Risk Disposition Release Approval",
+      "severity": "high",
+      "description": "Releasing high-risk emergency disposition advice requires registered nurse verification.",
+      "type": "approval_guard",
+      "approval_action": "release_triage_message",
+      "approved_by": "rn.patel@clinic.example"
+    }
+  ],
+  "context_tracking": {
+    "identity_fields": ["encounter_id"],
+    "exempt_fields": ["policy_ref", "protocol_id", "disclaimer"]
+  }
+}

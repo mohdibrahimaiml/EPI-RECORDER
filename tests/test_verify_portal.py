@@ -1,4 +1,4 @@
-﻿"""
+"""
 Tests for verify_portal FastAPI backend.
 
 Covers: health, static routes, .well-known, /api/verify upload,
@@ -9,16 +9,20 @@ from __future__ import annotations
 
 import base64
 import io
+import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import pytest
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from fastapi.testclient import TestClient
 
+from epi_core.container import EPIContainer
 from epi_core.scitt import create_scitt_statement
 from epi_core.schemas import ManifestModel
 from epi_core.serialize import get_canonical_hash
+from epi_core.trust import sign_manifest
 from tests.helpers.artifacts import make_decision_epi
 
 # Import the app lazily so that module-level STATIC_DIR resolution
@@ -40,6 +44,10 @@ def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
         "EPI_ATTESTATION_PRIVATE_KEY",
         base64.b64encode(att_key.private_bytes_raw()).decode(),
     )
+    # Disable in-memory rate limiting for tests.
+    monkeypatch.setattr("verify_portal.main._check_rate_limit", lambda _ip: True)
+    # Disable SCITT tier gate for tests.
+    monkeypatch.setenv("PYTEST_RUNNING", "1")
     # Import here so env vars are patched first.
     from verify_portal.main import app
 
@@ -71,6 +79,28 @@ def test_portal_html(client: TestClient) -> None:
     assert r.status_code == 200
     assert "text/html" in r.headers["content-type"]
     assert "EPI Verify" in r.text or "verify" in r.text.lower()
+
+
+def test_admin_telemetry_html(client: TestClient) -> None:
+    r = client.get("/admin/telemetry.html")
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+    assert "Telemetry Dashboard" in r.text
+    assert "/api/admin/telemetry/metrics" in r.text
+    assert "epi.css" in r.text
+    assert 'href="#how"' in r.text or 'href="/#how"' in r.text
+    assert 'href="/#verify"' in r.text
+    assert 'href="#audit"' in r.text or 'href="/#audit"' in r.text
+
+
+def test_verify_page_matches_site_design(client: TestClient) -> None:
+    r = client.get("/verify")
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+    assert "epi.css" in r.text
+    assert 'href="/how-it-works"' in r.text
+    assert 'href="/verify/"' in r.text
+    assert 'href="/pricing"' in r.text
 
 
 def test_root_serves_landing_page(client: TestClient) -> None:
@@ -207,7 +237,7 @@ def test_scitt_lookup_missing_entry(client: TestClient) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Rate limiting (smoke test — in-memory store resets between tests)
+# Rate limiting (smoke test � in-memory store resets between tests)
 # ---------------------------------------------------------------------------
 
 
@@ -241,25 +271,300 @@ def test_contact_endpoint(client):
     assert r.status_code == 200  
     assert r.json()["status"] == "ok"  
   
-def test_create_api_key(client):  
-    r = client.post("/api/keys", json={"tier": "free", "name": "test"})  
-    assert r.status_code == 200  
-    d = r.json()  
-    assert d["tier"] == "free"  
-    assert d["api_key"].startswith("epi_")  
-  
-def test_create_api_key_bad_tier(client):  
-    r = client.post("/api/keys", json={"tier": "bad", "name": "x"})  
-    assert r.status_code == 400  
-  
-def test_list_api_keys(client):  
-    r = client.get("/api/keys")  
-    assert r.status_code == 200  
-    assert "keys" in r.json()  
-  
-def test_verify_with_pro_key(client, valid_epi):  
-    r = client.post("/api/keys", json={"tier": "pro", "name": "p"})  
-    assert r.status_code == 200  
-    key = r.json()["api_key"]  
-    with open(valid_epi, "rb") as f:  
-        r2 = client.post("/api/verify", files={"file": ("test.epi", f, "application/epi+zip")}, headers={"X-API-Key": key})  
+def _auth_bearer(tmp_path, monkeypatch, *, plan: str = "free", login: str = "portaluser") -> dict[str, str]:
+    """Create a durable auth user+token and return Authorization headers."""
+    from verify_portal import auth as auth_module
+
+    monkeypatch.setenv("EPI_STORAGE_DIR", str(tmp_path))
+    auth_module.init_auth_db(tmp_path)
+    conn = auth_module._connect(tmp_path)
+    uid = f"usr_{login}"
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO users
+        (id, github_id, login, email, org, plan, customer_id, avatar_url, created_at, updated_at)
+        VALUES (?, ?, ?, ?, '', ?, NULL, '', datetime('now'), datetime('now'))
+        """,
+        (uid, f"gh_{login}", login, f"{login}@example.com", plan),
+    )
+    conn.commit()
+    conn.close()
+    token = auth_module.create_token(tmp_path, uid)
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_create_api_key(client, tmp_path, monkeypatch):
+    headers = _auth_bearer(tmp_path, monkeypatch, plan="free")
+    r = client.post("/api/keys", json={"name": "test"}, headers=headers)
+    assert r.status_code == 200
+    d = r.json()
+    assert d["tier"] == "free"
+    assert d["api_key"].startswith("epi_")
+
+
+def test_list_api_keys(client, tmp_path, monkeypatch):
+    headers = _auth_bearer(tmp_path, monkeypatch, plan="free", login="lister")
+    # create one first
+    assert client.post("/api/keys", json={"name": "k1"}, headers=headers).status_code == 200
+    r = client.get("/api/keys", headers=headers)
+    assert r.status_code == 200
+    assert "keys" in r.json()
+    assert len(r.json()["keys"]) >= 1
+
+
+def test_create_api_key_requires_auth(client):
+    r = client.post("/api/keys", json={"name": "anon"})
+    assert r.status_code == 401
+
+
+def test_verify_with_pro_key(client, valid_epi, tmp_path, monkeypatch):
+    headers = _auth_bearer(tmp_path, monkeypatch, plan="pro", login="prouser")
+    r = client.post("/api/keys", json={"name": "p"}, headers=headers)
+    assert r.status_code == 200
+    key = r.json()["api_key"]
+    with open(valid_epi, "rb") as f:
+        r2 = client.post(
+            "/api/verify",
+            files={"file": ("test.epi", f, "application/epi+zip")},
+            headers={"X-API-Key": key},
+        )
+    assert r2.status_code == 200 
+
+
+# ---------------------------------------------------------------------------
+# Telemetry ingestion
+# ---------------------------------------------------------------------------
+
+
+def _telemetry_event_payload() -> dict[str, Any]:
+    from epi_core import telemetry
+    return {
+        "schema_version": telemetry.TELEMETRY_SCHEMA_VERSION,
+        "install_id": "install-verify-portal-1",
+        "event_name": "epi.record.completed",
+        "timestamp": "2026-04-12T00:00:00Z",
+        "epi_version": "4.2.0",
+        "python_version": "3.11",
+        "os": "Linux",
+        "environment": "ci",
+        "ci": True,
+        "metadata": {"command": "record", "artifact_bytes": 123, "success": True},
+    }
+
+
+def test_verify_portal_accepts_telemetry_event(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("EPI_STORAGE_DIR", str(tmp_path))
+    response = client.post("/api/telemetry/events", json=_telemetry_event_payload())
+    assert response.status_code == 202, response.text
+    output = tmp_path / "telemetry" / "events.jsonl"
+    assert output.exists()
+    record = json.loads(output.read_text(encoding="utf-8").strip())
+    assert record["payload"]["event_name"] == "epi.record.completed"
+    assert record["payload"]["metadata"]["artifact_bytes"] == 123
+
+
+def test_verify_portal_rejects_banned_telemetry_fields(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("EPI_STORAGE_DIR", str(tmp_path))
+    payload = _telemetry_event_payload()
+    payload["metadata"]["repo_name"] = "private/repo"
+    response = client.post("/api/telemetry/events", json=payload)
+    assert response.status_code == 400
+
+
+def test_verify_portal_accepts_pilot_signup(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from epi_core import telemetry
+    monkeypatch.setenv("EPI_STORAGE_DIR", str(tmp_path))
+    response = client.post(
+        "/api/telemetry/pilot-signups",
+        json={
+            "schema_version": telemetry.PILOT_SIGNUP_SCHEMA_VERSION,
+            "email": "pilot@example.com",
+            "org": "EPI Labs",
+            "role": "founder",
+            "use_case": "agt integration",
+            "consent_to_contact": True,
+            "link_telemetry": False,
+            "created_at": "2026-04-12T00:00:00Z",
+        },
+    )
+    assert response.status_code == 202, response.text
+    output = tmp_path / "telemetry" / "pilot_signups.jsonl"
+    record = json.loads(output.read_text(encoding="utf-8").strip())
+    assert record["payload"]["email"] == "pilot@example.com"
+
+
+def test_verify_portal_telemetry_can_be_disabled(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr("verify_portal.main._VERIFY_TELEMETRY_ENABLED", False)
+    monkeypatch.setenv("EPI_STORAGE_DIR", str(tmp_path))
+    response = client.post("/api/telemetry/events", json=_telemetry_event_payload())
+    assert response.status_code == 404
+    assert not (tmp_path / "telemetry" / "events.jsonl").exists()
+
+
+# ---------------------------------------------------------------------------
+# Accuracy-focused verification tests
+# ---------------------------------------------------------------------------
+
+
+def _canonical_step_hash(step_dict: dict[str, Any]) -> str:
+    """Return the canonical JSON hash used for the prev_hash chain."""
+    from epi_core.schemas import StepModel
+
+    model = StepModel(**step_dict)
+    return get_canonical_hash(model, format="json")
+
+
+def _repack_with_modified_manifest(
+    epi_path: Path,
+    key: Ed25519PrivateKey,
+    tmp_path: Path,
+    manifest_mutator: Callable[[dict[str, Any], Path], None],
+    container_format: str = "legacy-zip",
+) -> Path:
+    """Unpack an artifact, mutate the workspace/manifest, and re-pack + re-sign."""
+    workspace = tmp_path / "workspace"
+    EPIContainer.unpack(epi_path, workspace)
+    manifest_data = json.loads((workspace / "manifest.json").read_text(encoding="utf-8"))
+    manifest_mutator(manifest_data, workspace)
+    manifest = ManifestModel(**manifest_data)
+    output = tmp_path / "modified.epi"
+
+    def _sign(item: ManifestModel) -> ManifestModel:
+        return sign_manifest(item, key, "test")
+
+    EPIContainer.pack(
+        workspace,
+        manifest,
+        output,
+        signer_function=_sign,
+        preserve_generated=True,
+        generate_analysis=False,
+        container_format=container_format,
+    )
+    return output
+
+
+def test_verify_signed_epi_with_trusted_key_reports_high(
+    client: TestClient,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A signed artifact whose public key is in the trusted registry should be HIGH."""
+    epi_path, key = make_decision_epi(tmp_path, signed=True)
+    trusted_dir = tmp_path / "trusted_keys"
+    trusted_dir.mkdir()
+    pub_hex = key.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    ).hex()
+    (trusted_dir / "test.pub").write_text(pub_hex, encoding="utf-8")
+    monkeypatch.setenv("EPI_TRUSTED_KEYS_DIR", str(trusted_dir))
+
+    with open(epi_path, "rb") as f:
+        r = client.post(
+            "/api/verify",
+            files={"file": ("test.epi", f, "application/epi+zip")},
+            data={"aiuc1": "true"},
+        )
+    assert r.status_code == 200
+    report = r.json()
+    assert report["facts"]["signature_valid"] is True
+    assert report["identity"]["status"] == "KNOWN"
+    assert report["trust_level"] == "HIGH"
+
+
+def test_verify_chain_break_fails(
+    client: TestClient,
+    tmp_path: Path,
+) -> None:
+    """A re-signed artifact with a broken prev_hash chain must fail integrity."""
+    epi_path, key = make_decision_epi(tmp_path, signed=True)
+
+    def _tamper_first_step(manifest_data: dict[str, Any], workspace: Path) -> None:
+        steps_path = workspace / "steps.jsonl"
+        lines = steps_path.read_text(encoding="utf-8").splitlines()
+        if not lines:
+            return
+        steps = [json.loads(line) for line in lines]
+        for i in range(1, len(steps)):
+            steps[i]["prev_hash"] = _canonical_step_hash(steps[i - 1])
+        steps[0]["content"] = steps[0].get("content", {})
+        steps[0]["content"]["tampered"] = True
+        steps_path.write_text(
+            "\n".join(json.dumps(step, ensure_ascii=False) for step in steps) + "\n",
+            encoding="utf-8",
+        )
+
+    modified = _repack_with_modified_manifest(epi_path, key, tmp_path, _tamper_first_step)
+
+    with open(modified, "rb") as f:
+        r = client.post(
+            "/api/verify",
+            files={"file": ("modified.epi", f, "application/epi+zip")},
+            data={"aiuc1": "true"},
+        )
+    assert r.status_code == 200
+    report = r.json()
+    assert report["facts"]["chain_ok"] is False
+    assert report["summary"]["integrity"] == "FAILED"
+    assert report["trust_level"] == "NONE"
+
+
+def test_verify_step_count_mismatch_fails(
+    client: TestClient,
+    tmp_path: Path,
+) -> None:
+    """A manifest that lies about total_steps must fail integrity."""
+    epi_path, key = make_decision_epi(tmp_path, signed=True)
+
+    def _lie_about_step_count(manifest_data: dict[str, Any], workspace: Path) -> None:
+        manifest_data["total_steps"] = 9999
+
+    modified = _repack_with_modified_manifest(epi_path, key, tmp_path, _lie_about_step_count)
+
+    with open(modified, "rb") as f:
+        r = client.post(
+            "/api/verify",
+            files={"file": ("modified.epi", f, "application/epi+zip")},
+            data={"aiuc1": "true"},
+        )
+    assert r.status_code == 200
+    report = r.json()
+    assert report["summary"]["integrity"] == "FAILED"
+    assert report["trust_level"] == "NONE"
+
+
+def test_verify_sample_epi_high(
+    client: TestClient,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The shipped demo asset must verify as HIGH when its key is trusted."""
+    sample_path = Path("verify_portal/static/assets/sample.epi")
+    manifest = EPIContainer.read_manifest(sample_path)
+    trusted_dir = tmp_path / "trusted_keys"
+    trusted_dir.mkdir()
+    (trusted_dir / "EPI Labs Official.pub").write_text(
+        manifest.public_key or "", encoding="utf-8"
+    )
+    monkeypatch.setenv("EPI_TRUSTED_KEYS_DIR", str(trusted_dir))
+
+    with open(sample_path, "rb") as f:
+        r = client.post(
+            "/api/verify",
+            files={"file": ("sample.epi", f, "application/epi+zip")},
+            data={"aiuc1": "true"},
+        )
+    assert r.status_code == 200
+    report = r.json()
+    assert report["facts"]["signature_valid"] is True
+    assert report["identity"]["status"] == "KNOWN"
+    assert report["trust_level"] == "HIGH"

@@ -12,6 +12,7 @@ Features (v2.8.0):
 """
 
 import hashlib
+import os
 import shutil
 import tempfile
 import threading
@@ -37,7 +38,9 @@ from epi_core.viewer_assets import inline_viewer_assets, load_viewer_assets
 console = Console()
 
 DEFAULT_DIR = Path("epi-recordings")
-_MAX_INLINE_ARCHIVE_BYTES = 4 * 1024 * 1024
+# Full .epi is inlined for Model A browser Sign & Seal (artifact-bound review).
+# Raised from 4 MiB so typical sealed demos + notarization still qualify.
+_MAX_INLINE_ARCHIVE_BYTES = 32 * 1024 * 1024
 
 
 def _print_share_hint() -> None:
@@ -81,7 +84,15 @@ def _resolve_epi_file(name_or_path: str) -> Path:
         if with_ext.exists():
             return with_ext
 
-    # 3. Try exact name in default directory
+    # 3. Try CWD first (for files downloaded from browser / other sources)
+    cwd_name = Path.cwd() / path.name
+    if cwd_name.exists():
+        return cwd_name
+    cwd_ext = Path.cwd() / f"{path.stem}.epi"
+    if cwd_ext.exists():
+        return cwd_ext
+
+    # 4. Try exact name in default directory
     in_default = DEFAULT_DIR / path.name
     if in_default.exists():
         return in_default
@@ -224,31 +235,107 @@ def _open_native_viewer(epi_path: Path) -> bool:
     except Exception:
         return False
 
-def _open_in_browser(viewer_path: Path):
-    """Cross-platform browser open with fallbacks."""
-    import sys
-    uri = viewer_path.as_uri()
+def _pick_free_localhost_port() -> int | None:
+    import socket
+
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.bind(("127.0.0.1", 0))
+            return int(sock.getsockname()[1])
+    except OSError:
+        return None
+
+
+def _spawn_detached_viewer_server(
+    viewer_path: Path,
+    *,
+    lifetime_seconds: float = 900.0,
+) -> str | None:
+    """
+    Start a background process that serves the viewer over localhost.
+
+    Simple UX: `epi view` opens the browser and returns to the prompt immediately.
+    No "leave this window open / press Enter" ceremony.
+    """
+    port = _pick_free_localhost_port()
+    if port is None:
+        return None
+
+    directory = viewer_path.parent.resolve()
+    filename = viewer_path.name
+    url = f"http://127.0.0.1:{port}/{filename}"
+
+    cmd = [
+        sys.executable,
+        "-m",
+        "epi_cli.view_server",
+        str(directory),
+        str(port),
+        str(int(lifetime_seconds)),
+    ]
+
+    popen_kwargs: dict = {
+        "stdin": subprocess.DEVNULL,
+        "stdout": subprocess.DEVNULL,
+        "stderr": subprocess.DEVNULL,
+        "close_fds": True,
+    }
+    if sys.platform == "win32":
+        # Detach so closing the user's PowerShell does not kill the server.
+        create_flags = getattr(subprocess, "DETACHED_PROCESS", 0x00000008)
+        create_flags |= getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
+        create_flags |= getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+        popen_kwargs["creationflags"] = create_flags
+    else:
+        popen_kwargs["start_new_session"] = True
+
+    try:
+        subprocess.Popen(cmd, **popen_kwargs)
+    except Exception:
+        return None
+
+    # Brief wait so the first browser request does not race bind()
+    time.sleep(0.35)
+    return url
+
+
+def _open_in_browser(viewer_path: Path) -> None:
+    """Open the viewer simply: background server + browser, then return."""
     opened = False
 
-    if sys.platform == "win32":
+    # 1) Detached localhost HTTP (reliable in Edge/Chrome; CLI can exit)
+    http_url = _spawn_detached_viewer_server(viewer_path)
+    if http_url:
         try:
-            import os
-            os.startfile(str(viewer_path))
+            webbrowser.open(http_url)
             opened = True
+            console.print(f"[green]Opened viewer[/green]  {http_url}")
+        except Exception:
+            opened = False
+
+    # 2) Windows file association / startfile
+    if not opened and sys.platform == "win32":
+        try:
+            os.startfile(str(viewer_path))  # type: ignore[attr-defined]
+            opened = True
+            console.print(f"[green]Opened viewer[/green]  {viewer_path}")
+        except Exception:
+            pass
+
+    # 3) file:// last resort
+    if not opened:
+        try:
+            webbrowser.open(viewer_path.as_uri())
+            opened = True
+            console.print(f"[green]Opened viewer[/green]  {viewer_path}")
         except Exception:
             pass
 
     if not opened:
-        try:
-            webbrowser.open(uri)
-            opened = True
-        except Exception:
-            pass
+        console.print("[yellow]Could not open the browser automatically.[/yellow]")
+        console.print(f"  Open this file yourself: {viewer_path}")
+        console.print("  Or upload at: https://epilabs.org/verify")
 
-    if not opened:
-        print(f"\n📂 Could not open browser automatically.")
-        print(f"   Open this file manually in your browser:")
-        print(f"   {viewer_path}")
 
 def _cleanup_after_delay(temp_dir: Path, delay_seconds: float = 30.0) -> None:
     """
@@ -344,6 +431,40 @@ def _read_steps_if_exists(path: Path) -> list[dict]:
     return steps
 
 
+def _extract_tsr_gen_time(tsr_path: Path) -> str | None:
+    """
+    Best-effort parse of RFC 3161 TimeStampResp GeneralizedTime (ASN.1 tag 0x18).
+    Returns ISO-8601 UTC string (e.g. 2026-07-19T23:29:46Z) or None.
+    """
+    if not tsr_path.exists():
+        return None
+    try:
+        data = tsr_path.read_bytes()
+    except Exception:
+        return None
+    import re
+
+    i = 0
+    while i < len(data) - 2:
+        if data[i] == 0x18:  # GeneralizedTime
+            length = data[i + 1]
+            if 10 <= length <= 32 and i + 2 + length <= len(data):
+                raw = data[i + 2 : i + 2 + length]
+                try:
+                    text = raw.decode("ascii")
+                except UnicodeDecodeError:
+                    i += 1
+                    continue
+                m = re.fullmatch(r"(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})Z", text)
+                if m:
+                    return (
+                        f"{m.group(1)}-{m.group(2)}-{m.group(3)}T"
+                        f"{m.group(4)}:{m.group(5)}:{m.group(6)}Z"
+                    )
+        i += 1
+    return None
+
+
 def _build_preloaded_case_payload(extracted_dir: Path, resolved_path: Path) -> dict:
     manifest = EPIContainer.read_manifest(resolved_path)
     integrity_ok, mismatches = EPIContainer.verify_integrity(resolved_path)
@@ -360,9 +481,21 @@ def _build_preloaded_case_payload(extracted_dir: Path, resolved_path: Path) -> d
     _session_start = next(
         (s for s in _steps if isinstance(s, dict) and s.get("kind") == "session.start"), None
     )
-    _workflow_name = (_session_start or {}).get("content", {}).get("workflow_name") or getattr(manifest, "workflow_name", None)
-    _source_name = _workflow_name or resolved_path.name
-
+    _raw_wn = (_session_start or {}).get("content", {}).get("workflow_name") or getattr(
+        manifest, "workflow_name", None
+    )
+    _placeholders = {"", "untitled", "unnamed", "workflow", "unknown"}
+    if not _raw_wn or str(_raw_wn).strip().lower() in _placeholders:
+        _workflow_name = (
+            getattr(manifest, "goal", None)
+            or resolved_path.name
+        )
+    else:
+        _workflow_name = _raw_wn
+    # Prefer real on-disk file name for verify/copy commands
+    _source_name = resolved_path.name if resolved_path.suffix.lower() == ".epi" else (
+        _workflow_name or resolved_path.name
+    )
     # Embed source files so the browser viewer can rebuild the artifact
     # after in-browser review (Sign & Seal)
     _files = {}
@@ -371,8 +504,33 @@ def _build_preloaded_case_payload(extracted_dir: Path, resolved_path: Path) -> d
             fp = extracted_dir / filename
             if fp.exists() and fp.is_file():
                 _files[filename] = base64.b64encode(fp.read_bytes()).decode("ascii")
+        # manifest.json is written directly to the ZIP during packing and is not
+        # listed in file_manifest. The browser viewer needs its raw bytes to
+        # preserve the cryptographic signature during Sign & Seal.
+        mf_path = extracted_dir / "manifest.json"
+        if mf_path.exists() and mf_path.is_file():
+            _files["manifest.json"] = base64.b64encode(mf_path.read_bytes()).decode("ascii")
+        # Same for viewer.html — it's a generated file not tracked in file_manifest
+        # but needed by the browser to rebuild the full artifact.
+        vh_path = extracted_dir / "viewer.html"
+        if vh_path.exists() and vh_path.is_file():
+            _files["viewer.html"] = base64.b64encode(vh_path.read_bytes()).decode("ascii")
     except Exception:
         pass
+
+    # Notarization members may be absent from older file_manifests; always surface
+    # them when present so the viewer can show TSA/OTS without a broken empty panel.
+    for rel in (
+        "artifacts/notarization/notarization.json",
+        "artifacts/notarization/tsa_reply.tsr",
+        "artifacts/notarization/digest.ots",
+    ):
+        fp = extracted_dir / rel
+        if fp.exists() and fp.is_file() and rel not in _files:
+            try:
+                _files[rel] = base64.b64encode(fp.read_bytes()).decode("ascii")
+            except Exception:
+                pass
 
     return {
         "source_name": _source_name,
@@ -386,6 +544,14 @@ def _build_preloaded_case_payload(extracted_dir: Path, resolved_path: Path) -> d
         "review": _read_json_if_exists(extracted_dir / "review.json"),
         "environment": _read_json_if_exists(extracted_dir / "environment.json")
         or _read_json_if_exists(extracted_dir / "env.json"),
+        # Optional seal-time notarization (RFC 3161 / OTS). Absent when EPI_NOTARIZE=0
+        # or older artifacts — viewer hides the panel when null.
+        "notarization": _read_json_if_exists(
+            extracted_dir / "artifacts" / "notarization" / "notarization.json"
+        ),
+        "notarization_tsa_time": _extract_tsr_gen_time(
+            extracted_dir / "artifacts" / "notarization" / "tsa_reply.tsr"
+        ),
         "stdout": _read_text_if_exists(extracted_dir / "stdout.log"),
         "stderr": _read_text_if_exists(extracted_dir / "stderr.log"),
         "files": _files,
@@ -462,6 +628,24 @@ def _refresh_viewer_html(extracted_dir: Path, resolved_path: Path) -> Path:
         raise
 
 
+def _emit_view_telemetry(resolved_path: Path, *, success: bool = True) -> None:
+    """Emit a privacy-safe epi.view.completed event."""
+    try:
+        from epi_core.telemetry import track_event
+        track_event(
+            "epi.view.completed",
+            {
+                "command": "view",
+                "source": "cli",
+                "success": success,
+                "artifact_count": 1,
+                "artifact_bytes": resolved_path.stat().st_size,
+            },
+        )
+    except Exception:
+        pass
+
+
 def view(
     ctx: typer.Context,
     epi_file: str = typer.Argument(..., help="Path or name of .epi file to view"),
@@ -486,8 +670,18 @@ def view(
         resolved_path = _resolve_epi_file(epi_file)
     except FileNotFoundError:
         console.print(f"[red][X] File not found:[/red] {epi_file}")
-        console.print("[dim]   Searched in: ./epi-recordings/[/dim]")
-        console.print("[dim]   Try: epi ls   to see available recordings[/dim]")
+        console.print(f"[dim]   Current folder: {Path.cwd()}[/dim]")
+        console.print("[dim]   Searched in: current folder & ./epi-recordings/[/dim]")
+        console.print(
+            "[dim]   Fix (order matters): [cyan]cd[/cyan] into the folder with the file, "
+            "THEN [cyan]epi view your.epi[/cyan][/dim]"
+        )
+        console.print(
+            '[dim]   Or from any folder use a full path:[/dim]'
+        )
+        console.print(
+            '[dim]   epi view "C:\\path\\to\\your.epi"[/dim]'
+        )
         raise typer.Exit(1)
 
     try:
@@ -505,18 +699,25 @@ def view(
         try:
             viewer_html = _create_decision_ops_viewer(dest, resolved_path)
             viewer_path.write_text(viewer_html, encoding="utf-8")
+            _inject_viewer_context(viewer_path, _build_viewer_context(resolved_path))
         except Exception:
             viewer_path = _refresh_viewer_html(dest, resolved_path)
             _inject_viewer_context(viewer_path, _build_viewer_context(resolved_path))
         console.print(f"[green][OK][/green] Extracted to: {dest}")
-        console.print(f"   Open in browser: {dest / 'viewer.html'}")
+        console.print(f"   File: {dest / 'viewer.html'}")
+        console.print(
+            "[dim]Tip: run [cyan]epi view file.epi[/cyan] (no --extract) to open via "
+            "http://127.0.0.1 — more reliable than double-clicking the HTML.[/dim]"
+        )
         _print_share_hint()
+        _emit_view_telemetry(resolved_path)
         raise typer.Exit(0)
 
     if native and _open_native_viewer(resolved_path):
         console.print(f"[green][OK][/green] Opened native viewer: {resolved_path.name}")
         console.print("[dim]Use [cyan]epi view[/cyan] to open the browser review flow instead.[/dim]")
         _print_share_hint()
+        _emit_view_telemetry(resolved_path)
         return
 
     # Use a persistent viewer cache (Docker-volume approach): no race condition
@@ -539,13 +740,21 @@ def view(
                 raise ValueError("Forensic shell requested")
             viewer_html = _create_decision_ops_viewer(viewer_dir, resolved_path)
             viewer.write_text(viewer_html, encoding="utf-8")
+            # Always inject host-side verify results so the UI does not depend
+            # solely on browser self-check (which fails for some users on file://).
+            _inject_viewer_context(viewer, viewer_context)
         except Exception:
             viewer = _refresh_viewer_html(viewer_dir, resolved_path)
             _inject_viewer_context(viewer, viewer_context)
 
         _open_in_browser(viewer)
         console.print(f"[green][OK][/green] Opened: {resolved_path.name}")
+        console.print(
+            "[dim]Seal OK + new signer is normal. "
+            "Optional: [cyan]epi keys trust[/cyan] then [cyan]epi verify[/cyan].[/dim]"
+        )
         _print_share_hint()
+        _emit_view_telemetry(resolved_path)
 
     except typer.Exit:
         raise  # Re-raise typer exits cleanly
@@ -580,7 +789,7 @@ def export_html(
         resolved_path = _resolve_epi_file(epi_file)
     except FileNotFoundError:
         console.print(f"[red][X] File not found:[/red] {epi_file}")
-        console.print("[dim]   Searched in: ./epi-recordings/[/dim]")
+        console.print("[dim]   Searched in: CWD & ./epi-recordings/[/dim]")
         raise typer.Exit(1)
 
     try:
@@ -595,24 +804,22 @@ def export_html(
     else:
         out_path = Path(f"{resolved_path.stem}.html")
 
-    # Try to extract embedded viewer from polyglot envelope first
-    viewer_html = EPIContainer.extract_embedded_viewer(resolved_path)
-
-    if viewer_html is None:
-        # Fallback: legacy format or no embedded viewer — generate fresh
-        console.print("[yellow][!] No embedded viewer found; generating fresh viewer...[/yellow]")
-        temp_dir = _make_temp_dir()
-        if temp_dir is None:
-            console.print("[red][X] Could not create temporary directory.[/red]")
-            raise typer.Exit(1)
-        try:
-            EPIContainer.unpack(resolved_path, temp_dir)
-            viewer_html = _create_decision_ops_viewer(temp_dir, resolved_path)
-        except Exception as e:
-            console.print(f"[red][X] Failed to generate viewer:[/red] {e}")
-            raise typer.Exit(1)
-        finally:
-            shutil.rmtree(temp_dir, ignore_errors=True)
+    # Always generate a *fresh* standalone viewer with current client crypto
+    # (verifyCaseInBrowser). Older polyglot-embedded viewers may still contain
+    # the "OPEN VIA EPI VIEW TO VERIFY" punt — that path is not acceptable for
+    # zero-install share delivery.
+    temp_dir = _make_temp_dir()
+    if temp_dir is None:
+        console.print("[red][X] Could not create temporary directory.[/red]")
+        raise typer.Exit(1)
+    try:
+        EPIContainer.unpack(resolved_path, temp_dir)
+        viewer_html = _create_decision_ops_viewer(temp_dir, resolved_path)
+    except Exception as e:
+        console.print(f"[red][X] Failed to generate viewer:[/red] {e}")
+        raise typer.Exit(1)
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
     # Inject a banner that tells the recipient this is a shared EPI case
     share_banner = (

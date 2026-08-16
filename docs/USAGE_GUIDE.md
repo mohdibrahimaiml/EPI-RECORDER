@@ -1,27 +1,98 @@
 # EPI Usage Guide
 
-## Quick Start
+**Canonical short path:** root [README.md](../README.md).  
+**Docs map:** [README.md](./README.md) · **Pilot:** [PILOT.md](./PILOT.md)
+
+---
+
+## Quick start
 
 ### 1. Install
+
 ```bash
 pip install epi-recorder
+# Pilots: prefer a git pin if PyPI lags — see PILOT.md
+epi --version
 ```
 
-### 2. Generate Keys (One-Time)
+### 2. Keys (optional first run)
+
+Signing keys are created as needed. To inspect:
+
 ```bash
-epi keys generate
+epi keys list
+epi keys generate --name default   # if you want an explicit key
+epi keys trust default             # pin identity for stricter policies
 ```
 
-This creates:
-- `~/.epi/keys/default.key` — your private key (keep safe)
-- `~/.epi/keys/default.pub` — your public key (can be shared)
+Private keys live under `~/.epi/keys/` — **never commit them**.
 
-### 3. Record a Workflow
+### 3. Record (recommended APIs)
+
+**A. Demo (no LLM API key):**
+
+```bash
+epi demo --no-browser
+epi verify epi-recordings/demo_refund.epi
+```
+
+**B. Python `record()` (matches root README):**
+
+```python
+from epi_recorder import record, get_current_session
+
+with record("demo.epi", goal="show the golden path"):
+    s = get_current_session()
+    s.log("tool.call", tool="lookup", id="A-1")
+    s.log("decision", action="approve", reason="within limit")
+```
+
+```bash
+epi verify demo.epi
+epi view demo.epi
+```
+
+**C. CLI wrap a script:**
+
 ```bash
 epi record --out refund.epi -- python process_refund.py
 ```
 
-Or programmatically:
+### 4. Verify
+
+```bash
+epi verify refund.epi
+```
+
+Typical **first-run** result (local sealer key on this machine):
+
+- **Integrity:** Verified  
+- **Signature:** Valid  
+- **Identity:** often **LOCAL** or **UNKNOWN / NOT_PINNED** until org trust pin  
+- **Decision:** under STANDARD, unpinned/LOCAL → **WARN · UNVERIFIED IDENTITY** (valid seal ≠ claim-ready). Under STRICT, unpinned → **FAIL**.
+
+Seal vs identity: integrity/signature answer “is the artifact internally consistent under some key?”; identity answers “do we recognize the sealer?” Anyone can rebuild the chain and re-sign.
+
+```bash
+# Insurers / claim acceptance — always:
+epi verify refund.epi --policy strict
+# Dev skim (WARN if identity not org-pinned):
+epi verify refund.epi --json
+```
+
+### 5. Browser verify
+
+- **Private (no upload):** https://epilabs.org/verify/  
+- **Full report (upload):** https://epilabs.org/verify/?mode=server  
+
+Details: [AUDITORS-GUIDE.md](./AUDITORS-GUIDE.md).
+
+---
+
+## Advanced: `EpiRecorderSession`
+
+Lower-level session API (still supported):
+
 ```python
 from epi_recorder.api import EpiRecorderSession
 
@@ -30,35 +101,23 @@ with EpiRecorderSession(output_path="refund.epi", goal="Process refund REF-100")
     epi.log_step("llm.response", {"output": "Yes, under $500 threshold."})
 ```
 
-### 4. Verify an Artifact
-```bash
-epi verify refund.epi
-```
-
-Output:
-```
-VERIFIED ✓
-Trust Level: HIGH
-Integrity Check:  PASSED — 4 files verified (SHA-256)
-Signature Check:  VALID — Ed25519, signed by key 'default'
-```
-
-For machine-readable output:
-```bash
-epi verify refund.epi --json
-```
+Prefer `record()` / wrappers for new code (see root README and [FRAMEWORK-INTEGRATIONS-5-MINUTES.md](./FRAMEWORK-INTEGRATIONS-5-MINUTES.md)).
 
 ---
 
-## Verification Results — How to Read Them
+## Verification results
 
-### Exit Codes
-| Exit Code | Meaning |
+### Exit codes
+
+| Exit code | Meaning |
 |-----------|---------|
-| `0` | Verification passed. |
-| `1` | Verification failed (tampering, bad signature, revoked key). |
+| `0` | Policy decision pass (or non-failing outcome per policy) |
+| non-zero | Fail under the selected policy (tamper, bad signature, strict identity, etc.) |
 
-### JSON Report Fields
+Always read integrity and signature lines separately from identity.
+
+### JSON report (shape)
+
 ```json
 {
   "facts": {
@@ -68,138 +127,44 @@ epi verify refund.epi --json
     "mismatches": {}
   },
   "identity": {
-    "status": "UNKNOWN",
+    "status": "LOCAL",
     "name": "default",
-    "detail": "UNKNOWN: Identity not found in any trusted registry"
+    "detail": "…"
   },
-  "trust_level": "HIGH",
   "decision": {
     "status": "PASS",
     "policy": "standard",
-    "reason": "Integrity verified and identity not revoked"
+    "reason": "…"
   }
 }
 ```
 
-#### What Each Field Means
+Field meanings:
 
-**`facts.integrity_ok`**
-- `true` — All files inside the `.epi` archive match their SHA-256 hashes. Nothing was modified.
-- `false` — One or more files were tampered with. Check `mismatches` for details.
-
-**`facts.signature_valid`**
-- `true` — The manifest was signed by the private key matching the embedded public key.
-- `false` — The signature does not match. The manifest was altered after signing.
-- `null` — No signature exists. The artifact is unsigned.
-
-**`identity.status`**
-- `KNOWN` — The signing key is recognized (via DID:WEB or local trust registry).
-- `UNKNOWN` — The key is not recognized, but the signature is mathematically valid.
-- `REVOKED` — The key has been revoked. Do not trust.
-
-**`trust_level`**
-- `HIGH` — Signed and intact. Suitable for legal/regulatory evidence.
-- `MEDIUM` — Intact but unsigned. Good for internal records.
-- `NONE` — Failed verification. Do not trust.
-- `INVALID` — Key revoked. Do not trust.
-
-**`decision.status`**
-- `PASS` — The artifact meets the verification policy.
-- `FAIL` — The artifact violates the policy (e.g., revoked key, integrity failure).
+- **`facts.integrity_ok`** — member hashes match; file not modified after seal  
+- **`facts.signature_valid`** — Ed25519 over sealed content  
+- **`identity.status`** — KNOWN / LOCAL / UNKNOWN / revoked-style states  
+- **`decision`** — policy outcome (standard vs strict, etc.)
 
 ---
 
-## DID:WEB Identity Binding (Optional)
+## Enterprise kit
 
-Bind your artifact to a web identity so third parties can verify who signed it.
-
-### 1. Host a DID Document
-Create `https://yourcompany.com/.well-known/did.json`:
-```json
-{
-  "id": "did:web:yourcompany.com",
-  "verificationMethod": [
-    {
-      "id": "did:web:yourcompany.com#key-1",
-      "type": "Ed25519VerificationKey2020",
-      "publicKeyHex": "2152f8d19b791d24453242e15f2eab6cb7cffa7b6a5ed30097960e069881db12"
-    }
-  ]
-}
-```
-
-Get your public key hex:
 ```bash
-epi keys export default --format hex
+epi enterprise setup
+epi enterprise pack your-run.epi
 ```
 
-### 2. Record with DID
-```python
-with EpiRecorderSession(
-    output_path="refund.epi",
-    did_web="did:web:yourcompany.com",
-    auto_sign=True,
-) as epi:
-    ...
-```
-
-### 3. Verify
-```bash
-epi verify refund.epi
-```
-
-If the DID resolves, the output shows:
-```
-Identity: KNOWN (did:web:yourcompany.com)
-```
-
-If the server is offline, the output shows:
-```
-Identity: UNKNOWN
-Signature: VALID
-```
-
-The artifact still verifies cryptographically — the identity is just unconfirmed.
+See [ENTERPRISE-15-MINUTES.md](./ENTERPRISE-15-MINUTES.md).
 
 ---
 
-## Common Scenarios
+## Related
 
-### "I got an .epi file from someone else. How do I verify it?"
-```bash
-epi verify their_file.epi --json
-```
-
-If `signature_valid=true` and `integrity_ok=true`, the file is authentic and unmodified. `identity=UNKNOWN` is normal if you don't have their key in your trust registry.
-
-### "I want to check if a key has been revoked"
-Create a revocation file:
-```bash
-echo "<public_key_hex>" > ~/.epi/trusted_keys/bad_actor.revoked
-```
-
-Any artifact signed by that key will now show `trust_level=INVALID`.
-
-### "I need to verify offline"
-```bash
-epi verify artifact.epi
-```
-
-Offline verification works automatically. The only thing you lose is DID:WEB resolution (falls back to `UNKNOWN`).
-
-### "I want a human-readable report file"
-```bash
-epi verify artifact.epi --report-out report.txt
-```
-
----
-
-## Troubleshooting
-
-| Problem | Cause | Solution |
-|---------|-------|----------|
-| `signature_valid=false` | Manifest or payload was modified. | Re-create the artifact. Do not hand-edit `.epi` files. |
-| `integrity_ok=false` | A file inside the archive was changed. | Re-create the artifact. |
-| `identity=UNKNOWN` | No trust registry entry or DID resolution failed. | Normal for third-party artifacts. Add the public key to `~/.epi/trusted_keys/` if you trust the signer. |
-| `trust_level=INVALID` | The key is on the revocation list. | Do not trust the artifact. Investigate why the key was revoked. |
-| `No signature present` | The artifact was created with `auto_sign=false` or no key was available. | Sign it: `epi sign artifact.epi` |
+| Doc | Topic |
+|-----|--------|
+| [POLICY-AND-FAULT-ANALYZER.md](./POLICY-AND-FAULT-ANALYZER.md) | Policy rulebook + fault analyzer for normal users |
+| [CLI.md](./CLI.md) | Full command reference |
+| [KNOWN_LIMITATIONS.md](./KNOWN_LIMITATIONS.md) | Product boundaries |
+| [POLICY.md](./POLICY.md) | Policy schema detail |
+| [PILOT.md](./PILOT.md) | Guided pilot pack |

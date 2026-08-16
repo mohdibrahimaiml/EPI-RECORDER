@@ -1,6 +1,6 @@
 # EPI Self-Hosted Reliability Runbook
 
-This runbook defines the supported `v4.2.0` self-hosted shape for EPI:
+This runbook defines the supported `v4.4.0` self-hosted shape for EPI:
 
 - single-node deployment
 - append-only event spool on disk
@@ -184,3 +184,19 @@ or:
 
 - open the case in the shared browser UI
 - export the reviewed `.epi`
+
+---
+
+## Cloudflare Pages & Functions Deployment Option
+
+For serverless edge deployments without running Docker or a persistent VM:
+
+### Cloudflare Pages (Static Frontend)
+- **Output Directory**: `site` (or `website`)
+- **Build Command**: None (or `python scripts/sync_website.py` during build)
+- **Custom Domain**: Configured via CNAME / Cloudflare DNS (`epilabs.org`).
+
+### Cloudflare Functions (Edge API Workers)
+- Functions reside under `functions/api/` (e.g. `functions/api/verify.js`).
+- Handles serverless verification and API edge routes with zero cold-start latency.
+

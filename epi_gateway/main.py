@@ -959,6 +959,23 @@ def create_app(
                 _gateway_metrics.inc("capture_errors")
         return response
 
+    @app.get("/")
+    async def root_info():
+        return {
+            "ok": True,
+            "service": "EPI Bridge Gateway API",
+            "version": __version__,
+            "status": "online",
+            "endpoints": {
+                "health": "/health",
+                "docs": "/docs",
+                "cases": "/api/cases",
+                "ready": "/ready",
+                "metrics": "/metrics",
+            },
+            "web_viewer": "http://127.0.0.1:8000/web_viewer/index.html",
+        }
+
     @app.get("/health")
     async def health_check():
         snapshot = runtime_worker.snapshot()
@@ -1422,6 +1439,7 @@ def create_app(
                 "approved": approved,
                 "reviewer": _clean(reviewer) or "approval-link",
                 "reason": response_reason,
+                "approval_source": "gateway_human",
                 "requested_from": _clean(request_content.get("requested_from") or request_content.get("requested_by")),
                 "response_source": "approval-link",
             },

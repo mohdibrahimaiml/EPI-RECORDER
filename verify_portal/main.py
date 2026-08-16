@@ -13,15 +13,19 @@ import base64
 import hashlib
 import json
 import os
+import secrets
+import shutil
 import tempfile
 import time
-from datetime import UTC, datetime
+from contextlib import asynccontextmanager
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
+from pydantic import BaseModel
 
 from cryptography.hazmat.primitives import serialization
 
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Query
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -36,7 +40,49 @@ from epi_core.trust import (
     create_verification_report,
     verify_embedded_manifest_signature,
 )
+from epi_core.telemetry import (
+    TelemetryError,
+    validate_event_payload,
+    validate_pilot_signup_payload,
+)
+from verify_portal import auth as auth_module
+from verify_portal import telemetry_metrics
 from verify_portal.scitt_routes import router as scitt_router
+from verify_portal.share_routes import router as share_router
+from verify_portal.blog_routes import router as blog_router
+from verify_portal.billing import router as billing_router, init_billing_columns, get_user_plan
+from verify_portal.dashboard import router as dashboard_router
+from verify_portal.tier_gating import get_plan, get_rate_limit
+
+def _sync_website_static() -> None:
+    """Copy website/ (source of truth) into verify_portal/static on startup."""
+    try:
+        repo_root = Path(__file__).resolve().parent.parent
+        sync_script = repo_root / "scripts" / "sync_website.py"
+        if not sync_script.exists():
+            return
+        # Import and run without spawning a process
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("sync_website", sync_script)
+        if not spec or not spec.loader:
+            return
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        if hasattr(mod, "sync"):
+            mod.sync()
+    except Exception as exc:
+        # Non-fatal: portal can still serve existing static/
+        print(f"[epi] website sync skipped: {exc}")
+
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    _sync_website_static()
+    storage_dir = Path(os.environ.get("EPI_STORAGE_DIR", "./data"))
+    auth_module.init_auth_for_app(storage_dir)
+    yield
+
 
 app = FastAPI(
     title="EPI Verify Portal",
@@ -44,21 +90,27 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",
     openapi_url="/openapi.json",
+    lifespan=_lifespan,
 )
 
 # Static files directory
 STATIC_DIR = Path(__file__).parent / "static"
 
-# CORS - allow browser uploads from any origin
+# CORS - allow browser requests from epilabs.org (Render backend is cross-origin)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://epilabs.org",
+        "https://www.epilabs.org",
+        "https://verify.epilabs.org",
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 
-# SCITT transparency service routes
 app.include_router(scitt_router, prefix="/scitt")
 
 # Simple in-memory rate limiting: IP -> (count, reset_time)
@@ -95,22 +147,139 @@ def _init_api_keys_store():
         name TEXT,
         created_at REAL,
         last_used_at REAL,
-        active INTEGER DEFAULT 1
+        active INTEGER DEFAULT 1,
+        user_id TEXT
+    )""")
+    try:
+        conn.execute("ALTER TABLE api_keys ADD COLUMN user_id TEXT")
+    except sqlite3.OperationalError:
+        pass
+    conn.execute("""CREATE TABLE IF NOT EXISTS api_usage (
+        key_hash TEXT,
+        year INTEGER,
+        month INTEGER,
+        count INTEGER DEFAULT 0,
+        PRIMARY KEY (key_hash, year, month)
     )""")
     conn.commit()
     for row in conn.execute("SELECT key_hash, tier, name, created_at FROM api_keys WHERE active = 1"):
         _api_keys[row["key_hash"]] = (row["tier"], row["name"], row["created_at"])
     return conn
 
-def _load_api_key_tier(request) -> tuple | None:
+# Legacy constants kept for tests/docs; live limits come from tier_gating.
+_PRO_MONTHLY_LIMIT = 10_000
+_ENTERPRISE_MONTHLY_LIMIT = 100_000  # fallback only if plan features missing
+
+
+def _get_usage_count(key_hash: str) -> int:
+    """Current calendar-month verification count for an API key."""
+    now_dt = datetime.now(UTC)
+    db = _init_api_keys_store()
+    row = db.execute(
+        "SELECT count FROM api_usage WHERE key_hash = ? AND year = ? AND month = ?",
+        (key_hash, now_dt.year, now_dt.month),
+    ).fetchone()
+    return int(row["count"]) if row else 0
+
+
+def _increment_and_check_usage(key_hash: str, limit: int | None = None) -> bool:
+    """Increment monthly usage; return False if over limit.
+
+    limit=None means unlimited (enterprise custom).
+    """
+    now = time.time()
+    now_dt = datetime.fromtimestamp(now, tz=UTC)
+    year, month = now_dt.year, now_dt.month
+    db = _init_api_keys_store()
+    row = db.execute(
+        "SELECT count FROM api_usage WHERE key_hash = ? AND year = ? AND month = ?",
+        (key_hash, year, month),
+    ).fetchone()
+    current = row["count"] if row else 0
+    if limit is not None and current >= int(limit):
+        return False
+    db.execute(
+        "INSERT OR REPLACE INTO api_usage (key_hash, year, month, count) VALUES (?, ?, ?, ?)",
+        (key_hash, year, month, current + 1),
+    )
+    db.commit()
+    return True
+
+
+def _load_api_key_record(request) -> dict | None:
+    """Return {key_hash, tier, name, user_id} for X-API-Key, or None."""
     api_key = request.headers.get("X-API-Key")
     if not api_key or not api_key.startswith("epi_"):
         return None
     key_hash = hashlib.sha256(api_key.encode()).hexdigest()
-    if key_hash in _api_keys:
-        tier, name, _ = _api_keys[key_hash]
-        return (tier, name)
-    return None
+    _init_api_keys_store()
+    if key_hash not in _api_keys:
+        # DB may have been updated out of process — reload once
+        db = _init_api_keys_store()
+        row = db.execute(
+            "SELECT key_hash, tier, name, created_at, user_id FROM api_keys WHERE key_hash = ? AND active = 1",
+            (key_hash,),
+        ).fetchone()
+        if not row:
+            return None
+        _api_keys[key_hash] = (row["tier"], row["name"], row["created_at"])
+        return {
+            "key_hash": key_hash,
+            "tier": auth_module.normalize_plan(row["tier"]),
+            "name": row["name"],
+            "user_id": row["user_id"],
+        }
+    tier, name, _ = _api_keys[key_hash]
+    db = _init_api_keys_store()
+    row = db.execute(
+        "SELECT user_id FROM api_keys WHERE key_hash = ? AND active = 1",
+        (key_hash,),
+    ).fetchone()
+    user_id = row["user_id"] if row else None
+    # Keep key tier in sync with user plan when possible
+    if user_id:
+        storage_dir = Path(os.environ.get("EPI_STORAGE_DIR", "./data"))
+        try:
+            init_billing_columns(storage_dir)
+            live_plan = auth_module.normalize_plan(
+                get_user_plan(storage_dir, user_id)
+            )
+            if live_plan != auth_module.normalize_plan(tier):
+                db.execute(
+                    "UPDATE api_keys SET tier = ? WHERE key_hash = ?",
+                    (live_plan, key_hash),
+                )
+                db.commit()
+                _api_keys[key_hash] = (live_plan, name, _api_keys[key_hash][2])
+                tier = live_plan
+        except Exception:
+            pass
+    return {
+        "key_hash": key_hash,
+        "tier": auth_module.normalize_plan(tier),
+        "name": name,
+        "user_id": user_id,
+    }
+
+
+def _load_api_key_tier(request) -> tuple | None:
+    rec = _load_api_key_record(request)
+    if not rec:
+        return None
+    return (rec["tier"], rec["name"])
+
+
+def effective_plan(request: Request) -> str:
+    """Plan from session cookie/token, or from API key tier if higher/present."""
+    from verify_portal.tier_gating import PLAN_RANK
+
+    plan = get_plan(request)
+    rec = _load_api_key_record(request)
+    if rec:
+        key_plan = rec["tier"]
+        if PLAN_RANK.get(key_plan, 0) >= PLAN_RANK.get(plan, 0):
+            return key_plan
+    return plan
 
 
 
@@ -132,8 +301,9 @@ def _load_attestation_private_key():
             key_bytes = base64.b64decode(raw_b64)
             if len(key_bytes) == 32:
                 return Ed25519PrivateKey.from_private_bytes(key_bytes)
-        except Exception:
-            pass
+        except Exception as _forensic_err:
+            import logging
+            logging.getLogger(__name__).warning("Step forensics skipped (non-blocking): %s", _forensic_err)
 
     # Option 2: PEM-encoded key from env
     pem_b64 = os.environ.get("EPI_ATTESTATION_PRIVATE_KEY_PEM")
@@ -143,8 +313,9 @@ def _load_attestation_private_key():
 
             pem_bytes = base64.b64decode(pem_b64)
             return serialization.load_pem_private_key(pem_bytes, password=None)
-        except Exception:
-            pass
+        except Exception as _forensic_err:
+            import logging
+            logging.getLogger(__name__).warning("Step forensics skipped (non-blocking): %s", _forensic_err)
 
     # Option 3: Local key file (development)
     try:
@@ -235,54 +406,148 @@ async def root():
 async def health():
     return {"status": "ok", "service": "epi-verify-portal", "version": "1.0.0"}
 
+
+@app.get("/api/ping")
+async def api_ping():
+    """Ultra-cheap keep-warm endpoint (no DB). Used by GitHub Actions keep-warm."""
+    return {"ok": True, "pong": True, "ts": datetime.now(UTC).isoformat()}
+
+def _static_page(name: str, *, fallback_index: bool = False):
+    """Serve STATIC_DIR/<name>.html (or 404 / index fallback)."""
+    path = STATIC_DIR / f"{name}.html"
+    if path.exists():
+        return FileResponse(path)
+    if fallback_index:
+        return FileResponse(STATIC_DIR / "index.html")
+    raise HTTPException(status_code=404, detail=f"{name} page not found")
+
+
 @app.get("/pricing")
 async def pricing_page():
-    pricing_path = STATIC_DIR / "pricing.html"
-    if pricing_path.exists():
-        return FileResponse(pricing_path)
-    raise HTTPException(status_code=404, detail="Pricing page not found")
+    return _static_page("pricing")
 
-@app.post("/api/contact")
-async def contact(request: Request):
-    form = await request.form()
-    import logging
-    log = logging.getLogger("epi.contact")
-    log.info(f"Contact inquiry from " + str(form.get("name", "unknown")) + " at " + str(form.get("company", "unknown")) + " for tier " + str(form.get("tier", "unknown")))
-    return JSONResponse(content={"status": "ok", "message": "Thank you! We will respond within 1 business day."})
+
+@app.get("/account")
+async def account_page():
+    """User account dashboard. Auth is client-side via localStorage token."""
+    return _static_page("account")
+
+
+@app.get("/terms")
+async def terms_page():
+    return _static_page("terms")
+
+
+@app.get("/privacy")
+async def privacy_page():
+    return _static_page("privacy")
+
+
+@app.get("/refund")
+async def refund_page():
+    return _static_page("refund")
+
+
+@app.get("/how-it-works")
+async def how_it_works_page():
+    return _static_page("how-it-works")
+
+
+@app.get("/auth/success")
+async def auth_success_page():
+    """OAuth success landing. Saves token from URL (client) or redirect to /account."""
+    success_path = STATIC_DIR / "auth" / "success.html"
+    if success_path.exists():
+        return FileResponse(success_path)
+    return RedirectResponse(url="/account")
+
+
+@app.get("/agt")
+async def agt_page():
+    """Serve the AGT -> EPI integration page."""
+    return _static_page("agt", fallback_index=True)
+
+
+@app.get("/aiuc1")
+async def aiuc1_page():
+    """Serve the AIUC-1 trust domains page."""
+    return _static_page("aiuc1", fallback_index=True)
+
+# /api/contact is defined once below (JSON ContactSubmission + optional SMTP).
+# Do not add a second form-based handler — FastAPI would register both.
 @app.post("/api/keys")
 async def create_api_key(request: Request):
-    """Create an API key for the verify portal."""
+    """Create an API key for the authenticated user. Tier comes from their plan."""
+    from verify_portal.tier_gating import features_for_plan
+
     try:
         body = await request.json()
     except Exception:
-        raise HTTPException(status_code=400, detail="JSON body required")
-    tier = body.get("tier", "free")
-    name = body.get("name", "unnamed")
-    if tier not in ("free", "pro", "enterprise"):
-        raise HTTPException(status_code=400, detail="Tier must be free, pro, or enterprise")
-    import secrets
+        body = {}
+    name = (body.get("name") or "default").strip()[:64] or "default"
+    storage_dir = Path(os.environ.get("EPI_STORAGE_DIR", "./data"))
+    init_billing_columns(storage_dir)
+    token = auth_module.extract_token(request)
+    user = auth_module.verify_token(storage_dir, token) if token else None
+    if not user:
+        raise HTTPException(status_code=401, detail="Sign in required to create an API key.")
+
+    tier = auth_module.normalize_plan(get_user_plan(storage_dir, user["id"]))
+    feats = features_for_plan(tier)
+    if not feats.get("api_keys"):
+        raise HTTPException(
+            status_code=402,
+            detail="API keys require a paid plan. Upgrade at /pricing.",
+        )
+
+    db = _init_api_keys_store()
+    existing = db.execute(
+        "SELECT COUNT(*) AS c FROM api_keys WHERE active = 1 AND user_id = ?",
+        (user["id"],),
+    ).fetchone()["c"]
+    limit = feats.get("api_key_limit")
+    if limit is not None and existing >= int(limit):
+        raise HTTPException(
+            status_code=402,
+            detail=f"Your {feats.get('label', tier)} plan allows {limit} API key(s). Upgrade at /pricing for more.",
+        )
+
     api_key = "epi_" + secrets.token_hex(24)
     key_hash = hashlib.sha256(api_key.encode()).hexdigest()
-    db = _init_api_keys_store()
+    now = time.time()
     db.execute(
-        "INSERT INTO api_keys (key_hash, tier, name, created_at, last_used_at, active) VALUES (?, ?, ?, ?, 0, 1)",
-        (key_hash, tier, name, time.time()),
+        "INSERT INTO api_keys (key_hash, tier, name, created_at, last_used_at, active, user_id) VALUES (?, ?, ?, ?, 0, 1, ?)",
+        (key_hash, tier, name, now, user["id"]),
     )
     db.commit()
-    _api_keys[key_hash] = (tier, name, time.time())
+    _api_keys[key_hash] = (tier, name, now)
     return JSONResponse(content={
         "api_key": api_key,
+        "key": api_key,
         "tier": tier,
         "name": name,
         "note": "Store this key securely. It will not be shown again.",
     })
 
+
 @app.get("/api/keys")
 async def list_api_keys(request: Request):
-    """List active API keys (hashed)."""
+    """List the authenticated user's active API keys (hashed)."""
+    storage_dir = Path(os.environ.get("EPI_STORAGE_DIR", "./data"))
+    token = auth_module.extract_token(request)
+    user = auth_module.verify_token(storage_dir, token) if token else None
+    if not user:
+        raise HTTPException(status_code=401, detail="Sign in required.")
+
     db = _init_api_keys_store()
     rows = db.execute(
-        "SELECT key_hash, tier, name, created_at, last_used_at FROM api_keys WHERE active = 1 ORDER BY created_at DESC"
+        """
+        SELECT key_hash, tier, name, created_at, last_used_at
+        FROM api_keys
+        WHERE active = 1 AND user_id = ?
+        ORDER BY created_at DESC
+        """,
+        (user["id"],),
     ).fetchall()
     return JSONResponse(content={
         "keys": [
@@ -296,11 +561,6 @@ async def list_api_keys(request: Request):
             for r in rows
         ]
     })
-
-
-async def health():
-    """Health check endpoint."""
-    return {"status": "ok", "service": "epi-verify-portal", "version": "1.0.0"}
 
 
 @app.post("/api/verify")
@@ -326,33 +586,92 @@ async def verify(
         client_ip = client_ip.split(",")[0].strip()
     else:
         client_ip = request.client.host if request.client else "unknown"
-    # Check API key first — Pro/Enterprise keys bypass rate limit
-    key_info = _load_api_key_tier(request)
-    if key_info:
-        tier, key_name = key_info
-        if tier not in ("pro", "enterprise"):
-            if not _check_rate_limit(client_ip):
-                raise HTTPException(status_code=429, detail="Rate limit exceeded. Upgrade to Pro or Enterprise at /pricing.")
-    elif not _check_rate_limit(client_ip):
-        raise HTTPException(
-            status_code=429,
-            detail="Rate limit exceeded. Upgrade at /pricing for unlimited verifications.",
-        )
+    # Quotas (simplest path first):
+    # 1) API key → monthly plan limit
+    # 2) Signed-in session (Pro/Team/Enterprise) → monthly plan limit by user
+    # 3) Anonymous → free IP day-cap
+    key_rec = _load_api_key_record(request)
+    if key_rec:
+        tier = key_rec["tier"]
+        limit = get_rate_limit(tier)  # None = unlimited
+        if not _increment_and_check_usage(key_rec["key_hash"], limit=limit):
+            cap_txt = "∞" if limit is None else f"{limit:,}"
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    f"Monthly verification limit reached ({cap_txt}). "
+                    "Upgrade at /pricing or try again next month."
+                ),
+            )
+        try:
+            db = _init_api_keys_store()
+            db.execute(
+                "UPDATE api_keys SET last_used_at = ? WHERE key_hash = ?",
+                (time.time(), key_rec["key_hash"]),
+            )
+            db.commit()
+        except Exception:
+            pass
+    else:
+        storage_dir = Path(os.environ.get("EPI_STORAGE_DIR", "./data"))
+        token = auth_module.extract_token(request)
+        user = auth_module.verify_token(storage_dir, token) if token else None
+        if user:
+            init_billing_columns(storage_dir)
+            plan = auth_module.normalize_plan(get_user_plan(storage_dir, user["id"]))
+            from verify_portal.tier_gating import PLAN_RANK
+
+            if PLAN_RANK.get(plan, 0) >= PLAN_RANK.get("hosted", 1):
+                limit = get_rate_limit(plan)
+                user_bucket = "user:" + hashlib.sha256(
+                    str(user["id"]).encode()
+                ).hexdigest()
+                if not _increment_and_check_usage(user_bucket, limit=limit):
+                    cap_txt = "∞" if limit is None else f"{limit:,}"
+                    raise HTTPException(
+                        status_code=429,
+                        detail=(
+                            f"Monthly verification limit reached ({cap_txt}). "
+                            "Upgrade at /pricing or try again next month."
+                        ),
+                    )
+            elif not _check_rate_limit(client_ip):
+                raise HTTPException(
+                    status_code=429,
+                    detail="Free limit reached. Upgrade at /pricing for more online checks.",
+                )
+        elif not _check_rate_limit(client_ip):
+            raise HTTPException(
+                status_code=429,
+                detail="Free limit reached. Sign in at /account, or run: epi verify offline.",
+            )
 
     # Validate file extension
     if not file.filename or not file.filename.endswith(".epi"):
         raise HTTPException(status_code=400, detail="File must have .epi extension")
 
-    # Save uploaded file to temp directory
+    # Check Content-Length header first to reject oversized uploads early
     MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
-    with tempfile.NamedTemporaryFile(suffix=".epi", delete=False) as tmp:
-        content = await file.read()
-        if len(content) > MAX_UPLOAD_BYTES:
-            raise HTTPException(status_code=413, detail="File too large. Max 50 MB.")
-        tmp.write(content)
-        tmp_path = Path(tmp.name)
+    content_length = request.headers.get("content-length")
+    if content_length:
+        try:
+            if int(content_length) > MAX_UPLOAD_BYTES:
+                raise HTTPException(status_code=413, detail=f"File too large. Max {MAX_UPLOAD_BYTES // (1024*1024)} MB.")
+        except ValueError:
+            pass
 
+    # Stream to temp file in 64KB chunks - never buffer entire upload in RAM
+    tmp_path = None
     try:
+        with tempfile.NamedTemporaryFile(suffix=".epi", delete=False) as tmp:
+            tmp_path = Path(tmp.name)
+            total = 0
+            while chunk := await file.read(1024 * 64):
+                total += len(chunk)
+                if total > MAX_UPLOAD_BYTES:
+                    raise HTTPException(status_code=413, detail=f"File too large. Max {MAX_UPLOAD_BYTES // (1024*1024)} MB.")
+                tmp.write(chunk)
+
         report = _run_verification(tmp_path, aiuc1=aiuc1)
         return JSONResponse(content=report)
     except HTTPException:
@@ -360,182 +679,754 @@ async def verify(
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Verification failed: {exc}")
     finally:
-        tmp_path.unlink(missing_ok=True)
+        if tmp_path is not None:
+            tmp_path.unlink(missing_ok=True)
+
+
+def _load_bundled_registry_keys() -> Path | None:
+    """Create a temporary trusted_keys dir from the bundled registry file."""
+    registry_path = STATIC_DIR / ".well-known" / "epi-trust-registry.json"
+    if not registry_path.exists():
+        return None
+    try:
+        data = json.loads(registry_path.read_text(encoding="utf-8"))
+        trusted = data.get("trusted_keys", {})
+        if not trusted:
+            return None
+        tmp_dir = Path(tempfile.mkdtemp(prefix="epi_registry_"))
+        for pub_hex, name in trusted.items():
+            safe_name = str(name).replace(" ", "_").replace("/", "_")
+            (tmp_dir / f"{safe_name}.pub").write_text(pub_hex, encoding="utf-8")
+        return tmp_dir
+    except Exception:
+        return None
+
+
+def _merge_keys_dir(bundled_keys_dir: Path | None, user_keys_dir: Path | None) -> Path | None:
+    """Return a fresh temp dir containing bundled keys plus user/env keys."""
+    if not bundled_keys_dir and not (user_keys_dir and user_keys_dir.exists()):
+        return None
+    merged = Path(tempfile.mkdtemp(prefix="epi_merged_keys_"))
+    seen: set[str] = set()
+    for src in (bundled_keys_dir, user_keys_dir):
+        if not src or not src.exists():
+            continue
+        for f in src.iterdir():
+            if f.suffix not in (".pub", ".revoked"):
+                continue
+            # Bundled defaults come first; user keys take precedence for conflicts.
+            if f.name in seen:
+                continue
+            seen.add(f.name)
+            shutil.copy2(f, merged / f.name)
+    return merged
 
 
 def _run_verification(epi_file: Path, aiuc1: bool = True) -> dict:
     """Run the full EPI verification pipeline."""
-    registry = TrustRegistry()
+    bundled_keys_dir = _load_bundled_registry_keys()
+    env_dir = os.environ.get("EPI_TRUSTED_KEYS_DIR")
+    user_keys_dir = Path(env_dir) if env_dir else Path.home() / ".epi" / "trusted_keys"
+    merged_keys_dir = _merge_keys_dir(bundled_keys_dir, user_keys_dir)
+    try:
+        registry = TrustRegistry(trusted_keys_dir=merged_keys_dir)
+    except Exception:
+        registry = TrustRegistry()
     manifest = None
     integrity_ok = False
     signature_valid = None
     signer_name = None
     mismatches = {}
     steps: list[dict] = []
-
-    # Structural + integrity
     try:
-        manifest = EPIContainer.read_manifest(epi_file)
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Cannot read manifest: {exc}")
+        # Structural + integrity
+        try:
+            manifest = EPIContainer.read_manifest(epi_file)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Cannot read manifest: {exc}")
 
-    integrity_ok, mismatches = EPIContainer.verify_integrity(epi_file)
+        integrity_ok, mismatches = EPIContainer.verify_integrity(epi_file)
 
-    # Load steps for forensic checks
-    sequence_ok = True
-    completeness_ok = True
-    chain_ok = True
-    chain_breaks = []
-    seq_comp_gaps = []
-    step_count_ok = True
-    transparency_ok = None
+        # Load steps for forensic checks
+        sequence_ok = True
+        completeness_ok = True
+        chain_ok = True
+        chain_breaks = []
+        seq_comp_gaps = []
+        step_count_ok = True
+        transparency_ok = None
 
-    try:
-        import hashlib as _hashlib
-        steps = EPIContainer.read_steps(epi_file)
+        try:
+            import hashlib as _hashlib
+            steps = EPIContainer.read_steps(epi_file)
 
-        if steps:
-            indices = [s.get("index", 0) for s in steps]
-            sequence_ok = (
-                all(indices[i] == indices[i - 1] + 1 for i in range(1, len(indices)))
-                if indices else True
+            if steps:
+                indices = [s.get("index", 0) for s in steps]
+                sequence_ok = (
+                    all(indices[i] == indices[i - 1] + 1 for i in range(1, len(indices)))
+                    if indices else True
+                )
+                times = []
+                for s in steps:
+                    t_ns = s.get("content", {}).get("timestamp_ns")
+                    times.append(t_ns if t_ns is not None else s.get("timestamp", ""))
+                is_time_monotonic = (
+                    all(times[i] >= times[i - 1] for i in range(1, len(times))) if times else True
+                )
+                sequence_ok = sequence_ok and is_time_monotonic
+                from epi_cli.verify import _audit_step_sequence_completeness, _verify_step_chain
+                seq_comp_ok, seq_comp_gaps = _audit_step_sequence_completeness(steps)
+                completeness_ok = seq_comp_ok
+                chain_ok, chain_breaks = _verify_step_chain(steps)
+                actual_step_count = len(steps)
+                claimed_step_count = manifest.total_steps
+                if claimed_step_count is not None:
+                    step_count_ok = actual_step_count == claimed_step_count
+        except Exception as _forensic_err:
+            import logging
+            logging.getLogger(__name__).warning("Step forensics skipped (non-blocking): %s", _forensic_err)
+
+        integrity_ok = integrity_ok and chain_ok and step_count_ok
+
+        # Signature verification
+        if manifest.signature:
+            signature_valid, signer_name, _ = verify_embedded_manifest_signature(manifest)
+        else:
+            signature_valid = None
+            signer_name = None
+
+        # SCITT receipt check — full cryptographic verification
+        transparency_ok = None
+        try:
+            from epi_core.scitt import (
+                extract_scitt_artifacts,
+                verify_scitt_receipt,
+                verify_scitt_statement,
             )
-            times = []
-            for s in steps:
-                t_ns = s.get("content", {}).get("timestamp_ns")
-                times.append(t_ns if t_ns is not None else s.get("timestamp", ""))
-            is_time_monotonic = (
-                all(times[i] .ge. times[i - 1] for i in range(1, len(times))) if times else True
-            )
-            sequence_ok = sequence_ok and is_time_monotonic
-            from epi_cli.verify import _audit_step_sequence_completeness, _verify_step_chain
-            seq_comp_ok, seq_comp_gaps = _audit_step_sequence_completeness(steps)
-            completeness_ok = seq_comp_ok
-            chain_ok, chain_breaks = _verify_step_chain(steps)
-            actual_step_count = len(steps)
-            claimed_step_count = manifest.total_steps
-            if claimed_step_count is not None:
-                step_count_ok = actual_step_count != claimed_step_count
-    except Exception:
-        pass
+            stmt_bytes, rcpt_bytes, scitt_gov = extract_scitt_artifacts(epi_file)
+            if stmt_bytes and rcpt_bytes and scitt_gov:
+                # 1. Verify statement structure and payload hash match
+                verify_scitt_statement(stmt_bytes, manifest, public_key_bytes=None)
 
-    integrity_ok = integrity_ok and chain_ok and step_count_ok
-
-    # Signature verification
-    if manifest.signature:
-        signature_valid, signer_name, _ = verify_embedded_manifest_signature(manifest)
-    else:
-        signature_valid = None
-        signer_name = None
-
-    # SCITT receipt check — full cryptographic verification
-    transparency_ok = None
-    try:
-        from epi_core.scitt import (
-            extract_scitt_artifacts,
-            verify_scitt_receipt,
-            verify_scitt_statement,
-        )
-        stmt_bytes, rcpt_bytes, scitt_gov = extract_scitt_artifacts(epi_file)
-        if stmt_bytes and rcpt_bytes and scitt_gov:
-            # 1. Verify statement structure and payload hash match
-            verify_scitt_statement(stmt_bytes, manifest, public_key_bytes=None)
-
-            # 2. Load SCITT service public key
-            service_pub_key = _load_scitt_service_public_key()
-            if service_pub_key:
-                # 3. Verify receipt signature cryptographically
-                verify_scitt_receipt(rcpt_bytes, stmt_bytes, service_pub_key)
-                transparency_ok = True
-            else:
-                # Service key unavailable — fallback to structural check
-                import cbor2
-                receipt = cbor2.loads(rcpt_bytes)
-                if isinstance(receipt, cbor2.CBORTag) and receipt.tag == 18:
+                # 2. Load SCITT service public key
+                service_pub_key = _load_scitt_service_public_key()
+                if service_pub_key:
+                    # 3. Verify receipt signature cryptographically
+                    verify_scitt_receipt(rcpt_bytes, stmt_bytes, service_pub_key)
                     transparency_ok = True
                 else:
-                    transparency_ok = False
-        elif stmt_bytes or rcpt_bytes:
+                    # Service key unavailable — fallback to structural check
+                    import cbor2
+                    receipt = cbor2.loads(rcpt_bytes)
+                    if isinstance(receipt, cbor2.CBORTag) and receipt.tag == 18:
+                        transparency_ok = True
+                    else:
+                        transparency_ok = False
+            elif stmt_bytes or rcpt_bytes:
+                transparency_ok = False
+        except Exception:
             transparency_ok = False
-    except Exception:
-        transparency_ok = False
 
-    # Build report
-    report = create_verification_report(
-        integrity_ok=integrity_ok,
-        signature_valid=signature_valid,
-        signer_name=signer_name,
-        mismatches=mismatches,
-        manifest=manifest,
-        trusted_registry=registry,
-        sequence_ok=sequence_ok,
-        completeness_ok=completeness_ok,
-        chain_ok=chain_ok,
-        transparency_ok=transparency_ok,
-    )
-    apply_policy(report, VerificationPolicy.STANDARD)
+        # Build report
+        report = create_verification_report(
+            integrity_ok=integrity_ok,
+            signature_valid=signature_valid,
+            signer_name=signer_name,
+            mismatches=mismatches,
+            manifest=manifest,
+            trusted_registry=registry,
+            sequence_ok=sequence_ok,
+            completeness_ok=completeness_ok,
+            chain_ok=chain_ok,
+            transparency_ok=transparency_ok,
+        )
+        apply_policy(report, VerificationPolicy.STANDARD)
 
-    # AIUC-1 mapping
-    if aiuc1:
-        aiuc1_statuses = map_verification_to_aiuc1(report, manifest=manifest, steps=steps)
-        report["aiuc1"] = aiuc1_summary(aiuc1_statuses)
+        # AIUC-1 mapping
+        if aiuc1:
+            aiuc1_statuses = map_verification_to_aiuc1(report, manifest=manifest, steps=steps)
+            report["aiuc1"] = aiuc1_summary(aiuc1_statuses)
 
-    # Signed attestation
-    attestation_payload = {
-        "verified_at": datetime.now(UTC).isoformat(),
-        "workflow_id": str(manifest.workflow_id),
-        "trust_level": report.get("trust_level", "NONE"),
-        "integrity": report["summary"].get("integrity", "FAILED"),
-        "identity": report["identity"].get("status", "UNKNOWN"),
-        "transparency": report["summary"].get("transparency", "MISSING"),
-        "aiuc1_overall": report.get("aiuc1", {}).get("overall", "N/A"),
-    }
-    attestation_sig = _sign_attestation(attestation_payload)
-    if attestation_sig:
-        report["attestation"] = {
-            "payload": attestation_payload,
-            "signature": f"ed25519:epilabs:{attestation_sig}",
-            "did": "did:web:epilabs.org",
+        # Signed attestation
+        attestation_payload = {
+            "verified_at": datetime.now(UTC).isoformat(),
+            "workflow_id": str(manifest.workflow_id),
+            "trust_level": report.get("trust_level", "NONE"),
+            "integrity": report["summary"].get("integrity", "FAILED"),
+            "identity": report["identity"].get("status", "UNKNOWN"),
+            "transparency": report["summary"].get("transparency", "MISSING"),
+            "aiuc1_overall": report.get("aiuc1", {}).get("overall", "N/A"),
         }
+        attestation_sig = _sign_attestation(attestation_payload)
+        if attestation_sig:
+            report["attestation"] = {
+                "payload": attestation_payload,
+                "signature": f"ed25519:epilabs:{attestation_sig}",
+                "did": "did:web:epilabs.org",
+            }
 
-    return report
+        return report
+    finally:
+        if bundled_keys_dir:
+            shutil.rmtree(bundled_keys_dir, ignore_errors=True)
+        if merged_keys_dir:
+            shutil.rmtree(merged_keys_dir, ignore_errors=True)
 
 
-# Explicit HTML page routes (ensure clean URLs work without trailing slashes).
-# These must come BEFORE the catch-all static mount.
+# Directory-based pages (verify / single-case epi-viewer live under subfolders).
+# Explicit routes avoid StaticFiles trailing-slash redirect surprises.
+# Hosted multi-case Decision Ops (/viewer/) was removed — redirect to verify.
+
 @app.get("/verify")
-async def verify_page():
-    portal_path = STATIC_DIR / "portal.html"
-    if portal_path.exists():
-        return FileResponse(portal_path)
-    return FileResponse(STATIC_DIR / "index.html")
-    portal_path = STATIC_DIR / "portal.html"
-    if portal_path.exists():
-        return FileResponse(portal_path)
-    return FileResponse(STATIC_DIR / "index.html")
+async def verify_html_page():
+    return FileResponse(STATIC_DIR / "verify" / "index.html")
 
 
 @app.get("/viewer")
-async def viewer_redirect():
-    return RedirectResponse(url="/viewer/")
+async def viewer_legacy_redirect():
+    return RedirectResponse(url="/verify/", status_code=301)
+
 
 @app.get("/viewer/")
-async def viewer_page():
-    return FileResponse(STATIC_DIR / "viewer" / "index.html")
+async def viewer_legacy_slash_redirect():
+    return RedirectResponse(url="/verify/", status_code=301)
+
 
 @app.get("/epi-viewer")
 async def epi_viewer_redirect():
     return RedirectResponse(url="/epi-viewer/")
 
+
 @app.get("/epi-viewer/")
 async def epi_viewer_page():
-    return FileResponse(STATIC_DIR / "epi-viewer" / "index.html")
+    epi_viewer_index = STATIC_DIR / "epi-viewer" / "index.html"
+    if epi_viewer_index.exists():
+        return FileResponse(epi_viewer_index)
+    raise HTTPException(status_code=404, detail="EPI viewer not found")
 
-# Mount static files at root for the full EPI-OFFICIAL website.
-# This must come AFTER all API routes so that /api/verify, /scitt/*,
-# /.well-known/*, /health, and /portal are handled by FastAPI routes.
+@app.get("/scitt")
+async def scitt_page():
+    return _static_page("scitt")
+
+app.include_router(share_router)
+app.include_router(blog_router)
+app.include_router(billing_router)
+
+
+# ── Tier-gated endpoints (must be BEFORE static mount) ──
+
+@app.get("/api/plan/features")
+async def plan_features(request: Request):
+    from verify_portal.tier_gating import features_for_plan
+
+    plan = effective_plan(request)
+    feats = features_for_plan(plan)
+    usage = None
+    key_rec = _load_api_key_record(request)
+    if key_rec:
+        usage = {
+            "used": _get_usage_count(key_rec["key_hash"]),
+            "limit": get_rate_limit(plan),
+            "key_tier": key_rec["tier"],
+        }
+    else:
+        # Sum usage across user's keys + browser (session) bucket
+        storage_dir = Path(os.environ.get("EPI_STORAGE_DIR", "./data"))
+        token = auth_module.extract_token(request)
+        user = auth_module.verify_token(storage_dir, token) if token else None
+        if user:
+            db = _init_api_keys_store()
+            rows = db.execute(
+                "SELECT key_hash FROM api_keys WHERE active = 1 AND user_id = ?",
+                (user["id"],),
+            ).fetchall()
+            user_bucket = "user:" + hashlib.sha256(str(user["id"]).encode()).hexdigest()
+            used = sum(_get_usage_count(r["key_hash"]) for r in rows) + _get_usage_count(
+                user_bucket
+            )
+            usage = {"used": used, "limit": get_rate_limit(plan), "keys": len(rows)}
+    return {
+        "plan": plan,
+        "features": feats,
+        "rate_limit": get_rate_limit(plan),
+        "label": feats.get("label", plan),
+        "usage": usage,
+    }
+
+
+@app.get("/api/usage")
+async def usage_summary(request: Request):
+    """Hosted verification usage for the signed-in user (all active keys this month)."""
+    storage_dir = Path(os.environ.get("EPI_STORAGE_DIR", "./data"))
+    token = auth_module.extract_token(request)
+    user = auth_module.verify_token(storage_dir, token) if token else None
+    if not user:
+        raise HTTPException(status_code=401, detail="Sign in required.")
+    init_billing_columns(storage_dir)
+    plan = auth_module.normalize_plan(get_user_plan(storage_dir, user["id"]))
+    limit = get_rate_limit(plan)
+    db = _init_api_keys_store()
+    rows = db.execute(
+        "SELECT key_hash, name, tier FROM api_keys WHERE active = 1 AND user_id = ?",
+        (user["id"],),
+    ).fetchall()
+    per_key = [
+        {
+            "name": r["name"],
+            "tier": r["tier"],
+            "used": _get_usage_count(r["key_hash"]),
+        }
+        for r in rows
+    ]
+    user_bucket = "user:" + hashlib.sha256(str(user["id"]).encode()).hexdigest()
+    session_used = _get_usage_count(user_bucket)
+    total = sum(k["used"] for k in per_key) + session_used
+    return {
+        "plan": plan,
+        "limit": limit,
+        "used": total,
+        "session_used": session_used,
+        "keys": per_key,
+        "scitt": bool(features_for_plan_safe(plan).get("scitt")),
+    }
+
+
+def features_for_plan_safe(plan: str) -> dict:
+    from verify_portal.tier_gating import features_for_plan
+
+    return features_for_plan(plan)
+
+
+@app.post("/api/admin/set-plan")
+async def admin_set_plan(request: Request):
+    """Set a user's plan without Paddle (QA / manual Pro enablement).
+
+    Header: X-Admin-Key: $EPI_ADMIN_API_KEY
+    Body: {"plan": "pro", "email": "..."} or {"plan": "pro", "user_id": "..."}
+    """
+    _require_admin_key(request)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    plan = auth_module.normalize_plan(body.get("plan") or "free")
+    email = (body.get("email") or "").strip() or None
+    user_id = (body.get("user_id") or "").strip() or None
+    if not email and not user_id:
+        raise HTTPException(status_code=400, detail="Provide email or user_id.")
+    storage_dir = Path(os.environ.get("EPI_STORAGE_DIR", "./data"))
+    init_billing_columns(storage_dir)
+    ok = auth_module.set_user_plan(
+        storage_dir, plan=plan, email=email, user_id=user_id
+    )
+    if not ok:
+        raise HTTPException(status_code=404, detail="User not found.")
+    # Sync API key tiers for this user
+    db = _init_api_keys_store()
+    uid = user_id
+    if not uid and email:
+        try:
+            from verify_portal.db import connect_auth
+
+            conn = connect_auth(storage_dir)
+            row = conn.execute(
+                "SELECT id FROM users WHERE lower(email) = lower(?)", (email,)
+            ).fetchone()
+            conn.close()
+            if row:
+                uid = row["id"] if not isinstance(row, tuple) else row[0]
+        except Exception:
+            uid = None
+    if uid:
+        db.execute(
+            "UPDATE api_keys SET tier = ? WHERE user_id = ? AND active = 1",
+            (plan, uid),
+        )
+        db.commit()
+    # refresh memory cache
+    global _api_keys
+    _api_keys.clear()
+    _init_api_keys_store()
+    return {"ok": True, "plan": plan, "email": email, "user_id": uid}
+
+
+@app.post("/api/reports/pdf")
+async def generate_pdf_report(request: Request):
+    """Hosted PDF is not implemented. Annex PDF is free in the CLI.
+
+    Kept as an explicit 501 so clients are not sold a fake success response.
+    """
+    raise HTTPException(
+        status_code=501,
+        detail=(
+            "Hosted PDF reports are not available. "
+            "Generate Annex PDF offline with: epi annex report --format pdf. "
+            "See /pricing — paid plans cover hosted verify volume, API keys, and remote SCITT only."
+        ),
+    )
+
+
+# ── SCITT gate already defined at app level above the scitt_router include
+
+
+# --- Telemetry ingestion endpoints ---
+# These mirror the gateway's /api/telemetry endpoints so the hosted
+# verify portal can receive opt-in telemetry and pilot signups.
+
+_VERIFY_TELEMETRY_ENABLED = str(
+    os.getenv("EPI_VERIFY_TELEMETRY_ENABLED", "true")
+).strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _append_telemetry_record(filename: str, payload: dict[str, Any]) -> Path:
+    telemetry_dir = Path(os.environ.get("EPI_STORAGE_DIR", "./data")) / "telemetry"
+    telemetry_dir.mkdir(parents=True, exist_ok=True)
+    output = telemetry_dir / filename
+    record = {"ts": datetime.now(UTC).isoformat(), "payload": payload}
+    with output.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(record, default=str) + "\n")
+    return output
+
+
+@app.post("/api/telemetry/events", status_code=202)
+async def telemetry_event(payload: dict[str, Any]):
+    """Receive an anonymous telemetry event from opted-in clients."""
+    if not _VERIFY_TELEMETRY_ENABLED:
+        raise HTTPException(status_code=404, detail="Telemetry ingestion is not enabled.")
+    try:
+        normalized = validate_event_payload(payload)
+        _append_telemetry_record("events.jsonl", normalized)
+        return {"ok": True, "status": "accepted"}
+    except TelemetryError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Internal Server Error") from exc
+
+
+@app.post("/api/telemetry/pilot-signups", status_code=202)
+async def telemetry_pilot_signup(payload: dict[str, Any]):
+    """Receive a pilot signup linked to an opted-in install."""
+    if not _VERIFY_TELEMETRY_ENABLED:
+        raise HTTPException(status_code=404, detail="Telemetry ingestion is not enabled.")
+    try:
+        normalized = validate_pilot_signup_payload(payload)
+        _append_telemetry_record("pilot_signups.jsonl", normalized)
+        return {"ok": True, "status": "accepted"}
+    except TelemetryError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Internal Server Error") from exc
+
+
+# --- Admin telemetry dashboard endpoints ---
+
+def _require_admin_key(request: Request) -> None:
+    expected = os.getenv("EPI_ADMIN_API_KEY", "")
+    if not expected:
+        raise HTTPException(status_code=403, detail="Admin access is not configured.")
+    provided = request.headers.get("X-Admin-Key")
+    if not provided or not secrets.compare_digest(provided, expected):
+        raise HTTPException(status_code=403, detail="Invalid admin key.")
+
+
+@app.get("/api/admin/telemetry/metrics")
+async def admin_telemetry_metrics(request: Request):
+    """Return aggregated telemetry metrics for the admin dashboard."""
+    _require_admin_key(request)
+    storage_dir = Path(os.environ.get("EPI_STORAGE_DIR", "./data"))
+    return telemetry_metrics.compute_telemetry_metrics(storage_dir)
+
+
+# --- GitHub OAuth login endpoints ---
+
+@app.get("/api/auth/github/start")
+async def github_auth_start(
+    state: str = Query(..., description="Opaque state used to correlate the callback"),
+    redirect_uri: str | None = Query(None, description="Where to send the token after login (CLI only)"),
+):
+    """Redirect the browser to GitHub OAuth authorization."""
+    storage_dir = Path(os.environ.get("EPI_STORAGE_DIR", "./data"))
+    auth_module.init_auth_db(storage_dir)
+    url = auth_module.start_github_oauth(storage_dir, state=state, redirect_uri=redirect_uri)
+    return RedirectResponse(url, status_code=302)
+
+
+@app.get("/api/auth/github/callback")
+async def github_auth_callback(
+    code: str | None = Query(None),
+    state: str | None = Query(None),
+    error: str | None = Query(None),
+    error_description: str | None = Query(None),
+):
+    """GitHub OAuth callback. Issues a bearer token, sets cookie, redirects to frontend."""
+    storage_dir = Path(os.environ.get("EPI_STORAGE_DIR", "./data"))
+    auth_module.init_auth_db(storage_dir)
+    # error_description unused but accepted so GitHub query strings don't 422
+    _ = error_description
+    return await auth_module.handle_github_callback(
+        storage_dir, code=code, state=state, error=error
+    )
+
+
+@app.get("/api/auth/me")
+async def auth_me(request: Request):
+    """Return the authenticated user for a bearer token or session cookie."""
+    storage_dir = Path(os.environ.get("EPI_STORAGE_DIR", "./data"))
+    auth_module.init_auth_db(storage_dir)
+    token = auth_module.extract_token(request)
+    user = auth_module.verify_token(storage_dir, token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid or expired session. Please sign in again.")
+    plan = get_user_plan(storage_dir, user["id"])
+    return auth_module.user_public_dict(user, plan)
+
+
+@app.post("/api/auth/session")
+async def auth_session(request: Request):
+    """Establish/refresh session after OAuth hash handoff (sets cookie, returns user)."""
+    storage_dir = Path(os.environ.get("EPI_STORAGE_DIR", "./data"))
+    auth_module.init_auth_db(storage_dir)
+    token = auth_module.extract_token(request)
+    if not token:
+        try:
+            body = await request.json()
+            token = (body.get("token") or "").strip()
+        except Exception:
+            token = ""
+    return auth_module.session_from_token(storage_dir, token or None)
+
+
+@app.post("/api/auth/logout")
+async def auth_logout(request: Request):
+    """Revoke the current bearer token and clear the session cookie."""
+    storage_dir = Path(os.environ.get("EPI_STORAGE_DIR", "./data"))
+    token = auth_module.extract_token(request)
+    return auth_module.logout_response(storage_dir, token)
+
+
+@app.get("/api/auth/status")
+async def auth_status():
+    """Lightweight readiness for keep-warm and client health checks."""
+    from verify_portal.db import db_status
+
+    configured = bool(os.getenv("GITHUB_CLIENT_ID") and os.getenv("GITHUB_CLIENT_SECRET"))
+    db = db_status()
+    return {
+        "ok": True,
+        "oauth_configured": configured,
+        "service": "epi-verify-portal",
+        "db_backend": db.get("backend"),
+        "db_durable": db.get("durable"),
+        "turso_configured": db.get("turso_configured"),
+        "turso_url_present": db.get("turso_url_present"),
+        "turso_token_present": db.get("turso_token_present"),
+        "turso_host_hint": db.get("turso_host_hint"),
+        "hint": (
+            "Set TURSO_DATABASE_URL + TURSO_AUTH_TOKEN on this Render service, then Manual Deploy."
+            if not db.get("turso_configured")
+            else "Turso durable auth is active."
+        ),
+    }
+
+
+# --- Contact Form Endpoint (single route; accepts JSON or form) ---
+class ContactSubmission(BaseModel):
+    name: str
+    email: str
+    company: str = ""
+    tier: str = ""
+    use_case: str = ""
+
+
+@app.post("/api/contact")
+async def submit_contact(request: Request):
+    """Receive contact form submissions (JSON body or form fields) and forward to admin."""
+    content_type = (request.headers.get("content-type") or "").lower()
+    data: dict = {}
+    if "application/json" in content_type:
+        try:
+            body = await request.json()
+            if isinstance(body, dict):
+                data = body
+        except Exception:
+            data = {}
+    else:
+        try:
+            form = await request.form()
+            data = {k: str(form.get(k) or "") for k in ("name", "email", "company", "tier", "use_case")}
+        except Exception:
+            data = {}
+
+    name = str(data.get("name") or "").strip()
+    email = str(data.get("email") or "").strip()
+    if not name or not email:
+        raise HTTPException(status_code=422, detail="name and email are required")
+
+    submission = ContactSubmission(
+        name=name,
+        email=email,
+        company=str(data.get("company") or ""),
+        tier=str(data.get("tier") or ""),
+        use_case=str(data.get("use_case") or ""),
+    )
+    import logging as _logging
+    _logging.getLogger("epi.contact").info(
+        f"CONTACT | {submission.tier} | {submission.name} ({submission.email}) "
+        f"from {submission.company}: {submission.use_case[:200]}"
+    )
+
+    smtp_host = os.getenv("SMTP_HOST", "")
+    if smtp_host:
+        _send_contact_email(submission)
+
+    log_dir = Path("contact_submissions")
+    log_dir.mkdir(exist_ok=True)
+    ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    safe = submission.name.replace(" ", "_")
+    log_file = log_dir / f"{ts}_{safe}.json"
+    log_file.write_text(submission.model_dump_json(indent=2), encoding="utf-8")
+
+    return {
+        "status": "ok",
+        "message": "Thank you for your inquiry. We will respond within 1 business day.",
+    }
+
+def _send_contact_email(submission: ContactSubmission):
+    """Send contact form data via SMTP with SendGrid fallback."""
+    import smtplib
+    from email.mime.text import MIMEText
+    
+    body = f"""New EPI Inquiry
+
+Plan: {submission.tier}
+Name: {submission.name}
+Email: {submission.email}
+Company: {submission.company}
+
+Use Case:
+{submission.use_case}
+"""
+    msg = MIMEText(body)
+    msg["Subject"] = f"EPI Contact: {submission.tier} - {submission.company}"
+    msg["From"] = os.getenv("SMTP_FROM", "noreply@epilabs.org")
+    msg["To"] = os.getenv("SMTP_TO", "mohdibrahim@epilabs.org")
+    
+    try:
+        # Try SendGrid first if key present
+        sg_key = os.getenv("SENDGRID_API_KEY")
+        if sg_key:
+            import urllib.request, json
+            data = json.dumps({
+                "personalizations": [{"to": [{"email": os.getenv("SMTP_TO", "mohdibrahim@epilabs.org")}]}],
+                "from": {"email": os.getenv("SMTP_FROM", "noreply@epilabs.org")},
+                "subject": f"EPI Contact: {submission.tier} - {submission.company}",
+                "content": [{"type": "text/plain", "value": body}]
+            }).encode()
+            req = urllib.request.Request("https://api.sendgrid.com/v3/mail/send", data=data,
+                headers={"Authorization": f"Bearer {sg_key}", "Content-Type": "application/json"})
+            urllib.request.urlopen(req, timeout=10)
+        else:
+            # Fallback SMTP
+            smtp_host = os.getenv("SMTP_HOST", "localhost")
+            with smtplib.SMTP(smtp_host, int(os.getenv("SMTP_PORT", "587")), timeout=10) as server:
+                server.starttls()
+                server.login(os.getenv("SMTP_USER", ""), os.getenv("SMTP_PASS", ""))
+                server.send_message(msg)
+        import logging as _logging
+        _logging.getLogger("epi.contact").info("CONTACT email sent successfully")
+    except Exception as e:
+        import logging as _logging
+        _logging.getLogger("epi.contact").warning(
+            f"CONTACT email failed (submission saved to disk): {e}"
+        )
+
+
+# --- EPI Share Endpoint ---
+@app.post("/api/share")
+async def share_epi_file(
+    request: Request,
+    expires_days: int = Query(30, ge=1, le=30),
+):
+    """Accept uploaded .epi files and return a hosted share link."""
+    import uuid
+    import json
+    import logging as _logging
+
+    body = await request.body()
+    filename = request.headers.get("X-EPI-Filename", "untitled.epi")
+    
+    # Validate size
+    max_bytes = 5 * 1024 * 1024
+    if len(body) > max_bytes:
+        raise HTTPException(413, f"File too large. Max {max_bytes // 1024 // 1024} MB")
+    
+    # Generate share ID and save
+    share_id = uuid.uuid4().hex[:12]
+    share_dir = Path("shared_cases")
+    share_dir.mkdir(exist_ok=True)
+    
+    share_path = share_dir / f"{share_id}.epi"
+    share_path.write_bytes(body)
+    
+    # Save metadata
+    meta = {
+        "share_id": share_id,
+        "filename": filename,
+        "size": len(body),
+        "created_at": datetime.now(UTC).isoformat(),
+        "expires_at": (datetime.now(UTC) + timedelta(days=expires_days)).isoformat(),
+        "downloads": 0,
+    }
+    meta_path = share_dir / f"{share_id}.json"
+    meta_path.write_text(json.dumps(meta, indent=2))
+    
+    share_url = f"https://epilabs.org/cases/?id={share_id}"
+    _logging.getLogger("epi.share").info(f"SHARE | {share_id} | {filename} | {len(body)} bytes")
+    
+    return {
+        "share_id": share_id,
+        "url": share_url,
+        "expires_in_days": expires_days,
+    }
+
+@app.get("/api/share/{share_id}")
+async def download_shared_epi(share_id: str):
+    """Download a shared .epi file."""
+    share_path = Path(f"shared_cases/{share_id}.epi")
+    meta_path = Path(f"shared_cases/{share_id}.json")
+    
+    if not share_path.exists():
+        raise HTTPException(404, "Share not found or expired")
+    
+    # Update download count
+    if meta_path.exists():
+        import json
+        meta = json.loads(meta_path.read_text())
+        meta["downloads"] = meta.get("downloads", 0) + 1
+        meta_path.write_text(json.dumps(meta, indent=2))
+    
+    return FileResponse(
+        share_path,
+        media_type="application/vnd.epi+zip",
+        filename=f"{share_id}.epi",
+        headers={"Content-Disposition": f'attachment; filename="{share_id}.epi"'}
+    )
+
+@app.get("/api/share/{share_id}/meta")
+async def get_share_meta(share_id: str):
+    """Get metadata about a shared file."""
+    meta_path = Path(f"shared_cases/{share_id}.json")
+    if not meta_path.exists():
+        raise HTTPException(404, "Share not found or expired")
+    return json.loads(meta_path.read_text())
+
+
+
+# Catch-all static mount MUST be last so explicit API and page routes win.
+# html=True serves foo.html for /foo when no directory conflict exists.
 if STATIC_DIR.exists():
-    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
+    app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
+
 
 if __name__ == "__main__":
     import uvicorn

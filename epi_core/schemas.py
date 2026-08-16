@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional, List, Union, Literal
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 
 from epi_core._version import get_version
 from epi_core.time_utils import utc_now
@@ -16,7 +16,7 @@ class PolicyModel(BaseModel):
     """
     Formal schema for policy enforcement outcomes.
     """
-    policy_id: str = Field(..., description="Unique identifier for the policy set applied")
+    policy_id: str = Field(..., min_length=1, description="Unique identifier for the policy set applied")
     version: str = Field(..., description="Version of the policy definition")
     status: Literal["compliant", "violation", "warning"] = Field(...)
     rules: List[str] = Field(default_factory=list, description="List of rule IDs evaluated")
@@ -25,6 +25,22 @@ class PolicyModel(BaseModel):
 
 
 class ManifestModel(BaseModel):
+
+    @model_validator(mode="before")
+    def _ensure_tz(cls, data):
+        from datetime import timezone
+        for f in ["created_at"]:
+            if isinstance(data, dict) and data.get(f) is not None:
+                val = data[f]
+                if hasattr(val, "tzinfo") and val.tzinfo is None:
+                    data[f] = val.replace(tzinfo=timezone.utc)
+        return data
+
+    @field_validator("cli_command","env_snapshot_hash","public_key","signature","analysis_error","goal","notes","approved_by",mode="before")
+    @classmethod
+    def _strip_empty(cls, v):
+        if isinstance(v, str) and not v.strip(): return None
+        return v
     """
     Manifest model for .epi files.
     
@@ -185,7 +201,7 @@ class StepModel(BaseModel):
     Each step is an immutable record in steps.jsonl (NDJSON format).
     """
     
-    index: int = Field(
+    index: int = Field(ge=0,
         description="Sequential step number (0-indexed)"
     )
     
@@ -194,7 +210,7 @@ class StepModel(BaseModel):
         description="Timestamp when this step occurred (UTC)"
     )
     
-    kind: str = Field(
+    kind: str = Field(min_length=1,
         description="Step type: shell.command, python.call, llm.request, llm.response, file.write, security.redaction, validation.pass, validation.fail, validation.corrected, validation.start"
     )
     
@@ -235,6 +251,12 @@ class StepModel(BaseModel):
         description="The source or actor type that generated this step's core content (user, tool, reasoning, system)"
     )
 
+    verification_class: Optional[Literal["recomputable", "attested_only"]] = Field(
+        default=None,
+        description="How this step can be verified: recomputable (deterministic, can re-execute) or attested_only (non-deterministic, must trust the recorder)"
+    )
+
+
     @model_validator(mode="before")
     @classmethod
     def populate_source_type(cls, data: Any) -> Any:
@@ -253,6 +275,16 @@ class StepModel(BaseModel):
                         data["source_type"] = "system"
                     else:
                         data["source_type"] = "reasoning"
+                elif kind in ("llm.request", "llm.response", "agent.decision"):
+                    data["source_type"] = "reasoning"
+                elif kind in ("tool.call", "tool.response", "shell.command", "python.call"):
+                    data["source_type"] = "tool"
+                    is_deterministic = (data.get("content") or {}).get("epi_deterministic") is True
+                    data["verification_class"] = "recomputable" if is_deterministic else "attested_only"
+                elif kind in ("llm.request", "llm.response"):
+                    data["source_type"] = "reasoning"
+                elif kind in ("llm.pre_commit", "agent.decision", "agent.approval.request", "agent.approval.response"):
+                    data["verification_class"] = "attested_only"
                 elif kind in ("agent.run.start",):
                     data["source_type"] = "user"
                 elif kind in ("llm.request", "llm.response", "agent.decision", "agent.handoff", "agent.run.end", "tool.call", "agent.approval.request"):

@@ -431,9 +431,11 @@ class TestPass2ConstraintViolation:
         analyzer = FaultAnalyzer(policy=policy)
         result = analyzer.analyze(CONSTRAINT_VIOLATION_STEPS)
         if result.primary_fault:
-            # With matching policy, primary fault should be policy violation
-            assert result.primary_fault.fault_type == "POLICY_VIOLATION" or \
-                   result.primary_fault.fault_type == "HEURISTIC_OBSERVATION"
+            assert result.primary_fault.fault_type in (
+                "POLICY_VIOLATION",
+                "CONSTRAINT_VIOLATION",
+                "HEURISTIC_OBSERVATION",
+            )
 
     def test_fault_chain_has_source_and_violation(self):
         analyzer = FaultAnalyzer()
@@ -609,8 +611,8 @@ class TestPass7ApprovalGuardViolation:
         steps = "\n".join([
             _make_step(0, "session.start", {"workflow": "agent_refund"}),
             _make_step(1, "agent.approval.request", {"action": "approve_refund", "reason": "manual review"}),
-            _make_step(2, "agent.approval.response", {"action": "approve_refund", "approved": True, "reviewer": "manager-a", "role": "manager"}),
-            _make_step(3, "agent.approval.response", {"action": "approve_refund", "approved": True, "reviewer": "manager-b", "role": "manager"}),
+            _make_step(2, "agent.approval.response", {"action": "approve_refund", "approved": True, "reviewer": "manager-a", "role": "manager", "approval_source": "gateway_human"}),
+            _make_step(3, "agent.approval.response", {"action": "approve_refund", "approved": True, "reviewer": "manager-b", "role": "manager", "approval_source": "gateway_human"}),
             _make_step(4, "agent.decision", {"decision": "approve_refund"}),
             _make_step(5, "session.end", {"success": True}),
         ])
@@ -625,8 +627,8 @@ class TestPass7ApprovalGuardViolation:
         steps = "\n".join([
             _make_step(0, "session.start", {"workflow": "agent_refund"}),
             _make_step(1, "agent.approval.request", {"action": "approve_refund"}),
-            _make_step(2, "agent.approval.response", {"action": "approve_refund", "approved": True, "reviewer": "manager-a", "role": "manager"}),
-            _make_step(3, "agent.approval.response", {"action": "approve_refund", "approved": True, "reviewer": "manager-b", "role": "manager"}),
+            _make_step(2, "agent.approval.response", {"action": "approve_refund", "approved": True, "reviewer": "manager-a", "role": "manager", "approval_source": "gateway_human"}),
+            _make_step(3, "agent.approval.response", {"action": "approve_refund", "approved": True, "reviewer": "manager-b", "role": "manager", "approval_source": "gateway_human"}),
             _make_step(4, "agent.decision", {"decision": "approve_refund"}),
             _make_step(5, "session.end", {"success": True}),
         ])

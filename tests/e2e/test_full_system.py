@@ -223,9 +223,22 @@ class TestDidWebOptionalContract:
         report = json.loads(result.stdout)
         assert report["facts"]["signature_valid"] is True
         assert report["facts"]["integrity_ok"] is True
-        assert report["identity"]["status"] == "UNKNOWN"
-        assert "DID resolution failed" in report["identity"]["detail"]
-        assert report["decision"]["status"] == "WARN"
+        # DID resolution failed → not KNOWN. If sealer key is still on this
+        # machine, identity may be LOCAL (self-match); otherwise UNKNOWN.
+        assert report["identity"]["status"] in ("UNKNOWN", "LOCAL")
+        detail = report["identity"]["detail"] or ""
+        if report["identity"]["status"] == "UNKNOWN":
+            assert "DID resolution failed" in detail or "not found" in detail.lower()
+            # Unpinned remote identity → WARN under standard policy
+            assert report["decision"]["status"] == "WARN"
+        else:
+            # Sealer key still on this machine → LOCAL self-match → WARN (not org pin)
+            assert (
+                "local signing key" in detail.lower()
+                or report["identity"].get("local_key_name")
+            )
+            assert report["decision"]["status"] == "WARN"
+            assert report["trust_level"] in ("MEDIUM", "LOW")
 
 
 class TestGoldenArtifactsStillVerify:
@@ -286,6 +299,8 @@ class TestReportStructureStability:
             "has_signature",
             "mismatches",
             "transparency_ok",
+            "completeness_gaps",
+            "forensic_reason",
         }
         assert set(report["identity"].keys()) == {
             "status",
@@ -293,6 +308,8 @@ class TestReportStructureStability:
             "detail",
             "registry_verified",
             "public_key_id",
+            "public_key_fingerprint",
+            "local_key_name",
             "did",
             "scitt",
         }
@@ -301,6 +318,7 @@ class TestReportStructureStability:
             "workflow_id",
             "created_at",
             "files_checked",
+            "steps_count",
             "verifier_version",
         }
         assert set(report["summary"].keys()) == {"integrity", "trust", "transparency"}

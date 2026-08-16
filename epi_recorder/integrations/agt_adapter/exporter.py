@@ -62,8 +62,18 @@ def export_evidence_receipt(
 
     # Find the key that signed this artifact
     pub_key_hex = manifest.public_key or ""
-    key_name = _find_key_by_pubkey(km, pub_key_hex) or "default"
-
+    key_name = ""
+    if pub_key_hex:
+        for k in km.list_keys():
+            try:
+                raw = km._load_public_key_raw_bytes(k["name"]).hex()
+                if raw == pub_key_hex:
+                    key_name = k["name"]
+                    break
+            except Exception:
+                continue
+    if not key_name:
+        key_name = "default"
     priv_key = km.load_private_key(key_name)
 
     # Create SCITT-style signed statement
@@ -91,18 +101,17 @@ def verify_evidence_receipt(
         True if receipt is valid for this artifact
     """
     from epi_core.scitt import verify_scitt_statement
-    from epi_core.keys import KeyManager
 
     manifest = EPIContainer.read_manifest(Path(epi_path))
-    km = KeyManager()
     pub_key_hex = manifest.public_key or ""
-    key_name = _find_key_by_pubkey(km, pub_key_hex) or "default"
-    pub_key = km.load_public_key(key_name)
+    if not pub_key_hex:
+        return False
 
     try:
+        pub_key = bytes.fromhex(pub_key_hex)
         verify_scitt_statement(receipt_bytes, manifest, pub_key)
         return True
-    except SCITTVerificationError:
+    except (SCITTVerificationError, ValueError):
         return False
 
 
@@ -110,7 +119,7 @@ def _find_key_by_pubkey(km, pub_key_hex: str) -> str | None:
     """Find key name by public key hex."""
     for key_info in km.list_keys():
         # Compare key identifiers — exact match not required
-        if pub_key_hex and pub_key_hex in str(key_info.get("public_key", "")):
+        if pub_key_hex and pub_key_hex == str(key_info.get("public_key", "")):
             return key_info["name"]
     return None
 

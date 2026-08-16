@@ -18,9 +18,11 @@ class AGTArtifactType(str, Enum):
     """Supported AGT artifact export types."""
 
     EXPORT_BUNDLE = "export_bundle"  # audit.export() output
+    EPI_AGT_BUNDLE = "epi_agt_bundle"  # EPI neutral bundle JSON
     FILE_AUDIT_SINK = "file_audit_sink"  # FileAuditSink JSONL
     CLOUDEVENTS = "cloudevents"  # export_cloudevents() output
     SINGLE_ENTRY = "single_entry"  # Single AuditEntry dict
+    EPI_IMPORT_MANIFEST = "epi_import_manifest"  # EPI AGT import manifest
     UNKNOWN = "unknown"
 
 
@@ -36,6 +38,12 @@ def detect_artifact_type(data: dict[str, Any] | list[Any]) -> AGTArtifactType:
     if isinstance(data, dict):
         if "entries" in data and isinstance(data.get("entries"), list):
             return AGTArtifactType.EXPORT_BUNDLE
+        # EPI neutral AGT bundle has metadata + audit_logs
+        if "metadata" in data and "audit_logs" in data:
+            return AGTArtifactType.EPI_AGT_BUNDLE
+        # EPI AGT import manifest
+        if "file_map" in data and "manifest_version" in data:
+            return AGTArtifactType.EPI_IMPORT_MANIFEST
         if data.get("specversion") == "1.0" and "type" in data:
             return AGTArtifactType.CLOUDEVENTS
         if all(k in data for k in ("entry_id", "event_type")):
@@ -65,7 +73,7 @@ def detect_file_format(path: str | Path) -> tuple[AGTArtifactType, list[dict]]:
         raise AGTArtifactError(f"Empty file: {path}")
 
     # Try JSONL first (FileAuditSink format)
-    if "\n" in raw and all(line.strip() for line in raw.split("\n")):
+    if "\n" in raw and any(line.strip() for line in raw.split("\n")):
         try:
             entries = [json.loads(line) for line in raw.split("\n") if line.strip()]
             if entries and all("entry_id" in e for e in entries):

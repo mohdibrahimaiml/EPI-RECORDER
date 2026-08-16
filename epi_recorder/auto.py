@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import os
 import sys
+import traceback
 from typing import Optional
 
 
@@ -80,6 +81,7 @@ def setup(
             results["litellm"] = False
             if not _quiet:
                 print(f"[EPI] auto.setup: litellm hook failed: {exc}", file=sys.stderr)
+                print(traceback.format_exc(), file=sys.stderr)
 
     # ---- LangChain ----
     # LangChain uses per-object callbacks; there is no global hook to register.
@@ -107,6 +109,7 @@ def setup(
             results["langchain"] = False
             if not _quiet:
                 print(f"[EPI] auto.setup: langchain probe failed: {exc}", file=sys.stderr)
+                print(traceback.format_exc(), file=sys.stderr)
 
     # ---- OpenTelemetry ----
     if opentelemetry is not False:
@@ -124,6 +127,7 @@ def setup(
             results["opentelemetry"] = False
             if not _quiet:
                 print(f"[EPI] auto.setup: opentelemetry hook failed: {exc}", file=sys.stderr)
+                print(traceback.format_exc(), file=sys.stderr)
 
     if not _quiet:
         activated = [k for k, v in results.items() if v]

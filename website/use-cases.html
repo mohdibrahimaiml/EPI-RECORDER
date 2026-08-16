@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Use cases — EPI Labs</title>
+<meta name="description" content="Where AI agent decisions need a portable evidence file: finance, healthcare, insurance, government, AI safety, legal tech.">
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="css/epi.css?v=30">
+<link rel="stylesheet" href="css/epi-v2.css?v=10">
+<link rel="stylesheet" href="css/polish.css?v=4">
+<link rel="stylesheet" href="css/wow.css?v=5">
+<link rel="stylesheet" href="css/mobile.css?v=2">
+<style>
+.uc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:28px 0}
+.uc-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:20px 18px}
+.uc-card h3{margin:0 0 8px;font-size:1rem;color:var(--ink)}
+.uc-card p{margin:0;font-size:.88rem;color:var(--ink-muted);line-height:1.55}
+</style>
+<script>
+(function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();
+</script>
+</head>
+<body class="epi-instrument">
+<nav id="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo"><img src="assets/logo.png" alt="EPI Labs"></a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="/verify/">Verify</a></li>
+      <li><a href="/how-it-works">Docs</a></li>
+      <li><a href="/pricing">Pricing</a></li>
+      <li><a href="/enterprise">Enterprise</a></li>
+      <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
+      <li id="nav-auth-slot"></li>
+      <li><button type="button" class="theme-toggle-nav" id="themeToggleNav" data-theme-toggle aria-label="Toggle color theme" title="Toggle theme">&#9788;</button></li>
+
+    </ul>
+    <button type="button" class="nav-mob" id="mobBtn" aria-label="Menu"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+<div class="mob-menu" id="mobMenu" hidden>
+  <a href="/verify/">Verify</a><a href="/how-it-works">Docs</a><a href="/pricing">Pricing</a>
+  <a href="/enterprise">Enterprise</a>
+  </div>
+
+<main class="page-main">
+  <div class="section-label">Use cases</div>
+  <h1>Where agent decisions need a file</h1>
+  <p>EPI is not a domain certification product. It is a <strong>portable sealed record</strong> of what an agent did — useful wherever “show me the run six months later” matters. Framework names below are illustrative of demand, not claims of automatic compliance.</p>
+
+  <div class="uc-grid">
+    <div class="uc-card">
+      <h3>Financial services</h3>
+      <p>Credit, fraud, refund, and underwriting agents. Seal the decision trail for internal audit and model risk review.</p>
+    </div>
+    <div class="uc-card">
+      <h3>Healthcare &amp; clinical AI</h3>
+      <p>Decision support and workflow agents. Signed execution snapshots for review — not a 510(k) certificate by itself.</p>
+    </div>
+    <div class="uc-card">
+      <h3>Insurance</h3>
+      <p>Claims and underwriting agents. Full step trails for later reconstruction of “what the system did.”</p>
+    </div>
+    <div class="uc-card">
+      <h3>Government &amp; public sector</h3>
+      <p>Benefits, procurement, and casework agents. Offline-verifiable evidence for oversight bodies.</p>
+    </div>
+    <div class="uc-card">
+      <h3>AI safety &amp; eval</h3>
+      <p>Red-team and evaluation runs as sealed artifacts — reproducible evidence of what was tested.</p>
+    </div>
+    <div class="uc-card">
+      <h3>Legal &amp; document AI</h3>
+      <p>Review and contract agents. Verifiable trails for “what did the model/agent do on this matter.”</p>
+    </div>
+  </div>
+
+  <h2>How teams usually start</h2>
+  <ol>
+    <li>Seal one real consequential agent path with the open-source CLI.</li>
+    <li>Verify offline; pin org keys when identity matters.</li>
+    <li>Optional: policy rules + fault analyzer for mechanical checks.</li>
+    <li>Optional: Hosted verify volume / remote SCITT for scale.</li>
+  </ol>
+
+  <p style="margin-top:28px">
+    <a href="mailto:mohdibrahim@epilabs.org?subject=EPI%20pilot" style="color:var(--accent);font-weight:600">Email for a pilot →</a>
+    · <a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/PILOT.md" style="color:var(--signal);font-weight:600">Pilot guide</a>
+    · <a href="/enterprise" style="color:var(--signal);font-weight:600">Enterprise path</a>
+  </p>
+</main>
+
+<script src="js/instrument-nav.js"></script>
+<script src="js/auth-ui.js"></script>
+
+<script src="js/theme.js"></script>
+<script src="js/instrument-nav.js"></script>
+<script src="js/auth-ui.js"></script>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <img src="assets/logo.png" alt="EPI Labs" class="footer-logo">
+        <span class="footer-copy">&copy; 2026 EPI LABS. MIT License. Built in India. Engineered for the world.</span>
+      </div>
+      <ul class="footer-links">
+        <li><a href="/verify/">Verify</a></li>
+        <li><a href="/pricing">Pricing</a></li>
+        <li><a href="/enterprise">Enterprise</a></li>
+        <li><a href="/account">Account</a></li>
+        <li><a href="/how-it-works">Docs</a></li>
+        <li><a href="/trust">Trust</a></li>
+        <li><a href="/integrations">Integrations</a></li>
+        <li><a href="/use-cases">Use cases</a></li>
+        <li><a href="/status">Status</a></li>
+        <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="/terms">Terms</a></li>
+        <li><a href="/privacy">Privacy</a></li>
+        <li><a href="/refund">Refunds</a></li>
+        <li><a href="mailto:mohdibrahim@epilabs.org">Contact</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<script src="js/wow.js?v=2"></script>
+</body>
+</html>

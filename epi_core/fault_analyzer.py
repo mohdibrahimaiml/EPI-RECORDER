@@ -84,6 +84,16 @@ _ID_VALUE_PATTERNS = re.compile(
 _ENTITY_ID_EXEMPT_KEYS = {
     "policy_number",
     "policy_clause",
+    "policy_ref",
+    "protocol_id",
+    "playbook_version",
+    "playbook_id",
+    "role_id",
+    "constraint",
+    "disclaimer",
+    "policy_version",
+    "eeoc_ref",
+    "bsa_ref",
 }
 
 
@@ -198,7 +208,7 @@ class AnalysisResult:
 
     @property
     def fault_detected(self) -> bool:
-        return self.primary_fault is not None
+        return self.primary_fault is not None and self.primary_fault.severity not in ("info", "low")
 
     @property
     def mode(self) -> str:
@@ -503,6 +513,7 @@ def _step_satisfies_approval(step: dict, action_name: Optional[str] = None, appr
         content = {}
 
     if kind == "agent.approval.response":
+        source = content.get("approval_source", "raw_api_unverified")
         if content.get("approved") is not True:
             return False
         if action_name and not (
@@ -647,6 +658,13 @@ def _approval_responses_satisfy_policy(
 
     if not approved_responses:
         return False, "no approved response was recorded"
+
+    gateway_approved = any(
+        (resp.get("content") or {}).get("approval_source") == "gateway_human"
+        for resp in approved_responses
+    )
+    if not gateway_approved:
+        return False, "all approvals are self-reported (raw_api_unverified) - no gateway-human approval recorded"
 
     return True, ""
 
@@ -804,8 +822,9 @@ class FaultAnalyzer:
         analysis_json = result.to_json()
     """
 
-    def __init__(self, policy: Optional[EPIPolicy] = None):
+    def __init__(self, policy: Optional[EPIPolicy] = None, manifest_meta: dict = None):
         self.policy = policy
+        self.manifest_meta = manifest_meta or {}
 
     def analyze(self, steps_jsonl: str) -> AnalysisResult:
         """
@@ -883,6 +902,37 @@ class FaultAnalyzer:
             except Exception:
                 pass
 
+
+        # Pass 10: Time-Gap Tamper (SCITT registered_at vs manifest created_at)
+        try:
+            flags.extend(self._pass10_time_gap_tamper(steps))
+        except Exception:
+            pass
+
+        # Pass 11: Instrumentation Coverage Warning (always)
+        try:
+            flags.extend(self._pass11_coverage_gap(steps))
+        except Exception:
+            pass
+
+        # Pass 11b: Orphaned Tool Calls (always)
+        try:
+            flags.extend(self._pass11b_tool_gaps(steps))
+        except Exception:
+            pass
+
+        # Pass 11c: Unmatched LLM Requests (always)
+        try:
+            flags.extend(self._pass11c_llm_gaps(steps))
+        except Exception:
+            pass
+
+        # Pass 11d: Anomalous Time Gaps (always)
+        try:
+            flags.extend(self._pass11d_time_gaps(steps))
+        except Exception:
+            pass
+
         # Deduplicate: same step_index + same rule/type keeps the highest severity
         flags = _deduplicate_flags(flags)
 
@@ -950,8 +1000,11 @@ class FaultAnalyzer:
                 next_num = next_step.get("index", i + 1) + 1
                 flags.append(FaultFlag(
                     step_index=step.get("index", i),
-                    fault_type="HEURISTIC_OBSERVATION",
+                    fault_type="ERROR_CONTINUATION",
                     severity="medium",
+                    rule_id="P1",
+                    rule_name="Error Continuation",
+                    category="heuristic_observation",
                     plain_english=(
                         f"Step {step_num} returned an error signal. "
                         f"Step {next_num} continued without referencing or handling the error."
@@ -1023,6 +1076,18 @@ class FaultAnalyzer:
             if not is_commitment:
                 continue
 
+            # Escalation, referral, hold, or human review decisions enforce constraints by halting automated
+            # processing — they are policy successes, not unapproved commitment violations.
+            decision_str = str(
+                content.get("decision")
+                or content.get("recommendation")
+                or content.get("determination")
+                or content.get("action")
+                or ""
+            ).lower()
+            if any(term in decision_str for term in ("flag", "escalate", "refer", "hold", "review", "pending", "sar_eval")):
+                continue
+
             for key, committed_val in numbers:
                 if not _key_matches_commitment(key):
                     continue
@@ -1040,23 +1105,27 @@ class FaultAnalyzer:
                         rule_id = rule_name = None
                         policy_rule = None
                         if c_key.startswith("__policy_"):
-                            parts = c_key.split("_")
-                            if len(parts) >= 3:
-                                rule_id = parts[2]
+                            parts = c_key[10:].split("_")
+                            if parts:
+                                rule_id = parts[0]
                                 matching = [r for r in policy_constraint_rules if r.id == rule_id]
                                 if matching:
                                     policy_rule = matching[0]
                                     rule_name = policy_rule.name
 
-                        fault_type = "POLICY_VIOLATION" if rule_id else "HEURISTIC_OBSERVATION"
-                        severity = "critical" if rule_id else "high"
+                        fault_type = "POLICY_VIOLATION" if rule_id else "CONSTRAINT_VIOLATION"
+                        severity = "critical" if rule_id else "medium"
+                        eff_rule_id = rule_id or "P2"
+                        eff_rule_name = rule_name or "Constraint Violation"
+                        eff_category = "policy_violation" if rule_id else "heuristic_observation"
 
                         flags.append(FaultFlag(
                             step_index=step_idx,
                             fault_type=fault_type,
                             severity=severity,
-                            rule_id=rule_id,
-                            rule_name=rule_name,
+                            rule_id=eff_rule_id,
+                            rule_name=eff_rule_name,
+                            category=eff_category,
                             plain_english=(
                                 f"At step {c_step_num} the agent received a constraint value "
                                 f"of {c_val:,.2f} (field: {c_key_path.split('.')[-1]}). "
@@ -1325,6 +1394,7 @@ class FaultAnalyzer:
                     "index": step_idx,
                     "action": action,
                     "approved": bool(step.get("content", {}).get("approved")),
+                    "content": step.get("content", {}),
                 })
                 continue
 
@@ -1353,7 +1423,7 @@ class FaultAnalyzer:
                 flags.append(FaultFlag(
                     step_index=step_idx,
                     fault_type="HEURISTIC_OBSERVATION",
-                    severity="high",
+                    severity="medium",
                     plain_english=(
                         f"At step {step_idx + 1}, action '{action}' executed while a prior approval "
                         f"request was still pending."
@@ -1380,7 +1450,7 @@ class FaultAnalyzer:
                 flags.append(FaultFlag(
                     step_index=step_idx,
                     fault_type="HEURISTIC_OBSERVATION",
-                    severity="high",
+                    severity="medium",
                     plain_english=(
                         f"At step {step_idx + 1}, action '{action}' executed after an approval response "
                         f"rejected that action."
@@ -1406,6 +1476,48 @@ class FaultAnalyzer:
                         },
                     ],
                 ))
+
+            # Check for self-reported vs gateway-verified approval
+            elif latest_response["approved"] is True:
+                approval_source = latest_response.get("content", {}).get("approval_source", "raw_api_unverified")
+                if approval_source != "gateway_human":
+                    flags.append(FaultFlag(
+                        step_index=step_idx,
+                        fault_type="HEURISTIC_OBSERVATION",
+                        severity="medium",
+                        plain_english=(
+                            f"At step {step_idx + 1}, action '{action}' was executed after a "
+                            f"self-reported approval (source: {approval_source}). "
+                            "The approval was not verified through the gateway human review flow."
+                        ),
+                        rule_id="P6",
+                        rule_name="Agent Approval Gap — Self-Reported",
+                        why_it_matters=(
+                            "A self-reported approval carries no independent verification. "
+                            "Only gateway-human approvals provide strong provenance that a "
+                            "real person reviewed and authorized the action."
+                        ),
+                        remediation=(
+                            "Require approvals to flow through the gateway human review "
+                            "pipeline rather than self-attested approved=true flags."
+                        ),
+                        review_required=False,
+                        category="heuristic_observation",
+                        fault_chain=[
+                            {
+                                "step_index": latest_response["index"],
+                                "step_number": latest_response["index"] + 1,
+                                "role": "self_reported_approval",
+                                "detail": f"Approval from source: {approval_source}",
+                            },
+                            {
+                                "step_index": step_idx,
+                                "step_number": step_idx + 1,
+                                "role": "action_executed",
+                                "detail": f"Action '{action}' executed after self-reported approval",
+                            },
+                        ],
+                    ))
 
         return flags
 
@@ -1508,6 +1620,268 @@ class FaultAnalyzer:
 
         return flags
 
+    def _pass11_coverage_gap(self, steps: list[dict]) -> list[FaultFlag]:
+        """P11: Flag when manifest signals agent activity but zero steps were recorded.
+
+        Only fires when BOTH tool AND LLM steps are absent, because the words
+        "loan", "agent", "decision", "workflow" appear in nearly every manifest
+        goal — a workflow that uses only LLM calls with zero tools is a normal,
+        non-broken pattern.  The flag means "no recorded agent activity at all,"
+        not "some framework might be uninstrumented."
+        """
+        flags: list[FaultFlag] = []
+        meta = self.manifest_meta or {}
+
+        tool_kinds = {"tool.call", "tool.use", "tool.response", "tool.error"}
+        llm_kinds = {"llm.request", "llm.response", "llm.error", "llm.call"}
+        step_kinds = {step.get("kind", "") for step in steps}
+
+        has_tool_steps = bool(step_kinds & tool_kinds)
+        has_llm_steps = bool(step_kinds & llm_kinds)
+
+        # Only fire when NEITHER tool nor LLM steps exist — an empty shell artifact
+        if has_tool_steps or has_llm_steps:
+            return flags
+
+        # Check if manifest signals any agent/LLM activity at all
+        manifest_text = " ".join(
+            str(v) for v in [
+                meta.get("goal"),
+                meta.get("notes"),
+                meta.get("system_name"),
+                meta.get("workflow_name"),
+                meta.get("workflow_id"),
+                " ".join(meta.get("tags") or []),
+            ] if v
+        ).lower()
+
+        activity_signal_words = {
+            "agent", "tool", "approval", "handoff", "pipeline", "orchestrat",
+            "multi-step", "multi-agent",
+        }
+        llm_signal_words = {
+            "llm", "gpt", "claude", "openai", "anthropic", "gemini",
+            "chat", "completion", "model", "prompt", "reasoning",
+        }
+
+        signals_any = any(w in manifest_text for w in activity_signal_words | llm_signal_words)
+
+        if not signals_any:
+            return flags
+
+        # P11 fires when zero instrumented steps exist despite manifest
+        # metadata referencing agent activity. Severity "info" because
+        # the absence of instrumentation is expected when wrappers are
+        # not configured---it's not a runtime failure, it's a config gap.
+        flags.append(FaultFlag(
+            step_index=0,
+            fault_type="coverage_gap",
+            severity="info",
+            plain_english=(
+                "Manifest metadata references agent/LLM activity "
+                f"(goal: '{meta.get('goal', '')}', notes: '{meta.get('notes', '')}'), "
+                "but the step timeline contains zero tool.call, tool.response, "
+                "llm.request, or llm.response events.  EPI's patch_all() only wraps "
+                "OpenAI, Gemini, and requests.Session — other frameworks "
+                "(Anthropic SDK, LangChain, LiteLLM, direct Python) may have "
+                "executed without producing any telemetry."
+            ),
+            rule_id="P11",
+            rule_name="Instrumentation Coverage Gap",
+            why_it_matters=(
+                "An artifact whose manifest describes agent behavior but contains "
+                "zero recorded execution steps is functionally empty.  The "
+                "cryptographic signature and hashes will still verify, but no "
+                "auditor, policy evaluator, or reviewer can see what happened."
+            ),
+            remediation=(
+                "Ensure the correct wrappers are active: wrap_anthropic(), "
+                "EPICallbackHandler() for LangChain, EPICallback() for LiteLLM, "
+                "or epi_recorder.auto.patch_all() for full coverage.  "
+                "Re-run the workflow with instrumentation enabled."
+            ),
+            review_required=True,
+            category="heuristic_observation",
+        ))
+        return flags
+
+    def _pass11b_tool_gaps(self, steps: list[dict]) -> list[FaultFlag]:
+        """P11b: Flag tool.call steps with no matching tool.response."""
+        flags: list[FaultFlag] = []
+        tool_calls: dict[str, int] = {}
+        tool_responses: set[str] = set()
+
+        for i, step in enumerate(steps):
+            kind = step.get("kind", "")
+            content = step.get("content", {})
+            tool_name = content.get("name") or content.get("tool") or content.get("tool_name") or ""
+            if kind == "tool.call":
+                key = f"{tool_name}:{i}"
+                if tool_name:
+                    tool_calls[tool_name] = i
+            elif kind == "tool.response":
+                resp_tool = content.get("tool") or content.get("name") or ""
+                if resp_tool:
+                    tool_responses.add(resp_tool)
+
+        for tool_name, step_idx in tool_calls.items():
+            if tool_name not in tool_responses:
+                flags.append(FaultFlag(
+                    step_index=step_idx,
+                    fault_type="HEURISTIC_OBSERVATION",
+                    severity="low",
+                    plain_english=(
+                        f"Tool '{tool_name}' was called at step {step_idx + 1} "
+                        "but no matching tool.response was recorded before the run ended."
+                    ),
+                    rule_id="P11b",
+                    rule_name="Orphaned Tool Call",
+                    category="heuristic_observation",
+                ))
+
+        return flags
+
+    def _pass11c_llm_gaps(self, steps: list[dict]) -> list[FaultFlag]:
+        """P11c: Flag llm.request steps with no matching llm.response."""
+        flags: list[FaultFlag] = []
+        request_count = 0
+        response_count = 0
+
+        for i, step in enumerate(steps):
+            kind = step.get("kind", "")
+            if kind == "llm.request":
+                request_count += 1
+            elif kind == "llm.response":
+                response_count += 1
+
+        if request_count > response_count:
+            most_recent_request = None
+            for i, step in enumerate(steps):
+                if step.get("kind") == "llm.request":
+                    most_recent_request = i
+            flags.append(FaultFlag(
+                step_index=most_recent_request or 0,
+                fault_type="HEURISTIC_OBSERVATION",
+                severity="low",
+                plain_english=(
+                    f"{request_count} llm.request event(s) but only "
+                    f"{response_count} llm.response event(s) — "
+                    "some LLM calls may have completed without being captured."
+                ),
+                rule_id="P11c",
+                rule_name="Unmatched LLM Request",
+                category="heuristic_observation",
+            ))
+
+        return flags
+
+    def _pass11d_time_gaps(self, steps: list[dict]) -> list[FaultFlag]:
+        """P11d: Flag anomalously large timestamp gaps between consecutive steps."""
+        flags: list[FaultFlag] = []
+        if len(steps) < 4:
+            return flags
+
+        from datetime import datetime
+        gaps: list[tuple[int, float]] = []
+        prev_ts = None
+
+        for i, step in enumerate(steps):
+            ts_str = step.get("timestamp")
+            if not ts_str:
+                continue
+            try:
+                ts = datetime.fromisoformat(str(ts_str).replace("Z", "+00:00"))
+            except (ValueError, TypeError):
+                continue
+            if prev_ts is not None:
+                gap = abs((ts - prev_ts).total_seconds())
+                gaps.append((i, gap))
+            prev_ts = ts
+
+        if not gaps:
+            return flags
+
+        median_gap = sorted(g[1] for g in gaps)[len(gaps) // 2]
+        threshold = max(median_gap * 10, 60.0)
+
+        for step_idx, gap in gaps:
+            if gap > threshold:
+                flags.append(FaultFlag(
+                    step_index=step_idx,
+                    fault_type="HEURISTIC_OBSERVATION",
+                    severity="low",
+                    plain_english=(
+                        f"Anomalous time gap of {gap:.1f}s between steps "
+                        f"{step_idx} and {step_idx + 1} (median gap: {median_gap:.1f}s, "
+                        f"threshold: {threshold:.1f}s).  This may indicate an "
+                        "unrecorded action between these steps."
+                    ),
+                    rule_id="P11d",
+                    rule_name="Anomalous Time Gap",
+                    category="heuristic_observation",
+                ))
+
+        return flags
+
+    def _pass10_time_gap_tamper(self, steps: list[dict]) -> list[FaultFlag]:
+        """P10: Detect abnormal time gaps between manifest.created_at and SCITT registered_at.
+
+        A legitimate .epi is packed immediately after execution, so the gap between
+        created_at and SCITT registration timestamp should be small (minutes).
+        A tampered artifact with a rolled-back system clock will have a
+        months-old created_at sitting next to a today-value registered_at.
+        """
+        flags: list[FaultFlag] = []
+        meta = self.manifest_meta or {}
+        scitt_entry = (meta.get("governance") or {}).get("scitt") or {}
+        registered_at = scitt_entry.get("registered_at")
+        created_at = meta.get("created_at")
+
+        if not registered_at or not created_at:
+            return flags
+
+        try:
+            from datetime import datetime
+            t_scitt = datetime.fromisoformat(str(registered_at).replace("Z", "+00:00"))
+            t_created = datetime.fromisoformat(str(created_at).replace("Z", "+00:00"))
+            gap_seconds = abs((t_scitt - t_created).total_seconds())
+
+            GAP_THRESHOLD_SECONDS = 604800  # 7 days
+            if gap_seconds > GAP_THRESHOLD_SECONDS:
+                days = gap_seconds / 86400
+                flags.append(FaultFlag(
+                    step_index=0,
+                    fault_type="time_gap_tamper",
+                    severity="high",  # deliberate: clock rollback is not advisory
+                    plain_english=(
+                        f"Manifest created_at ({created_at}) is {days:.0f} days away from "
+                        f"SCITT registered_at ({registered_at}). "
+                        "Legitimate artifacts are packed and registered within minutes. "
+                        "This gap suggests system clock rollback or post-hoc fabrication."
+                    ),
+                    rule_id="P10",
+                    rule_name="Time-Gap Tamper Detection",
+                    why_it_matters=(
+                        "A large gap between manifest creation time and SCITT transparency "
+                        "registration indicates the system clock may have been rolled back "
+                        "to fabricate a timeline, or the artifact was created long after "
+                        "the claimed execution date."
+                    ),
+                    remediation=(
+                        "Verify the system clock is synchronized with NTP. "
+                        "If the artifact is legitimate, the gap must be explainable "
+                        "(e.g., batch processing, archival review). "
+                        "Otherwise, treat the artifact as potentially fabricated."
+                    ),
+                    review_required=True,
+                    category="heuristic_observation",
+                ))
+        except (ValueError, TypeError):
+            pass
+
+        return flags
+
+
     def _pass9_tool_permission_guard(self, steps: list[dict]) -> list[FaultFlag]:
         """Policy-only tool allow/deny controls."""
         if not self.policy:
@@ -1578,11 +1952,20 @@ class FaultAnalyzer:
         if len(steps) < 8:
             return flags
 
+        # Steps that naturally drop entity context — no false positive needed
+        _TERMINAL_KINDS = {
+            "review.handoff", "agent.run.end", "session.end",
+            "environment.captured", "agent.run.start",
+            "agent.approval.request", "agent.approval.response", "security.redaction",
+        }
+
         split_a = max(1, len(steps) // 3)
         split_b = len(steps) - split_a
 
         early_steps = steps[:split_a]
-        late_steps = steps[split_b:]
+        late_steps = [s for s in steps[split_b:] if (s.get("kind") or "") not in _TERMINAL_KINDS]
+        if not late_steps:
+            return flags
 
         # Determine exempt fields: policy-declared + global defaults
         exempt_fields = set(_ENTITY_ID_EXEMPT_KEYS)
@@ -1634,8 +2017,11 @@ class FaultAnalyzer:
 
                 flags.append(FaultFlag(
                     step_index=last_seen_idx,
-                    fault_type="HEURISTIC_OBSERVATION",
+                    fault_type="CONTEXT_DROP",
                     severity="low",
+                    rule_id="P4",
+                    rule_name="Context Drop",
+                    category="heuristic_observation",
                     plain_english=(
                         f"Entity identifier '{entity_id}' appeared in the early execution steps "
                         f"but was absent from the final {split_a} steps. "

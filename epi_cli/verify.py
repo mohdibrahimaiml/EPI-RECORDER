@@ -20,7 +20,7 @@ from rich.panel import Panel
 
 from epi_cli.view import _resolve_epi_file
 from epi_core._version import get_version
-from epi_core.aiuc1_mapping import map_verification_to_aiuc1, aiuc1_summary
+from epi_core.aiuc1_mapping import aiuc1_summary, map_verification_to_aiuc1
 from epi_core.container import EPIContainer
 from epi_core.review import verify_review_trust
 from epi_core.trust import (
@@ -46,6 +46,12 @@ def _fetch_scitt_service_key(service_url: str | None) -> bytes | None:
     """
     if not service_url:
         return None
+
+    # Local/offline SCITT service: read the service public key from disk.
+    if service_url.lower() == "local":
+        from epi_core.local_scitt import service_public_key
+
+        return service_public_key()
 
     import hashlib
     from pathlib import Path
@@ -73,6 +79,9 @@ def _fetch_scitt_service_key(service_url: str | None) -> bytes | None:
         client = SCITTServiceClient(service_url)
         key_bytes = client.get_public_key()
         cache_file.write_text(key_bytes.hex())
+        tmp = cache_file.with_suffix(".tmp")
+        tmp.write_text(key_bytes.hex())
+        tmp.replace(cache_file)
         return key_bytes
     except Exception:
         return None
@@ -132,17 +141,18 @@ def _audit_step_sequence_completeness(steps: list[dict]) -> tuple[bool, list[str
       - Every agent.approval.request has a corresponding agent.approval.response
     """
     gaps: list[str] = []
-    
+
     pending_tool_calls: list[tuple[int, str | None]] = []
     pending_llm_requests: list[tuple[int, str | None]] = []
+    pending_pre_commits: list[tuple[int, str | None]] = []
     pending_approvals: list[tuple[int, str | None]] = []
-    
+
     for s in steps:
         kind = s.get("kind", "")
         content = s.get("content", {}) or {}
         idx = s.get("index", 0)
         span_id = s.get("span_id")
-        
+
         if kind == "tool.call":
             call_id = content.get("call_id")
             pending_tool_calls.append((idx, call_id))
@@ -157,7 +167,9 @@ def _audit_step_sequence_completeness(steps: list[dict]) -> tuple[bool, list[str
                         break
             if not matched and pending_tool_calls:
                 pending_tool_calls.pop(0)
-                
+
+        elif kind == "llm.pre_commit":
+            pending_pre_commits.append((idx, span_id))
         elif kind == "llm.request":
             pending_llm_requests.append((idx, span_id))
         elif kind in ("llm.response", "llm.error"):
@@ -170,7 +182,10 @@ def _audit_step_sequence_completeness(steps: list[dict]) -> tuple[bool, list[str
                         break
             if not matched and pending_llm_requests:
                 pending_llm_requests.pop(0)
-                
+            # Clear the oldest pending pre-commit when any LLM response arrives
+            if pending_pre_commits:
+                pending_pre_commits.pop(0)
+
         elif kind == "agent.approval.request":
             action = content.get("action")
             pending_approvals.append((idx, action))
@@ -185,14 +200,16 @@ def _audit_step_sequence_completeness(steps: list[dict]) -> tuple[bool, list[str
                         break
             if not matched and pending_approvals:
                 pending_approvals.pop(0)
-                
+
     for idx, call_id in pending_tool_calls:
         gaps.append(f"tool.call at step {idx} is missing a corresponding tool.response")
+    for idx, call_id in pending_pre_commits:
+        gaps.append(f"llm.pre_commit at step {idx} was committed but never executed — response never arrived (crash, timeout, or cancellation)")
     for idx, span_id in pending_llm_requests:
         gaps.append(f"llm.request at step {idx} is missing a corresponding response or error")
     for idx, action in pending_approvals:
         gaps.append(f"agent.approval.request for '{action}' at step {idx} is missing a response")
-        
+
     return len(gaps) == 0, gaps
 
 
@@ -231,7 +248,10 @@ def _print_qr_code(url: str) -> None:
 
 def _emit_json_report(report: dict) -> None:
     """Write a machine-readable verification report directly to stdout."""
-    sys.stdout.write(json.dumps(report, indent=2) + "\n")
+    try:
+        sys.stdout.write(json.dumps(report, indent=2) + "\n")
+    except BrokenPipeError:
+        pass
     sys.stdout.flush()
 
 
@@ -389,6 +409,7 @@ def _write_verification_report(report: dict, epi_file: Path, report_out: Path) -
         "Verified by EPI (Evidence Packaged Infrastructure)",
         f"epi verify {epi_file.name}",
     ]
+    report_out.parent.mkdir(parents=True, exist_ok=True)
     report_out.write_text("\n".join(lines), encoding="utf-8")
 
 
@@ -430,11 +451,18 @@ def verify_command(
     """
     try:
         epi_file = _resolve_epi_file(str(epi_file))
-    except FileNotFoundError:
+    except (FileNotFoundError, PermissionError, OSError):
+        tip = (
+            f"[red][FAIL] Error:[/red] File not found: {epi_file}\n"
+            "[dim]Tip: epi looks relative to your current folder. Use a full path, e.g.[/dim]\n"
+            '[dim]  epi verify "C:\\Users\\you\\project\\artifact.epi"[/dim]\n'
+            "[dim]Or: cd into the folder that contains the .epi, then re-run.[/dim]\n"
+            "[dim]Hosted (no path issues): https://epilabs.org/verify[/dim]"
+        )
         _handle_verification_error(
             message=f"File not found: {epi_file}",
             json_output=json_output,
-            console_message=f"[red][FAIL] Error:[/red] File not found: {epi_file}",
+            console_message=tip,
             error_type="file_not_found",
         )
 
@@ -483,6 +511,15 @@ def verify_command(
 
         integrity_ok, mismatches = EPIContainer.verify_integrity(epi_file)
 
+        if verbose:
+            poly_ok, poly_detail = EPIContainer.verify_polyglot_viewer(epi_file)
+            if not poly_ok:
+                console.print(f"  [red][FAIL][/red] Polyglot viewer: {poly_detail}")
+            elif poly_detail and "legacy" in poly_detail:
+                console.print(f"  [yellow]![/yellow] Polyglot viewer: {poly_detail}")
+            elif "__polyglot_viewer__" not in mismatches:
+                console.print("  [green][OK][/green] Polyglot viewer HTML integrity verified")
+
         # ========== STEP 3: FORENSIC AUDIT (Facts) ==========
         # Moved forward as these are objective 'facts'
         sequence_ok = True
@@ -493,18 +530,16 @@ def verify_command(
         seq_comp_gaps = []
         step_count_ok = True  # AUD-CO-02: safe default for old artifacts
         steps: list[dict] = []
+        actual_step_count = 0
+        claimed_step_count = manifest.total_steps
+        audit_result = {}
 
         try:
             import hashlib as _hashlib
             import json
-            import zipfile
 
-            with zipfile.ZipFile(epi_file, "r") as zf:
-                members = zf.namelist()
-                steps_member = next((m for m in members if m.endswith("steps.jsonl")), None)
-                if steps_member:
-                    raw_steps = zf.read(steps_member).decode("utf-8").splitlines()
-                    steps = [json.loads(line) for line in raw_steps]
+            steps = EPIContainer.read_steps(epi_file)
+            if steps:
 
                     # 1. Index Sequence Audit (Monotonicity)
                     indices = [s.get("index", 0) for s in steps]
@@ -556,11 +591,39 @@ def verify_command(
                         "steps_hash"
                     )
                     if claimed_hash:
-                        actual_hash = _hashlib.sha256(zf.read(steps_member)).hexdigest()
+                        actual_hash = _hashlib.sha256(EPIContainer.read_member_bytes(epi_file, "steps.jsonl")).hexdigest()
                         steps_hash_ok = actual_hash == claimed_hash
 
                     # 5. prev_hash Chain Verification
                     chain_ok, chain_breaks = _verify_step_chain(steps)
+
+                                        # 5.5 AUD-CO-05: Verification Class Classification
+                    # Classify steps as recomputable (deterministic, verifiable by re-execution)
+                    # or attested_only (non-deterministic, must trust the recorder).
+                    recomputable_count = 0
+                    attested_count = 0
+                    for s in steps:
+                        vc = s.get("verification_class") if isinstance(s, dict) else None
+                        if not vc and isinstance(s, dict):
+                            vc = (s.get("content") or {}).get("verification_class")
+                        if vc == "recomputable":
+                            recomputable_count += 1
+                        elif vc == "attested_only":
+                            attested_count += 1
+                    unclassified_count = len(steps) - recomputable_count - attested_count
+                    if recomputable_count + attested_count > 0:
+                        vc_summary = f"{recomputable_count} recomputable, {attested_count} attested"
+                        if unclassified_count > 0:
+                            vc_summary += f", {unclassified_count} unclassified"
+                    else:
+                        vc_summary = "not classified"
+                    audit_result["verification_class"] = {
+                        "status": "not_classified" if (recomputable_count + attested_count == 0) else "classified",
+                        "recomputable": recomputable_count,
+                        "attested_only": attested_count,
+                        "unclassified": unclassified_count,
+                        "summary": vc_summary,
+                    }
 
                     # 6. AUD-CO-02: Step Count Attestation
                     # Compare actual step count against the signed manifest.total_steps.
@@ -628,16 +691,15 @@ def verify_command(
 
                 statement_bytes: bytes | None = None
                 receipt_bytes: bytes | None = None
-                with zipfile.ZipFile(epi_file, "r") as zf:
-                    try:
-                        statement_bytes = zf.read(stmt_path)
-                    except KeyError:
-                        pass
-                    try:
-                        receipt_bytes = zf.read(rcpt_path)
-                    except KeyError:
-                        pass
-
+                # Use EPIContainer.read_member_bytes for container-format safety
+                try:
+                    statement_bytes = EPIContainer.read_member_bytes(epi_file, stmt_path)
+                except (ValueError, KeyError):
+                    statement_bytes = None
+                try:
+                    receipt_bytes = EPIContainer.read_member_bytes(epi_file, rcpt_path)
+                except (ValueError, KeyError):
+                    receipt_bytes = None
                 if statement_bytes is None:
                     raise Exception(f"SCITT statement not found in archive: {stmt_path}")
                 if receipt_bytes is None:
@@ -680,7 +742,61 @@ def verify_command(
                 if verbose:
                     console.print(f"  [yellow][WARN][/yellow] SCITT verification failed: {exc}")
 
+        
+        # ========== STEP 4.75: ANNEX IV COMPLIANCE CHECK ==========
+        annex_iv_ok = True
+        try:
+            annex_members = [m for m in EPIContainer.list_members(epi_file) if m.startswith("artifacts/annex_iv/")]
+            if annex_members:
+                if verbose:
+                    console.print("\n[bold]Step 4.75: Annex IV Compliance[/bold]")
+                for am in annex_members:
+                    sig = EPIContainer.read_member_text(epi_file, am)
+                    data = json.loads(sig)
+                    appr = data.get("approval",{})
+                    if appr.get("signature"):
+                        parts = appr["signature"].split(":",2)
+                        if len(parts)==3 and parts[0]=="ed25519":
+                            ac = {k:v for k,v in appr.items() if k!="signature"}
+                            cd = dict(data); cd["approval"] = ac; cd.pop("signature",None)
+                            can = json.dumps(cd, sort_keys=True, separators=(",",":"), default=str)
+                            try:
+                                from epi_core.keys import KeyManager
+                                from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+                                pb = KeyManager().load_public_key(parts[1])
+                                ed = Ed25519PublicKey.from_public_bytes(pb)
+                                ed.verify(bytes.fromhex(parts[2]), can.encode("utf-8"))
+                                if verbose:
+                                    color = "green"
+                                    console.print(f"  [green][OK][/green] Signed: {am}")
+                            except Exception:
+                                annex_iv_ok = False
+                                if verbose:
+                                    console.print(f"  [red][FAIL][/red] Invalid signature: {am}")
+                        else:
+                            annex_iv_ok = False
+                            if verbose:
+                                console.print(f"  [red][FAIL][/red] Bad signature format: {am}")
+                    else:
+                        if verbose:
+                            console.print(f"  [yellow][INFO][/yellow] Unsigned: {am}")
+        except Exception as exc:
+            annex_iv_ok = False
+            if verbose:
+                console.print(f"  [red][FAIL][/red] Annex IV check error: {exc}")
+        if annex_iv_ok and verbose:
+            console.print(f"  [green]All Annex IV sections validated.[/green]")
         # ========== STEP 5: CREATE REPORT & APPLY POLICY ==========
+        forensic_reason: str | None = None
+        if not completeness_ok and seq_comp_gaps:
+            forensic_reason = seq_comp_gaps[0]
+        elif not chain_ok and chain_breaks:
+            forensic_reason = chain_breaks[0]
+        elif not sequence_ok:
+            forensic_reason = "step sequence invalid"
+        elif not completeness_ok:
+            forensic_reason = "step sequence incomplete (e.g. tool.call without tool.response)"
+
         report = create_verification_report(
             integrity_ok=integrity_ok,
             signature_valid=signature_valid,
@@ -692,6 +808,8 @@ def verify_command(
             completeness_ok=completeness_ok,
             chain_ok=chain_ok,
             transparency_ok=transparency_ok,
+            completeness_gaps=seq_comp_gaps,
+            forensic_reason=forensic_reason,
         )
 
         # Apply the selected governance policy
@@ -709,6 +827,13 @@ def verify_command(
                     console.print(f"  [{color}]{domain_id}. {status.label}: {status.status}[/{color}]")
 
         # ========== STEP 5: REVIEW TRUST CHECKS ==========
+        try:
+            from epi_core.review import read_review
+
+            _latest_review = read_review(epi_file)
+        except Exception:
+            _latest_review = None
+
         if review:
             if verbose:
                 console.print("\n[bold]Step 5: Review Trust Checks[/bold]")
@@ -734,6 +859,13 @@ def verify_command(
             print_trust_report(report, epi_file, verbose)
             if review_report is not None:
                 print_review_trust_report(review_report)
+            elif _latest_review is not None:
+                # Discoverability: surface that a review exists without failing the run
+                who = getattr(_latest_review, "reviewed_by", None) or "reviewer"
+                console.print(
+                    f"\n[dim]Human review present (by {who}). "
+                    f"Full binding check: [cyan]epi verify {epi_file.name} --review[/cyan][/dim]"
+                )
 
         # ========== WRITE REPORT FILE ==========
         if report_out is not None:
@@ -755,7 +887,7 @@ def verify_command(
         if web and not json_output:
             portal_url = "https://epilabs.org/verify"
             console.print(f"\n[bold cyan]Opening {portal_url}...[/bold cyan]")
-            console.print(f"[dim]Upload this file to verify in your browser:[/dim]")
+            console.print("[dim]Upload this file to verify in your browser:[/dim]")
             console.print(f"[green]{epi_file.resolve()}[/green]\n")
             try:
                 import webbrowser
@@ -766,7 +898,7 @@ def verify_command(
 
         if qr and not json_output:
             portal_url = "https://epilabs.org/verify"
-            console.print(f"\n[bold cyan]Scan this QR code to verify on your phone:[/bold cyan]")
+            console.print("\n[bold cyan]Scan this QR code to verify on your phone:[/bold cyan]")
             _print_qr_code(portal_url)
             console.print(f"[dim]Or visit: {portal_url}[/dim]\n")
 
@@ -866,22 +998,80 @@ def print_trust_report(report: dict, epi_file: Path, verbose: bool = False):
         decision_policy = "none"
         decision_reason = report.get("trust_message", "")
 
-    # Header and Result
-    status_symbol = (
-        "[bold green]✔[/bold green]" if decision_status == "PASS" else "[bold red]✘[/bold red]"
-    )
-    panel_style = "green" if decision_status == "PASS" else "red"
+    # Header chrome: green only for org-trusted PASS. Unpinned seal is yellow
+    # UNVERIFIED IDENTITY — never "SEAL OK" (skim must not imply claim safety).
+    id_upper = str(identity_status).upper()
+    if decision_status == "PASS" and id_upper == "KNOWN":
+        status_symbol = "[bold green]✔ SEAL · IDENTITY PINNED[/bold green]"
+        panel_style = "green"
+    elif decision_status == "PASS":
+        status_symbol = "[bold green]✔ PASS[/bold green]"
+        panel_style = "green"
+    elif decision_status == "WARN" and id_upper == "LOCAL":
+        status_symbol = "[bold yellow]⚠ LOCAL SEALER · NOT ORG-PINNED[/bold yellow]"
+        panel_style = "yellow"
+    elif decision_status == "WARN":
+        status_symbol = "[bold yellow]⚠ UNVERIFIED IDENTITY[/bold yellow]"
+        panel_style = "yellow"
+    else:
+        status_symbol = "[bold red]✘ SEAL FAIL[/bold red]"
+        panel_style = "red"
 
     content_lines = []
 
-    # Decision Layer
-    content_lines.append(f"[bold]DECISION: {decision_status}[/bold]")
+    # Decision Layer — identity failure mode first when unpinned
+    if decision_status == "WARN" and signature_valid is True and integrity_ok:
+        if id_upper == "LOCAL":
+            content_lines.append(
+                "[bold]DECISION: WARN[/bold]  "
+                "[dim]— LOCAL SEALER (seal valid · not org-pinned)[/dim]"
+            )
+        else:
+            content_lines.append(
+                "[bold]DECISION: WARN[/bold]  "
+                "[dim]— UNVERIFIED IDENTITY (seal valid · signer unknown)[/dim]"
+            )
+    else:
+        content_lines.append(f"[bold]DECISION: {decision_status}[/bold]")
     content_lines.append(f"Policy: {decision_policy}")
     content_lines.append(f"Reason: {decision_reason}")
     content_lines.append("")
 
-    # Fact Layer
-    content_lines.append("[bold underline]FACTS (Objective Proofs)[/bold underline]")
+    # Identity Layer FIRST — trust context before green seal proofs
+    content_lines.append(
+        "[bold underline]IDENTITY (who sealed — required for claim trust)[/bold underline]"
+    )
+    id_status_display = identity_status
+    if id_upper == "UNKNOWN":
+        id_status_display = "NOT_PINNED"
+    if identity_status == "KNOWN":
+        id_color = "green"
+    elif identity_status == "LOCAL":
+        id_color = "yellow"
+    elif identity_status in ("REVOKED", "MISMATCH"):
+        id_color = "red"
+    else:
+        id_color = "yellow"
+    content_lines.append(f"  [{id_color}]- Status:       {id_status_display}[/{id_color}]")
+    content_lines.append(f"  - Name:         {identity_name or '—'}")
+    fp = None
+    if isinstance(identity, dict):
+        fp = identity.get("public_key_fingerprint") or identity.get("public_key_id")
+    if not fp:
+        fp = public_key_id
+    if fp:
+        content_lines.append(f"  - Fingerprint:  {fp}…")
+    local_name = identity.get("local_key_name") if isinstance(identity, dict) else None
+    if local_name:
+        content_lines.append(f"  - Local key:    {local_name} (matches this computer — not org pin)")
+    did_identity = identity.get("did") if isinstance(identity, dict) else None
+    if did_identity:
+        content_lines.append(f"  - DID:          {did_identity}")
+    content_lines.append(f"  - Detail:       {identity_detail}")
+    content_lines.append("")
+
+    # Fact Layer (seal) — objective proofs; valid seal alone is not identity
+    content_lines.append("[bold underline]SEAL (Objective Proofs — not identity)[/bold underline]")
     i_color = "green" if integrity_ok else "red"
     content_lines.append(
         f"  [{i_color}]- Integrity:    {'Verified' if integrity_ok else 'FAILED'}[/{i_color}]"
@@ -891,9 +1081,47 @@ def print_trust_report(report: dict, epi_file: Path, verbose: bool = False):
     s_text = "Valid" if signature_valid else ("Unsigned" if signature_valid is None else "INVALID")
     content_lines.append(f"  [{s_color}]- Signature:    {s_text}[/{s_color}]")
 
-    f_color = "green" if (sequence_ok and completeness_ok and chain_ok) else "red"
-    f_text = "PASS" if (sequence_ok and completeness_ok and chain_ok) else "FAIL"
-    content_lines.append(f"  [{f_color}]- Forensic:     {f_text}[/{f_color}]")
+    f_ok = sequence_ok and completeness_ok and chain_ok
+    f_color = "green" if f_ok else "red"
+    f_text = "PASS" if f_ok else "FAIL"
+    f_reason = (
+        facts.get("forensic_reason")
+        or report.get("forensic_reason")
+        or ""
+    )
+    if not f_ok and not f_reason:
+        gaps = facts.get("completeness_gaps") or report.get("completeness_gaps") or []
+        if gaps:
+            f_reason = str(gaps[0])
+        elif not chain_ok:
+            f_reason = "prev_hash chain broken"
+        elif not sequence_ok:
+            f_reason = "step sequence invalid"
+        elif not completeness_ok:
+            f_reason = "step sequence incomplete (e.g. tool.call without tool.response)"
+    if f_ok:
+        content_lines.append(f"  [{f_color}]- Forensic:     {f_text}[/{f_color}]")
+    else:
+        detail = f" — {f_reason}" if f_reason else ""
+        content_lines.append(f"  [{f_color}]- Forensic:     {f_text}{detail}[/{f_color}]")
+
+    # Notarization status — RFC 3161 timestamp evidence
+    notarization_status = "dim]Not available"
+    try:
+        epi_path = Path(epi_file) if isinstance(epi_file, str) else epi_file
+        from zipfile import ZipFile
+        with ZipFile(epi_path, "r") as zf:
+            if "artifacts/notarization/notarization.json" in zf.namelist():
+                notar_data = json.loads(zf.read("artifacts/notarization/notarization.json"))
+                provider = (notar_data.get("notarized_at") or {}).get("provider", "unknown")
+                tsa_url = (notar_data.get("notarized_at") or {}).get("url", "")
+                notarization_status = f"green]Timestamped ({provider})"
+                if tsa_url:
+                    notarization_status += f" via {tsa_url}"
+    except Exception:
+        pass
+    content_lines.append(f"  - Notarized:    [{notarization_status}")
+
     if not chain_ok:
         content_lines.append("  [red]- Chain:        BROKEN (prev_hash mismatch)[/red]")
 
@@ -903,25 +1131,6 @@ def print_trust_report(report: dict, epi_file: Path, verbose: bool = False):
         t_color = "green" if transparency_ok else "red"
         t_text = "VERIFIED" if transparency_ok else "FAILED"
         content_lines.append(f"  [{t_color}]- Transparency: {t_text} (SCITT)[/{t_color}]")
-
-    content_lines.append("")
-
-    # Identity Layer
-    content_lines.append("[bold underline]IDENTITY (Trust Context)[/bold underline]")
-    if identity_status == "KNOWN":
-        id_color = "green"
-    elif identity_status in ("REVOKED", "MISMATCH"):
-        id_color = "red"
-    else:
-        id_color = "yellow"
-    content_lines.append(f"  [{id_color}]- Status:       {identity_status}[/{id_color}]")
-    content_lines.append(f"  - Name:         {identity_name or 'Unknown'}")
-    if public_key_id:
-        content_lines.append(f"  - Key ID:       {public_key_id}...")
-    did_identity = identity.get("did") if isinstance(identity, dict) else None
-    if did_identity:
-        content_lines.append(f"  - DID:          {did_identity}")
-    content_lines.append(f"  - Source:       {identity_detail}")
 
     # AIUC-1 Domain Layer
     aiuc1_data = report.get("aiuc1")
@@ -951,6 +1160,34 @@ def print_trust_report(report: dict, epi_file: Path, verbose: bool = False):
         content_lines.append("[bold yellow]Warnings:[/bold yellow]")
         for w in report["warnings"]:
             content_lines.append(f"  [yellow]![/yellow] {w}")
+
+    # Pin / strict guidance when seal is valid but signer is not org-pinned
+    if (
+        signature_valid is True
+        and id_upper in ("UNKNOWN", "LOCAL", "")
+        and decision_status in ("WARN", "PASS")
+    ):
+        content_lines.append("")
+        if id_upper == "LOCAL":
+            content_lines.append(
+                "[dim]Seal is cryptographically valid. Identity is LOCAL (key on this PC) — "
+                "not an org trust pin. A full re-sign forgery also looks like this.[/dim]"
+            )
+        else:
+            content_lines.append(
+                "[dim]Seal is cryptographically valid. Identity is not pinned — "
+                "anyone can re-sign a rebuilt chain with a fresh key.[/dim]"
+            )
+        content_lines.append(
+            f'[dim]  epi keys trust "{epi_file}" --name sealer[/dim]'
+        )
+        content_lines.append(
+            f'[dim]  epi verify "{epi_file}" --policy strict[/dim]'
+        )
+        content_lines.append(
+            "[dim]For insurers / claim acceptance: always use --policy strict "
+            "(FAIL until org pin).[/dim]"
+        )
 
     content = "\n".join(content_lines)
 

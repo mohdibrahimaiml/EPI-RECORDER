@@ -6,23 +6,27 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import sys
 import urllib.error
 import urllib.parse
 import urllib.request
 import webbrowser
 from pathlib import Path
+from typing import Any
 
 import typer
 from rich.console import Console
 
 from epi_core.artifact_inspector import ArtifactInspectionError, ensure_shareable_artifact
 from epi_core.container import EPIContainer
+from epi_core.time_utils import utc_now_iso
 from epi_cli.view import _resolve_epi_file
+from epi_core import telemetry as telemetry_core
 
 console = Console()
 
-DEFAULT_SHARE_API_URL = "https://api.epilabs.org"
+DEFAULT_SHARE_API_URL = "https://epi-verify-portal.onrender.com"
 MAX_LOCAL_SHARE_BYTES = 5 * 1024 * 1024
 
 
@@ -46,15 +50,87 @@ def _parse_error_body(exc: urllib.error.HTTPError) -> str:
     return payload.get("detail") or payload.get("error") or exc.reason or f"HTTP {exc.code}"
 
 
+def _offline_share_dir(*, local_mode: bool = False) -> Path | None:
+    if local_mode:
+        raw = os.getenv("EPI_SHARE_OFFLINE")
+        if raw:
+            return Path(raw).expanduser().resolve()
+        default = Path.home() / ".epi" / "shares"
+        default.mkdir(parents=True, exist_ok=True)
+        return default
+    raw = os.getenv("EPI_SHARE_OFFLINE")
+    if not raw:
+        return None
+    return Path(raw).expanduser().resolve()
+
+
+def _share_offline(
+    epi_file: Path,
+    expires: int,
+    inspection: Any,
+    json_output: bool,
+) -> None:
+    share_dir = _offline_share_dir(local_mode=True)
+    assert share_dir is not None
+    share_dir.mkdir(parents=True, exist_ok=True)
+
+    timestamp = utc_now_iso().replace(":", "-").replace("+", "_")
+    dest_name = f"{epi_file.stem}_{timestamp}{epi_file.suffix}"
+    dest_path = share_dir / dest_name
+    shutil.copy2(epi_file, dest_path)
+
+    sidecar = {
+        "created_at": utc_now_iso(),
+        "expires_days": expires,
+        "filename": epi_file.name,
+        "local_path": str(dest_path),
+        "local_url": dest_path.as_uri(),
+        "size_bytes": dest_path.stat().st_size,
+        "offline": True,
+    }
+    sidecar_path = share_dir / f"{dest_name}.share.json"
+    sidecar_path.write_text(json.dumps(sidecar, indent=2), encoding="utf-8")
+
+    payload_bytes = epi_file.read_bytes()
+    try:
+        telemetry_core.record_first_use()
+        telemetry_core.track_event(
+            "epi.share.completed",
+            {
+                "command": "share",
+                "source": "cli",
+                "success": True,
+                "offline": True,
+                "artifact_count": 1,
+                "artifact_bytes": len(payload_bytes),
+            },
+        )
+    except Exception:
+        pass
+
+    if json_output:
+        sys.stdout.write(json.dumps(sidecar, indent=2) + "\n")
+        raise typer.Exit(0)
+
+    console.print("[green][OK][/green] Artifact saved to offline share directory")
+    console.print(f"[cyan]{dest_path.as_uri()}[/cyan]")
+    console.print(f"[dim]Local path: {dest_path}[/dim]")
+    console.print(f"[dim]Link expires in {expires} days.[/dim]")
+    if inspection.signature_valid is None:
+        console.print("[dim]This artifact is unsigned but its integrity was checked locally before saving.[/dim]")
+    raise typer.Exit(0)
+
+
 def share(
     file: Path = typer.Argument(..., exists=False, dir_okay=False, help="Path to the .epi file to share."),
     expires: int = typer.Option(30, "--expires", min=1, help="Days until the share link expires (max 30)."),
     json_output: bool = typer.Option(False, "--json", help="Print the share response as JSON."),
     no_open: bool = typer.Option(False, "--no-open", help="Do not open the hosted share link in your browser."),
+    local: bool = typer.Option(False, "--local", help="Share offline to local directory instead of uploading to cloud."),
     api_base_url: str | None = typer.Option(
         None,
         "--api-base-url",
-        help="Override the share API base URL (default: EPI_SHARE_API_URL or https://api.epilabs.org).",
+        help="Override the share API base URL (default: EPI_SHARE_API_URL or https://epi-verify-portal.onrender.com).",
     ),
 ):
     """
@@ -70,7 +146,18 @@ def share(
         console.print(f"[red][FAIL][/red] {exc}")
         raise typer.Exit(1) from exc
 
+    if local:
+        _share_offline(resolved_file, expires, inspection, json_output)
+
     api_root = _resolve_share_api_base_url(api_base_url)
+
+    if _offline_share_dir() is not None:
+        _share_offline(resolved_file, expires, inspection, json_output)
+
+    from epi_cli._shared import require_service
+
+    require_service(api_root, label="EPI share service")
+
     request_url = f"{api_root}/api/share?{urllib.parse.urlencode({'expires_days': expires})}"
     payload_bytes = resolved_file.read_bytes()
     request = urllib.request.Request(
@@ -96,12 +183,34 @@ def share(
         console.print("[dim]To fix this, either:[/dim]")
         console.print("[dim]  • Deploy the EPI gateway and set EPI_SHARE_API_URL=http://your-host:8765[/dim]")
         console.print("[dim]  • Use --api-base-url http://your-gateway-host:8765[/dim]")
-        console.print("[dim]  • Deploy api.epilabs.org (see docs/internal/HOSTED-PILOT-RUNBOOK.md)[/dim]")
+        console.print("[dim]  • Deploy epi-verify-portal.onrender.com (see docs/internal/HOSTED-PILOT-RUNBOOK.md)[/dim]")
         raise typer.Exit(1) from exc
 
     if json_output:
         sys.stdout.write(json.dumps(response_payload, indent=2) + "\n")
         raise typer.Exit(0)
+
+    # Privacy-first opt-in telemetry for share flow.
+    try:
+        telemetry_core.record_first_use()
+        telemetry_core.track_event(
+            "epi.share.completed",
+            {
+                "command": "share",
+                "source": "cli",
+                "success": True,
+                "artifact_count": 1,
+                "artifact_bytes": len(payload_bytes),
+            },
+        )
+    except Exception:
+        pass
+
+    try:
+        from epi_cli.telemetry_hint import maybe_print_telemetry_hint
+        maybe_print_telemetry_hint(console, "share")
+    except Exception:
+        pass
 
     console.print("Uploading... [green]done[/green]")
     console.print("")

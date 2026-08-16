@@ -27,11 +27,24 @@ venv/
 ENV/
 env/
 .venv
+.venv/
+.venv-*/
 .venv-release/
 .venv-normal-user/
 .venv-e2e/
+.venv-311-test/
+.test_fresh/
 ci_check_env/
 tmp_debug_env/
+fresh_user_env/
+dist-test/
+scratch/
+scratch_clone/
+# Customer-named / live-ops artifacts must never re-enter the tree
+agicomply*.epi
+paddle-catalog-live.json
+# Website sandbox only — production source is website/
+website-v2/
 .tmp-*
 .tmp-*/**
 .tmp/
@@ -67,6 +80,15 @@ installer/windows/Output/
 
 # EPI-specific
 *.epi
+# Allow documented sample artifacts in docs/, examples/, and site/assets/demo/
+!docs/assets/*.epi
+!site/assets/demo/*.epi
+!examples/*.epi
+
+# Allow HTML files in site, website, and examples
+!examples/*.html
+# Allow deterministic test vectors
+!tests/test_vectors/*.epi
 .epi/
 temp_epi_*/
 epi-recordings/
@@ -153,16 +175,54 @@ v2.8.5.ipynb
 !pyproject.toml
 *.html
 !docs/index.html
+!website/*.html
+!website/**/*.html
+!site/*.html
+!site/**/*.html
 !epi_viewer_static/*.html
 !web_viewer/*.html
 !verify_portal/static/*.html
+!verify_portal/static/admin/*.html
 !verify_portal/static/assets/*.html
 !verify_portal/static/cases/*.html
 !verify_portal/static/epi-viewer/*.html
 !verify_portal/static/viewer/*.html
 !verify_portal/static/verify/*.html
+!verify_portal/static/blog/*.html
+!verify_portal/static/blog/posts/*.html
+!blog/templates/*.html
 .aider*
 data/ 
+
+# Eval workspaces
+.eval_workspace/
+audit_sandbox/
+epi-official-check/
+epi-official-fresh/
+fresh_pristine_eval/
+github_clone/
+scratch_clone/
+guardrails-fork/
+
+# Temp scripts
+_gen.py
+_portal_upgrade.py
+.tmp_live_*
+
+# Runtime generated
+
+# JS untracked
+verify_portal/static/js/
+
+# Runtime review artifacts
+review/artifacts/
+
+epi_bootstrap_*
+.epi_temp_*
+epi_policy.json
+# Local agent noise
+.commandcode/
+
 
 # wrangler files
 .wrangler

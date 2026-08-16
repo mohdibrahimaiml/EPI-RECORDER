@@ -65,9 +65,9 @@ def audit_artifact(
     steps = _read_steps(epi_path)
 
     # 1. Cryptographic integrity
-    sig_valid = verify_embedded_manifest_signature(epi_path)
+    sig_valid, signer_name, _sig_message = verify_embedded_manifest_signature(manifest)
     report["pipeline"]["cryptographic"] = {
-        "signature_valid": sig_valid,
+        "signature_valid": sig_valid is True,
         "integrity_checked": True,
         "container_format": EPIContainer.detect_container_format(epi_path),
     }
@@ -76,7 +76,7 @@ def audit_artifact(
     ver_report = create_verification_report(
         integrity_ok=True,
         signature_valid=sig_valid,
-        signer_name=manifest.signature.split(":")[1] if manifest.signature else "unknown",
+        signer_name=signer_name or "unknown",
         mismatches={},
         manifest=manifest,
         trusted_registry=TrustRegistry(),
@@ -84,7 +84,7 @@ def audit_artifact(
     )
     applicable = apply_policy(ver_report, policy)
     report["pipeline"]["verification"] = {
-        "trust_level": applicable.trust_level,
+        "trust_level": applicable["trust_level"],
         "policy": str(policy.name),
         "integrity": ver_report["summary"]["integrity"],
     }
@@ -144,6 +144,20 @@ def audit_artifact(
     except Exception:
         report["pipeline"]["human_review"] = {"status": "unavailable"}
 
+    # ANNEX IV PIPELINE
+    try:
+        annex_members = EPIContainer.list_members(epi_path)
+        files = [m for m in annex_members if m.startswith("artifacts/annex_iv/")]
+        signed = 0
+        for am in files:
+            data = json.loads(EPIContainer.read_member_text(epi_path, am))
+            if data.get("approval",{}).get("signature"):
+                signed += 1
+        report["pipeline"]["annex_iv"] = {"status": "present", "files": len(files), "signed": signed}
+    except Exception as exc:
+        report["pipeline"]["annex_iv"] = {"status": "unavailable", "error": str(exc)}
+    # human_review already populated above
+
     # 7. Overall compliance score
     passing = sum(
         1 for d in aiuc1_sum.get("domains", {}).values()
@@ -167,6 +181,7 @@ def audit_artifact(
         "max": max_score,
         "percentage": round(score / max_score * 100),
         "rating": _score_to_rating(score / max_score),
+        "note": "EPI's proprietary scoring methodology — not a published industry standard.",
     }
 
     return report
@@ -187,7 +202,7 @@ def _score_to_rating(ratio: float) -> str:
         return "substantial"
     if ratio >= 0.5:
         return "partial"
-    return "insufficient"
+    return "basic — unsigned demo artifact"
 
 
 def _render_rich(report: dict) -> str:
@@ -215,7 +230,7 @@ def _render_rich(report: dict) -> str:
     ))
 
     # AIUC-1 domains
-    table = Table(title="AIUC-1 Trust Domains")
+    table = Table(title="AIUC-1 Trust Domains (EPI's proprietary scoring methodology)")
     table.add_column("Domain", style="bold")
     table.add_column("Status")
     table.add_column("Evidence")
@@ -279,7 +294,7 @@ def _render_markdown(report: dict) -> str:
         f"**Score:** {score['score']}/{score['max']} ({score['percentage']}%) — **{score['rating'].upper()}**",
         f"**Timestamp:** {report['audit_timestamp']}",
         "",
-        "## AIUC-1 Trust Domains",
+        "## AIUC-1 Trust Domains (EPI's proprietary scoring methodology)",
         "",
         "| Domain | Status | Evidence |",
         "|---|---|---|",
