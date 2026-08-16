@@ -16,34 +16,130 @@ def _repo_root() -> Path:
 
 
 def _read_text(package_dir: str, filename: str) -> str | None:
+    fallback = _repo_root() / package_dir / filename
+    if fallback.exists():
+        return fallback.read_text(encoding="utf-8")
     try:
         return resources.files(package_dir).joinpath(filename).read_text(encoding="utf-8")
     except Exception:
-        fallback = _repo_root() / package_dir / filename
-        if fallback.exists():
-            return fallback.read_text(encoding="utf-8")
         return None
 
 
 def load_viewer_assets(version: str = "1.0") -> dict[str, str | None]:
-    return {
+    assets = {
         "template_html": _read_text("web_viewer", "index.html"),
         "jszip_js": _read_text("web_viewer", "jszip.min.js"),
         "app_js": _read_text("web_viewer", "app.js"),
         "css_styles": _read_text("web_viewer", "styles.css"),
         "crypto_js": _read_text("epi_viewer_static", "crypto.js"),
     }
+    _validate_app_js(assets["app_js"])
+    return assets
+
+
+def _validate_app_js(app_js: str | None) -> None:
+    """Validate app.js before it gets inlined into any viewer.
+    
+    Catches syntax errors (like doubled braces) and missing critical functions
+    at build time instead of at browser runtime.
+    """
+    if not app_js:
+        return
+    
+    import sys
+    
+    errors: list[str] = []
+    
+    # 1. Brace balance check for every key function
+    functions_to_check = [
+        "buildReviewedArtifactBytes",
+        "buildReviewedFromOriginal",
+        "summarizeStep",
+        "renderVerdict",
+        "renderAnalysis",
+        "renderGovernance",
+        "renderIntegrity",
+    ]
+    for func_name in functions_to_check:
+        idx = app_js.find(f"function {func_name}")
+        if idx < 0:
+            idx = app_js.find(f"async function {func_name}")
+        if idx < 0:
+            continue
+        # Find next function or end of script
+        next_func = len(app_js)
+        for marker in ["function ", "async function "]:
+            pos = app_js.find(marker, idx + len(func_name) + 20)
+            if pos > 0 and pos < next_func:
+                next_func = pos
+        body = app_js[idx:next_func]
+        opens = body.count("{")
+        closes = body.count("}")
+        if opens != closes:
+            errors.append(
+                f"Brace mismatch in {func_name}: {opens} open, {closes} close"
+            )
+    
+    # 2. Critical: old bug pattern must not return
+    if "delete manifest.signature" in app_js:
+        errors.append(
+            "FATAL: 'delete manifest.signature' found in app.js — "
+            "this destroys cryptographic integrity during Sign & Seal"
+        )
+
+    # Exact punt UI string (not comments that merely mention the bug by name)
+    if "sigEl.textContent = 'OPEN VIA EPI VIEW TO VERIFY'" in app_js or (
+        'sigEl.textContent = "OPEN VIA EPI VIEW TO VERIFY"' in app_js
+    ):
+        errors.append(
+            "FATAL: signature UI still assigns OPEN VIA EPI VIEW TO VERIFY — "
+            "standalone export-html must run real client-side signature verification"
+        )
+
+    if "function verifyCaseInBrowser" not in app_js and "async function verifyCaseInBrowser" not in app_js:
+        errors.append(
+            "FATAL: 'verifyCaseInBrowser' missing from app.js — "
+            "export-html / embedded viewers cannot prove signatures offline"
+        )
+    
+    # 3. Critical: new function must exist
+    if "buildReviewedFromOriginal" not in app_js:
+        errors.append(
+            "FATAL: 'buildReviewedFromOriginal' missing from app.js — "
+            "Sign & Seal will produce corrupted artifacts"
+        )
+    
+    if "buildReviewedArtifactBytes" not in app_js:
+        errors.append(
+            "FATAL: 'buildReviewedArtifactBytes' missing from app.js"
+        )
+    
+    if errors:
+        msg = "app.js validation failed:\n  " + "\n  ".join(errors)
+        print(f"[EPI] {msg}", file=sys.stderr)
+        raise RuntimeError(msg)
 
 
 def _escape_inline_script_source(script_source: str | None) -> str | None:
     if script_source is None:
         return None
-    return re.sub(
-        r"</(script)",
-        lambda match: "<\\/" + match.group(1),
+    BS = chr(92)  # backslash character \
+    # Escape "</script>" -> "</" + BS + "x2fscript>"
+    script_source = re.sub(
+        r"</(script>)",
+        lambda m: "</" + BS + "x2f" + m.group(1),
         script_source,
         flags=re.IGNORECASE,
     )
+    # Escape "<script" (followed by space, >, or word boundary) 
+    # -> BS + "x3c" + "script" + rest
+    script_source = re.sub(
+        r"<(script[\b\s>])",
+        lambda m: BS + "x3c" + m.group(1),
+        script_source,
+        flags=re.IGNORECASE,
+    )
+    return script_source
 
 
 def inline_viewer_assets(
@@ -62,7 +158,7 @@ def inline_viewer_assets(
     air-gapped review flows while still allowing a small preload payload to be
     injected ahead of the runtime scripts.
     """
-    html = template_html
+    html = template_html.replace("\r\n", "\n")
     jszip_js = _escape_inline_script_source(jszip_js)
     crypto_js = _escape_inline_script_source(crypto_js)
     app_js = _escape_inline_script_source(app_js)

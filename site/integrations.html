@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Integrations — EPI Labs</title>
+<meta name="description" content="Wire EPI into OpenAI, Anthropic, LangChain, LangGraph, LiteLLM, OpenTelemetry, pytest, and AGT. Capture agent runs into sealed .epi files.">
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="css/epi.css?v=30">
+<link rel="stylesheet" href="css/epi-v2.css?v=10">
+<link rel="stylesheet" href="css/polish.css?v=4">
+<link rel="stylesheet" href="css/wow.css?v=5">
+<link rel="stylesheet" href="css/mobile.css?v=2">
+<style>
+.int-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:28px 0}
+.int-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:18px 16px}
+.int-card h3{margin:0 0 8px;font-size:.95rem;color:var(--ink)}
+.int-card p{margin:0;font-size:.85rem;color:var(--ink-muted);line-height:1.5}
+.int-card code{font-size:.78rem}
+</style>
+<script>
+(function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();
+</script>
+</head>
+<body class="epi-instrument">
+<nav id="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo"><img src="assets/logo.png" alt="EPI Labs"></a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="/verify/">Verify</a></li>
+      <li><a href="/how-it-works">Docs</a></li>
+      <li><a href="/pricing">Pricing</a></li>
+      <li><a href="/enterprise">Enterprise</a></li>
+      <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
+      <li id="nav-auth-slot"></li>
+      <li><button type="button" class="theme-toggle-nav" id="themeToggleNav" data-theme-toggle aria-label="Toggle color theme" title="Toggle theme">&#9788;</button></li>
+
+    </ul>
+    <button type="button" class="nav-mob" id="mobBtn" aria-label="Menu"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+<div class="mob-menu" id="mobMenu" hidden>
+  <a href="/verify/">Verify</a><a href="/how-it-works">Docs</a><a href="/pricing">Pricing</a>
+  <a href="/enterprise">Enterprise</a>
+  </div>
+
+<main class="page-main">
+  <div class="section-label">Integrations</div>
+  <h1>Capture from your stack</h1>
+  <p>EPI does not replace your agent framework. It wraps or hooks the run so steps land in a sealed <code>.epi</code>. Core package is Python 3.11+; many integrations are optional extras.</p>
+
+  <div class="int-grid">
+    <div class="int-card"><h3>OpenAI</h3><p><code>wrap_openai(OpenAI())</code> — chat capture, streaming-aware paths with known limits.</p></div>
+    <div class="int-card"><h3>Anthropic</h3><p><code>wrap_anthropic(...)</code> — same wrap pattern for Messages API.</p></div>
+    <div class="int-card"><h3>LiteLLM</h3><p>Global callbacks via <code>enable_epi</code> for multi-provider routing.</p></div>
+    <div class="int-card"><h3>LangChain</h3><p><code>EPICallbackHandler</code> on chains/agents.</p></div>
+    <div class="int-card"><h3>LangGraph</h3><p>Checkpoint / <code>record_langgraph</code> helpers.</p></div>
+    <div class="int-card"><h3>OpenTelemetry</h3><p><code>EPISpanExporter</code> — bridge spans into steps.</p></div>
+    <div class="int-card"><h3>pytest</h3><p><code>pytest --epi</code> plugin — evidence from tests / CI.</p></div>
+    <div class="int-card"><h3>AGT</h3><p>Import/export adapters for AGT-shaped traces.</p></div>
+    <div class="int-card"><h3>Guardrails</h3><p>Optional bridge package for guardrail events.</p></div>
+    <div class="int-card"><h3>Gateway proxy</h3><p>Self-host LLM proxy capture (OpenAI-compatible / Anthropic) via <code>epi gateway</code>.</p></div>
+  </div>
+
+  <h2>Minimal path</h2>
+  <pre><code>pip install epi-recorder
+# optional: pip install epi-recorder[openai]
+
+from openai import OpenAI
+from epi_recorder import record, wrap_openai
+
+client = wrap_openai(OpenAI())
+with record("agent.epi", goal="demo"):
+    client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": "Hello"}],
+    )</code></pre>
+
+  <p style="margin-top:24px">
+    <a href="https://github.com/mohdibrahimaiml/epi-recorder" style="color:var(--signal);font-weight:600">Examples &amp; docs on GitHub →</a>
+    · <a href="/trust" style="color:var(--accent);font-weight:600">Trust model</a>
+  </p>
+</main>
+
+<script src="js/instrument-nav.js"></script>
+<script src="js/auth-ui.js"></script>
+
+<script src="js/theme.js"></script>
+<script src="js/instrument-nav.js"></script>
+<script src="js/auth-ui.js"></script>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <img src="assets/logo.png" alt="EPI Labs" class="footer-logo">
+        <span class="footer-copy">&copy; 2026 EPI LABS. MIT License. Built in India. Engineered for the world.</span>
+      </div>
+      <ul class="footer-links">
+        <li><a href="/verify/">Verify</a></li>
+        <li><a href="/pricing">Pricing</a></li>
+        <li><a href="/enterprise">Enterprise</a></li>
+        <li><a href="/account">Account</a></li>
+        <li><a href="/how-it-works">Docs</a></li>
+        <li><a href="/trust">Trust</a></li>
+        <li><a href="/integrations">Integrations</a></li>
+        <li><a href="/use-cases">Use cases</a></li>
+        <li><a href="/status">Status</a></li>
+        <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="/terms">Terms</a></li>
+        <li><a href="/privacy">Privacy</a></li>
+        <li><a href="/refund">Refunds</a></li>
+        <li><a href="mailto:mohdibrahim@epilabs.org">Contact</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<script src="js/wow.js?v=2"></script>
+</body>
+</html>

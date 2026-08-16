@@ -90,6 +90,7 @@ def get_canonical_hash(
     # backward compatibility with legacy artifacts that do not contain this field.
     if model.__class__.__name__ == "StepModel":
         model_dict.pop("source_type", None)
+        model_dict.pop("verification_class", None)
 
     # Normalize datetime and UUID fields to strings
     def normalize_value(value: Any) -> Any:
@@ -128,7 +129,6 @@ def get_canonical_hash(
     if model.__class__.__name__ == "StepModel":
         return _get_json_canonical_hash(model_dict)
 
-    # Auto-detect from spec_version when no override is given
     spec_version = model_dict.get("spec_version", "")
     try:
         # Strip any leading "v" (e.g. "v2.0" → "2.0") before parsing

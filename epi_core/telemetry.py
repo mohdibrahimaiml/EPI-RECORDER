@@ -18,10 +18,11 @@ from typing import Any
 from uuid import uuid4
 
 from epi_core import __version__
+from epi_core import identity_signals
 from epi_core.time_utils import utc_now_iso
 
-DEFAULT_TELEMETRY_URL = "https://api.epilabs.org/api/telemetry/events"
-DEFAULT_PILOT_SIGNUP_URL = "https://api.epilabs.org/api/telemetry/pilot-signups"
+DEFAULT_TELEMETRY_URL = "https://epi-verify-portal.onrender.com/api/telemetry/events"
+DEFAULT_PILOT_SIGNUP_URL = "https://epi-verify-portal.onrender.com/api/telemetry/pilot-signups"
 TELEMETRY_SCHEMA_VERSION = "telemetry/v1"
 PILOT_SIGNUP_SCHEMA_VERSION = "pilot-signup/v1"
 TELEMETRY_QUEUE_MAX_FAILURES = 3
@@ -32,12 +33,16 @@ TELEMETRY_ALLOWED_METADATA_KEYS = frozenset(
         "artifact_count",
         "ci",
         "command",
+        "email_domain",
         "error_type",
+        "github_org",
         "integration_type",
+        "org_id",
         "source",
         "source_command",
         "success",
         "target",
+        "user_id",
         "workflow_created",
     }
 )
@@ -276,6 +281,7 @@ def build_event(event_name: str, metadata: dict[str, Any] | None = None) -> dict
     if not _EVENT_NAME_RE.match(event_name):
         raise TelemetryError(f"invalid telemetry event name: {event_name!r}")
     install_id = get_install_id(create=True)
+    metadata = identity_signals.attach_identity_signals(metadata or {})
     return {
         "schema_version": TELEMETRY_SCHEMA_VERSION,
         "install_id": install_id,
@@ -507,3 +513,31 @@ def submit_pilot_signup(signup: dict[str, Any]) -> bool:
 
     save_pilot_signup(signup)
     return send_json(pilot_signup_url(), signup)
+
+
+def is_first_use_recorded() -> bool:
+    """Return True if this installation has already emitted epi.first_use."""
+    return bool(load_config().get("first_use_recorded"))
+
+
+def record_first_use() -> bool:
+    """Emit a one-time epi.first_use event if telemetry is enabled.
+
+    Returns True if the event was emitted (or was already recorded), False otherwise.
+    Network failures are ignored: the flag is set locally and the event is queued.
+    """
+    if not is_enabled():
+        return False
+    if is_first_use_recorded():
+        return True
+
+    config = load_config()
+    config["first_use_recorded"] = True
+    config["first_use_recorded_at"] = utc_now_iso()
+    save_config(config)
+
+    track_event(
+        "epi.first_use",
+        {"command": "first_use", "source": "cli", "success": True},
+    )
+    return True

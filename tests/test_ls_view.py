@@ -253,21 +253,30 @@ class TestOpenInBrowser:
     def test_calls_webbrowser_open(self, tmp_path):
         from epi_cli.view import _open_in_browser
         viewer = tmp_path / "viewer.html"
-        viewer.write_text("<html></html>")
+        viewer.write_text("<html>ok</html>")
         with patch("webbrowser.open") as mock_wb, \
-             patch("sys.platform", "linux"):
+             patch("sys.platform", "linux"), \
+             patch(
+                 "epi_cli.view._spawn_detached_viewer_server",
+                 return_value="http://127.0.0.1:9/viewer.html",
+             ):
             _open_in_browser(viewer)
         mock_wb.assert_called_once()
+        assert mock_wb.call_args[0][0].startswith("http://127.0.0.1:")
 
-    def test_windows_uses_startfile(self, tmp_path):
+    def test_windows_prefers_local_http_over_file(self, tmp_path):
+        """Detached localhost server — CLI returns immediately (no Enter wait)."""
         from epi_cli.view import _open_in_browser
         viewer = tmp_path / "viewer.html"
-        viewer.write_text("<html></html>")
+        viewer.write_text("<html>ok</html>")
         with patch("sys.platform", "win32"), \
-             patch("os.startfile") as mock_sf:
+             patch("webbrowser.open") as mock_wb, \
+             patch(
+                 "epi_cli.view._spawn_detached_viewer_server",
+                 return_value="http://127.0.0.1:9/viewer.html",
+             ):
             _open_in_browser(viewer)
-        mock_sf.assert_called_once_with(str(viewer))
-
+        mock_wb.assert_called_once_with("http://127.0.0.1:9/viewer.html")
 
 # ─────────────────────────────────────────────────────────────
 # view._cleanup_after_delay

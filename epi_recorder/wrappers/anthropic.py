@@ -69,6 +69,21 @@ class TracedMessages:
                 request_data["system"] = system
             
             session.log_step("llm.request", request_data)
+            session.log_step("llm.pre_commit", {
+                "provider": self._provider,
+                "model": model,
+                "message_count": len(messages),
+                "timestamp": utc_now_iso(),
+            })
+            try:
+                import hashlib
+                from epi_core.notarize import notarize_hash
+                pre_hash = hashlib.sha256(
+                    (str(model) + str(len(messages)) + utc_now_iso()).encode()
+                ).hexdigest()
+                self._last_pre_commit_ts = notarize_hash(pre_hash, label="llm.pre_commit")
+            except Exception:
+                self._last_pre_commit_ts = {"notarization_attempted": True, "notarization_status": "error"}
         
         # Call original method
         start_time = time.time()

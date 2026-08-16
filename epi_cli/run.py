@@ -542,6 +542,51 @@ def run(
         else:
             lines.append(f"[bold]Verified:[/bold] [red]{verify_msg}[/red]")
 
+    # Policy / fault snapshot from sealed analysis (no extra command for the user)
+    if not empty_recording:
+        try:
+            from epi_core.artifact_summary import build_artifact_run_summary
+
+            snap = build_artifact_run_summary(effective_out, signed=verified or None)
+            ps = snap.get("policy_status")
+            if ps == "applied":
+                pid = snap.get("policy_id") or "rulebook"
+                ev, failed = snap.get("rules_evaluated"), snap.get("rules_failed")
+                if ev is not None and failed is not None:
+                    pol_line = f"[bold]Policy:[/bold]   applied ({pid}) — {ev} rules, {failed} failed"
+                else:
+                    pol_line = f"[bold]Policy:[/bold]   applied ({pid})"
+                lines.append(pol_line)
+            elif ps == "missing":
+                lines.append(
+                    "[bold]Policy:[/bold]   [yellow]missing[/yellow] — heuristic only "
+                    "([cyan]epi policy init[/cyan] to add your rules)"
+                )
+            elif ps == "analysis_error":
+                lines.append(
+                    f"[bold]Policy:[/bold]   [yellow]analysis error[/yellow] — "
+                    f"{snap.get('analysis_error') or 'see stderr'}"
+                )
+            if snap.get("fault_detected") and snap.get("top_issue"):
+                issue = str(snap["top_issue"])
+                if len(issue) > 100:
+                    issue = issue[:97].rstrip() + "..."
+                lines.append(f"[bold]Issue:[/bold]    [yellow]{issue}[/yellow]")
+                if snap.get("review_required"):
+                    lines.append(
+                        f"[bold]Review:[/bold]   recommended — "
+                        f"[cyan]epi review {effective_out.name}[/cyan]"
+                    )
+            elif ps == "applied":
+                lines.append("[bold]Finding:[/bold]  no rule issues flagged")
+            elif ps == "missing":
+                lines.append(
+                    "[bold]Finding:[/bold]  no heuristic issues flagged "
+                    "[dim](not a compliance pass)[/dim]"
+                )
+        except Exception:
+            pass
+
     if viewer_opened:
         lines.append(f"[bold]Viewer:[/bold]   [green]Opened in browser[/green]")
     elif not no_open:

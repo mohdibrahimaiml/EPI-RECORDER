@@ -4,6 +4,7 @@ EPI CLI Main - Entry point for the EPI command-line interface.
 Provides the main CLI application with frictionless first-run experience.
 """
 
+import sys
 import tempfile
 import time
 
@@ -17,6 +18,10 @@ from epi_core.container import (
     EPI_CONTAINER_FORMAT_LEGACY,
 )
 
+def _is_interactive() -> bool:
+    return sys.stdin.isatty() if sys.stdin else False
+
+
 # Create callback that handles --version
 def version_callback(value: bool):
     if value:
@@ -27,55 +32,29 @@ def version_callback(value: bool):
 # Create Typer app
 app = typer.Typer(
     name="epi",
-    help="""EPI — Portable repro artifacts for AI agent runs.
+    help="""EPI — sealed portable evidence for AI agent runs.
 
-Try it now (no API key needed):
+Start here (no API key):
   epi demo
+  epi view <file.epi>
+  epi verify <file.epi>
 
-Already have Microsoft AGT evidence:
-  epi import agt <bundle-or-dir-or-manifest> --out sample.epi
+Everyday:
+  epi run <script.py>
+  epi export-html <file.epi>
+  epi export-summary <file.epi>
+  epi share <file.epi>
+  epi doctor
 
-No-install trial:
-  Open the Colab notebook from the README
-
-Review cases with your team:
+Team review:
   epi connect open
 
-Add to your code:
+In code:
   from epi_recorder import record, wrap_openai
-  from openai import OpenAI
-  client = wrap_openai(OpenAI())
   with record("my_agent.epi"):
-      client.chat.completions.create(...)
+      ...
 
-Then open it:
-  epi view my_agent.epi
-  epi verify my_agent.epi
-  epi share my_agent.epi
-
-Commands:
-  demo       Capture one sample run, open it in the browser, and verify it. Start here.
-  init       First-time setup wizard (framework picker: OpenAI, LiteLLM, LangChain...).
-  run        <script.py>   Record an already-instrumented Python script.
-  view       <file.epi>    Open a case file in the browser review view.
-  verify     <file.epi>    Cryptographic integrity check.
-  export-html <file.epi>   Export a standalone HTML file — share with anyone, no install needed.
-  share      <file.epi>    Upload a hosted share link for browser review.
-  review     <file.epi>    Add human review notes to a case file.
-  import     agt ...       Convert exported AGT evidence into a portable .epi case file.
-  analyze    <file.epi>    Show fault analysis summary.
-  policy     init          Create epi_policy.json with control rules.
-  chat       <file.epi>    Chat with evidence using AI.
-  debug      <file.epi>    Debug agent recordings for mistakes.
-  connect    open          Review cases with your team in the local browser workspace.
-  gateway    serve         Advanced: run the AI capture service.
-  ls                       List local recordings.
-  doctor                   Self-healing system health check.
-
-Tips:
-  - `epi demo` = `epi dev` (same command, friendlier name).
-  - Windows double-click: use the packaged installer or `epi associate`.
-  - Local LLMs: wrap_openai(OpenAI(base_url="http://localhost:11434/v1", api_key="ollama"))
+Help is grouped: Start here · Everyday · Team · Advanced.
 """,
     add_completion=False,
     no_args_is_help=True,
@@ -248,7 +227,7 @@ def _auto_repair_windows_association(interactive: bool, command_name: str | None
     if diag.get("status") == "OK" and diag.get("extension_progid") == "EPIRecorder.File":
         _mark_windows_association_probe()
         if interactive and is_critical:
-            console.print("[dim].epi double-click support checked on Windows.[/dim]")
+            console.print("[green][OK][/green] .epi file association registered. Double-click .epi files to open them.")
         return
 
     register_file_association(silent=True)
@@ -257,7 +236,7 @@ def _auto_repair_windows_association(interactive: bool, command_name: str | None
     _mark_windows_association_probe()
     if diag.get("status") == "OK" and diag.get("extension_progid") == "EPIRecorder.File":
         if interactive and is_critical:
-            console.print("[dim].epi double-click support checked on Windows.[/dim]")
+            console.print("[green][OK][/green] .epi file association registered. Double-click .epi files to open them.")
         return
 
     if interactive:
@@ -295,8 +274,20 @@ def main_callback(
     # Auto-register .epi file association (idempotent — skips if already done)
     _auto_repair_windows_association(interactive=interactive, command_name=ctx.invoked_subcommand)
 
+    # Ensure a stable install_id exists locally on first run (no network call).
+    # If telemetry is enabled, emit a cli_started event.
+    try:
+        from epi_core import telemetry as telemetry_core
+        telemetry_core.get_install_id(create=True)
+        telemetry_core.track_event(
+            "cli_started",
+            {"command": ctx.invoked_subcommand or "unknown", "source": "cli"},
+        )
+    except Exception:
+        pass
 
-@app.command()
+
+@app.command(rich_help_panel="Start here")
 def version():
     """Show EPI version information."""
     from epi_core import __version__
@@ -304,7 +295,7 @@ def version():
     console.print("[dim]Portable repro and trust review for AI workflows[/dim]")
 
 
-@app.command(name="help")
+@app.command(name="help", rich_help_panel="Start here")
 def show_help():
     """Show extended quickstart help."""
     help_text = """[bold cyan]EPI — Portable repro artifacts for AI agent runs[/bold cyan]
@@ -365,7 +356,7 @@ def show_help():
 
 # Export subcommands (epi export ...)
 export_app = typer.Typer(help="Export helpers")
-app.add_typer(export_app, name="export")
+app.add_typer(export_app, name="export", rich_help_panel="Advanced")
 
 
 @export_app.command(name="agt")
@@ -387,7 +378,7 @@ def export_agt(
 
 # Identity management (epi identity ...)
 identity_app = typer.Typer(help="Identity map commands (register/export/import)")
-app.add_typer(identity_app, name="identity")
+app.add_typer(identity_app, name="identity", rich_help_panel="Advanced")
 
 
 @identity_app.command(name="register")
@@ -421,7 +412,11 @@ def identity_import(infile: Path = typer.Argument(..., help="Path to mapping JSO
     console.print(f"Imported identity mapping from [cyan]{infile}[/cyan]")
 
 # NEW: run command (zero-config) - lazy import to keep read-only CLI startup fast
-@app.command(name="run", help="Record a Python workflow that already emits EPI steps.")
+@app.command(
+    name="run",
+    help="Record a Python workflow that already emits EPI steps.",
+    rich_help_panel="Everyday",
+)
 def run(
     script: Path = typer.Argument(None, help="Python script to record (Optional - Interactive if missing)"),
     no_verify: bool = typer.Option(False, "--no-verify", help="Skip verification"),
@@ -437,12 +432,16 @@ def run(
     return run_command(script, no_verify, no_open, goal, notes, metric, approved_by, tag)
 
 # Phase 1: verify command
-from typing import Annotated
+from typing import Annotated, Optional
 
 from epi_cli.verify import verify_command
 from epi_core.trust import VerificationPolicy
 
-@app.command(name="verify", help="Verify .epi file integrity, forensics, and policy-based trust")
+@app.command(
+    name="verify",
+    help="Verify .epi file integrity, forensics, and policy-based trust",
+    rich_help_panel="Start here",
+)
 def verify(
     ctx: typer.Context,
     epi_file: str = typer.Argument(..., help="Path to .epi file to verify"),
@@ -465,7 +464,11 @@ def verify(
     ),
     policy: Annotated[VerificationPolicy, typer.Option(
         "--policy",
-        help="Governance policy to apply: PERMISSIVE (integrity only), STANDARD (standard trust), STRICT (high assurance).",
+        help=(
+            "Governance policy: PERMISSIVE (integrity only), "
+            "STANDARD (dev default — unpinned identity is WARN, not claim-ready), "
+            "STRICT (enterprise/insurance — requires org-pinned sealer; use for claim acceptance)."
+        ),
     )] = VerificationPolicy.STANDARD,
     aiuc1: bool = typer.Option(
         False,
@@ -494,6 +497,7 @@ def verify(
     name="record",
     help="Advanced: record any command, exact output file.",
     context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+    rich_help_panel="Everyday",
 )
 def record(
     ctx: typer.Context,
@@ -513,7 +517,11 @@ def record(
 from epi_cli.view import view as view_command
 from epi_cli.view import export_html as export_html_command
 
-@app.command(name="view", help="Open a case file in the browser review view by default. Use --native to force the desktop viewer.")
+@app.command(
+    name="view",
+    help="Open a case file in the browser review view by default. Use --native to force the desktop viewer.",
+    rich_help_panel="Start here",
+)
 def view(
     ctx: typer.Context,
     epi_file: str = typer.Argument(..., help="Path or name of .epi file to view"),
@@ -524,7 +532,11 @@ def view(
     return view_command(ctx, epi_file, extract, browser, native)
 
 
-@app.command(name="export-html", help="Export a .epi file to a standalone HTML file that opens in any browser without installation.")
+@app.command(
+    name="export-html",
+    help="Export a .epi file to a standalone HTML file that opens in any browser without installation.",
+    rich_help_panel="Everyday",
+)
 def export_html(
     ctx: typer.Context,
     epi_file: str = typer.Argument(..., help="Path or name of .epi file to export as HTML"),
@@ -533,7 +545,11 @@ def export_html(
     return export_html_command(ctx, epi_file, output)
 
 
-@app.command(name="migrate", help="Convert a .epi artifact between legacy ZIP and envelope container formats.")
+@app.command(
+    name="migrate",
+    help="Convert a .epi artifact between legacy ZIP and envelope container formats.",
+    rich_help_panel="Advanced",
+)
 def migrate(
     epi_file: str = typer.Argument(..., help="Path or name of the source .epi file"),
     out: Path = typer.Option(..., "--out", help="Destination .epi file path"),
@@ -567,11 +583,43 @@ def migrate(
     console.print(f"[dim]To:[/dim] {target_format}")
 
 
-@app.command(name="refresh-viewer", help="Regenerate embedded viewer.html in existing .epi artifacts without changing sealed evidence.")
+@app.command(
+    name="refresh-viewer",
+    help="Regenerate embedded viewer.html. Re-seals signed artifacts (or writes --out unsigned).",
+    rich_help_panel="Advanced",
+)
 def refresh_viewer(
     target: Path = typer.Argument(..., help="A .epi file or a directory containing .epi files"),
     recursive: bool = typer.Option(False, "--recursive", help="Recurse into subdirectories when the target is a directory."),
+    out: Path | None = typer.Option(
+        None,
+        "--out",
+        "-o",
+        help="Write refreshed artifact to this path instead of overwriting in place (single-file only).",
+    ),
+    key: str = typer.Option(
+        "default",
+        "--key",
+        "-k",
+        help="Local key name used to re-seal after refresh (signed artifacts).",
+    ),
+    resign: bool = typer.Option(
+        True,
+        "--resign/--no-resign",
+        help="Re-sign after refresh when a local key is available (default: on).",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Allow unsigned result when re-sign is not possible (drops the old signature).",
+    ),
 ):
+    """Regenerate embedded viewer.html while keeping integrity hashes consistent.
+
+    Signed artifacts are re-sealed with the local key by default. Use
+    ``--no-resign --force`` only if you intentionally want an unsigned file, or
+    write a copy with ``--out``.
+    """
     files: list[Path] = []
 
     if target.is_file():
@@ -580,6 +628,9 @@ def refresh_viewer(
             raise typer.Exit(1)
         files = [target]
     elif target.is_dir():
+        if out is not None:
+            console.print("[red][X][/red] --out is only supported for a single .epi file, not a directory.")
+            raise typer.Exit(1)
         pattern = "**/*.epi" if recursive else "*.epi"
         files = sorted(path for path in target.glob(pattern) if path.is_file())
         if not files:
@@ -589,18 +640,77 @@ def refresh_viewer(
         console.print(f"[red][X][/red] Target not found: {target}")
         raise typer.Exit(1)
 
+    if out is not None and len(files) != 1:
+        console.print("[red][X][/red] --out requires exactly one input .epi file.")
+        raise typer.Exit(1)
+
     refreshed = 0
     failures: list[tuple[Path, str]] = []
+    unsigned_results = 0
 
     for artifact in files:
         try:
-            EPIContainer.refresh_viewer(artifact)
+            manifest = EPIContainer.read_manifest(artifact)
+            was_signed = bool(getattr(manifest, "signature", None))
+            signer_fn = None
+            clear_signature = False
+
+            if was_signed:
+                if resign:
+                    try:
+                        from epi_core.keys import KeyManager
+                        from epi_core.trust import sign_manifest
+
+                        km = KeyManager()
+                        if not km.has_key(key):
+                            raise FileNotFoundError(f"No local key named '{key}'")
+                        priv = km.load_private_key(key)
+
+                        def _sign(m, _priv=priv, _key=key):
+                            return sign_manifest(m, _priv, _key)
+
+                        signer_fn = _sign
+                    except Exception as key_exc:
+                        if force or out is not None:
+                            clear_signature = True
+                            console.print(
+                                f"[yellow][!][/yellow] {artifact.name}: could not re-sign "
+                                f"({key_exc}); writing without signature."
+                            )
+                        else:
+                            raise ValueError(
+                                f"Signed artifact needs re-seal after viewer refresh. "
+                                f"Install/use key '{key}', or pass --force / --out to drop the signature. "
+                                f"({key_exc})"
+                            ) from key_exc
+                else:
+                    if not force and out is None:
+                        raise ValueError(
+                            "Refusing to break a signed seal in place. "
+                            "Use --resign (default), or --no-resign --force, or --out."
+                        )
+                    clear_signature = True
+
+            destination = out if out is not None else artifact
+            EPIContainer.refresh_viewer(
+                artifact,
+                output_path=destination,
+                signer_function=signer_fn,
+                clear_signature=clear_signature,
+            )
+            if was_signed and signer_fn is None:
+                unsigned_results += 1
             refreshed += 1
         except Exception as exc:
             failures.append((artifact, str(exc)))
 
     if refreshed:
         console.print(f"[green][OK][/green] Refreshed embedded viewer in {refreshed} .epi file(s).")
+        if unsigned_results:
+            console.print(
+                f"[yellow][!][/yellow] {unsigned_results} file(s) are now unsigned "
+                "(signature cleared after viewer refresh)."
+            )
     if failures:
         for artifact, error in failures[:10]:
             console.print(f"[red][X][/red] {artifact}: {error}")
@@ -609,23 +719,32 @@ def refresh_viewer(
         raise typer.Exit(1)
 
 from epi_cli.share import share as share_command
-app.command(name="share", help="Upload a hosted share link for a portable .epi case file.")(share_command)
+app.command(
+    name="share",
+    help="Upload a hosted share link for a portable .epi case file.",
+    rich_help_panel="Everyday",
+)(share_command)
 
 # NEW: ls command
 from epi_cli.ls import ls as ls_command
-app.command(name="ls", help="List local recordings (./epi-recordings/)")(ls_command)
+app.command(name="ls", help="List local recordings (./epi-recordings/)", rich_help_panel="Everyday")(ls_command)
 
 # NEW: chat command (v2.1.3 - AI-powered evidence querying)
 from epi_cli.chat import chat as chat_command
-app.command(name="chat", help="Chat with your evidence file using AI")(chat_command)
+app.command(name="chat", help="Chat with your evidence file using AI", rich_help_panel="Advanced")(chat_command)
 
 # NEW: debug command (v2.2.0 - AI-powered mistake detection)
 from epi_cli.debug import debug as debug_command
-app.command(name="debug", help="Debug AI agent recordings for mistakes")(debug_command)
+app.command(name="debug", help="Debug AI agent recordings for mistakes", rich_help_panel="Advanced")(debug_command)
 
 # NEW: install/uninstall commands (v2.6.0 - global auto-recording)
 from epi_cli.install import app as install_app
-app.add_typer(install_app, name="global", help="Install/uninstall EPI auto-recording globally")
+app.add_typer(
+    install_app,
+    name="global",
+    help="Install/uninstall EPI auto-recording globally",
+    rich_help_panel="Advanced",
+)
 
 # NEW: fault intelligence commands (v2.8.0)
 from epi_cli.review import app as review_app
@@ -635,51 +754,184 @@ app.add_typer(
     help="Review fault analysis results for a saved case file",
     invoke_without_command=True,
     no_args_is_help=False,
+    rich_help_panel="Everyday",
 )
 
 from epi_cli.policy import app as policy_app
-app.add_typer(policy_app, name="policy", help="Create, explain, and validate epi_policy.json rule files")
+app.add_typer(
+    policy_app,
+    name="policy",
+    help="Create, explain, and validate epi_policy.json rule files",
+    rich_help_panel="Everyday",
+)
 
 from epi_cli.connect import app as connect_app
-app.add_typer(connect_app, name="connect", help="Launch or serve the local team review workspace and connector bridge")
+app.add_typer(
+    connect_app,
+    name="connect",
+    help="Launch or serve the local team review workspace and connector bridge",
+    rich_help_panel="Team",
+)
 
 from epi_cli.gateway import app as gateway_app
-app.add_typer(gateway_app, name="gateway", help="Advanced: run the open-source AI capture service")
+app.add_typer(
+    gateway_app,
+    name="gateway",
+    help="Advanced: run the open-source AI capture service",
+    rich_help_panel="Team",
+)
 
 from epi_cli.dev import app as dev_app
-app.add_typer(dev_app, name="dev", help="Zero-friction sample AI run -> browser repro -> verify flow")
+app.add_typer(
+    dev_app,
+    name="dev",
+    help="Zero-friction sample AI run -> browser repro -> verify flow",
+    rich_help_panel="Advanced",
+)
 # 'epi demo' is an alias for 'epi dev' for discoverability
-app.add_typer(dev_app, name="demo", help="Try EPI in 60 seconds — capture, open, share, verify. Alias for 'epi dev'.")
+app.add_typer(
+    dev_app,
+    name="demo",
+    help="Try EPI in 60s: record → seal → verify → view (no API key). Use --review for team inbox UI.",
+    rich_help_panel="Start here",
+)
 
-from epi_cli.export_summary import app as export_summary_app
-app.add_typer(export_summary_app, name="export-summary", help="Export a human-readable HTML or text summary of a .epi case file")
+from epi_cli.export_summary import export_summary_command
+app.command(
+    name="export-summary",
+    help="Export a human-readable HTML or text summary of a .epi case file",
+    rich_help_panel="Everyday",
+)(export_summary_command)
 
 from epi_cli.importer import app as import_app
-app.add_typer(import_app, name="import", help="Import external evidence into a sealed .epi case file")
+app.add_typer(
+    import_app,
+    name="import",
+    help="Import external evidence into a sealed .epi case file",
+    rich_help_panel="Advanced",
+)
 
 from epi_cli.telemetry import app as telemetry_app
-app.add_typer(telemetry_app, name="telemetry", help="Manage opt-in telemetry and pilot signup")
+app.add_typer(
+    telemetry_app,
+    name="telemetry",
+    help="Manage opt-in telemetry and pilot signup",
+    rich_help_panel="Team",
+)
+
+from epi_cli.auth_cmd import app as auth_app
+app.add_typer(auth_app, name="auth", help="EPI Cloud identity (optional)", rich_help_panel="Team")
+
+
+@app.command("join-pilot", rich_help_panel="Team")
+def join_pilot(
+    email: str = typer.Option("", "--email", help="Your email"),
+    name: str = typer.Option("", "--name", help="Your full name"),
+    org: str = typer.Option("", "--org", help="Your organization"),
+    role: str = typer.Option("", "--role", help="Your role"),
+    use_case: str = typer.Option(
+        "",
+        "--use-case",
+        help="Pilot use case: debugging | governance | compliance | agt integration | ci/cd | other",
+    ),
+    consent_to_contact: bool = typer.Option(False, "--consent-to-contact", help="Allow EPI to contact you"),
+) -> None:
+    """Join the EPI Pilot program. Telemetry will be enabled so we can link your install ID."""
+    from rich.prompt import Confirm, Prompt
+    from epi_core import telemetry as telemetry_core
+
+    telemetry_core.enable()
+
+    if _is_interactive():
+        if not email:
+            email = Prompt.ask("Email")
+        if not name:
+            name = Prompt.ask("Name", default="")
+        if not org:
+            org = Prompt.ask("Organization", default="")
+        if not role:
+            role = Prompt.ask("Role", default="")
+        if not use_case:
+            use_case = Prompt.ask(
+                "Use case",
+                choices=["debugging", "governance", "compliance", "agt integration", "ci/cd", "other"],
+                default="other",
+            )
+        if not consent_to_contact:
+            consent_to_contact = Confirm.ask("Allow EPI to contact you about the pilot", default=False)
+
+    try:
+        signup = telemetry_core.build_pilot_signup(
+            email=email,
+            org=org,
+            role=role,
+            use_case=use_case,
+            consent_to_contact=consent_to_contact,
+            link_telemetry=True,
+        )
+        if name:
+            signup["name"] = name.strip()[:200]
+    except telemetry_core.TelemetryError as exc:
+        console.print(f"[red][FAIL][/red] {exc}")
+        raise typer.Exit(1) from exc
+
+    delivered = telemetry_core.submit_pilot_signup(signup)
+    if delivered:
+        console.print("[green][OK][/green] Pilot signup submitted")
+    else:
+        console.print("[yellow][!][/yellow] Pilot signup saved locally; backend submission will retry later.")
+    console.print(f"[dim]Local signup: {telemetry_core.pilot_signup_path()}[/dim]")
 
 try:
     from epi_cli.scitt import app as scitt_app
-    app.add_typer(scitt_app, name="scitt", help="Register and verify SCITT transparency receipts")
+    app.add_typer(
+        scitt_app,
+        name="scitt",
+        help="Register and verify SCITT transparency receipts",
+        rich_help_panel="Advanced",
+    )
 except ImportError:
     pass  # cbor2 missing — should never happen since it's a core dependency
 
 try:
     from epi_cli.agt_cmd import app as agt_cmd_app
-    app.add_typer(agt_cmd_app, name="agt", help="AGT adapter — evidence receipts and raw audit imports")
+    app.add_typer(
+        agt_cmd_app,
+        name="agt",
+        help="AGT adapter — evidence receipts and raw audit imports",
+        rich_help_panel="Advanced",
+    )
 except ImportError:
     pass
 
 from epi_cli.integrate import integrate_command
-app.command(name="integrate", help="Generate EPI integration examples and CI workflows")(integrate_command)
+app.command(
+    name="integrate",
+    help="Generate EPI integration examples and CI workflows",
+    rich_help_panel="Advanced",
+)(integrate_command)
 
 from epi_cli.audit import audit_app
-app.add_typer(audit_app, name="audit", help="Run a self-audit on .epi artifacts producing machine-readable compliance reports")
+from epi_cli.annex import annex_app
+from epi_cli.notify import notify_app
+from epi_cli.enterprise import enterprise_app
+app.add_typer(annex_app, name="annex", help="Annex IV compliance artifacts", rich_help_panel="Advanced")
+app.add_typer(notify_app, name="notify", help="EU database notification", rich_help_panel="Advanced")
+app.add_typer(
+    audit_app,
+    name="audit",
+    help="Run a self-audit on .epi artifacts producing machine-readable compliance reports",
+    rich_help_panel="Advanced",
+)
+app.add_typer(
+    enterprise_app,
+    name="enterprise",
+    help="Enterprise evidence kit: org trust bootstrap and auditor packs",
+    rich_help_panel="Team",
+)
 
 
-@app.command()
+@app.command(rich_help_panel="Everyday")
 def analyze(
     epi_file: str = typer.Argument(..., help="Path or name of .epi file"),
     policy: Path | None = typer.Option(
@@ -832,7 +1084,7 @@ def analyze(
 
 
 # Windows file association commands
-@app.command()
+@app.command(rich_help_panel="Everyday")
 def associate(
     force: bool = typer.Option(False, "--force", help="Re-register even if already done"),
     system: bool = typer.Option(
@@ -950,7 +1202,7 @@ def _print_association_diagnostics(console):
             console.print(f"  [yellow]![/yellow] {issue}")
 
 
-@app.command()
+@app.command(rich_help_panel="Everyday")
 def unassociate():
     """Remove .epi file association from the OS."""
     from epi_core.platform.associate import unregister_file_association
@@ -959,47 +1211,180 @@ def unassociate():
         raise typer.Exit(1)
 
 # Phase 1: keys command (for manual key management)
-@app.command()
+@app.command(rich_help_panel="Everyday")
 def keys(
-    action: str = typer.Argument(..., help="Action: generate, list, or export"),
-    name: str = typer.Option("default", "--name", "-n", help="Key pair name"),
-    overwrite: bool = typer.Option(False, "--overwrite", help="Overwrite existing keys")
+    action: str = typer.Argument(
+        ...,
+        help="Action: generate, list, export, trust, revoke, bundle-export, bundle-import",
+    ),
+    key: Optional[str] = typer.Argument(None, help="Key name, path, or bundle path"),
+    name: str = typer.Option("default", "--name", "-n", help="Key pair or trusted key name"),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Overwrite existing keys"),
+    export_format: str = typer.Option("base64", "--format", "-f", help="Export format: base64 or hex"),
+    out: Optional[Path] = typer.Option(None, "--out", "-o", help="Output path (bundle-export)"),
 ):
-    """Manage Ed25519 key pairs for signing."""
+    """Manage Ed25519 key pairs and the local trust registry."""
     from epi_cli.keys import KeyManager, print_keys_table
-    
+    from epi_core.trust import TrustRegistry
+
     key_manager = KeyManager()
-    
+    trusted_keys_dir = TrustRegistry().trusted_keys_dir
+
     if action == "generate":
         try:
             private_path, public_path = key_manager.generate_keypair(name, overwrite=overwrite)
             console.print(f"\n[bold green][OK] Generated key pair:[/bold green] {name}")
             console.print(f"  [cyan]Private:[/cyan] {private_path}")
-            console.print(f"  [cyan]Public:[/cyan]  {public_path}\n")
+            console.print(f"  [cyan]Public:[/cyan]  {public_path}")
+            console.print(
+                "\n[dim]Tip: first [cyan]epi verify[/cyan] may WARN until verifiers run "
+                "[cyan]epi keys trust "
+                f"{name}[/cyan] (or [cyan]epi keys bundle-export[/cyan]).[/dim]\n"
+            )
         except FileExistsError as e:
             console.print(f"[red][FAIL] Error:[/red] {e}")
             raise typer.Exit(1)
-    
+
     elif action == "list":
         keys_list = key_manager.list_keys()
         print_keys_table(keys_list)
-    
+
     elif action == "export":
         try:
-            public_key_b64 = key_manager.export_public_key(name)
-            console.print(f"\n[bold]Public key for '{name}':[/bold] [dim](base64-encoded Ed25519 raw public key, 32 bytes)[/dim]")
-            console.print(f"[cyan]{public_key_b64}[/cyan]\n")
+            effective_name = key if key and name == "default" else name
+            public_key_b64 = key_manager.export_public_key(effective_name)
+            fmt = export_format.lower().strip()
+            if fmt == "hex":
+                import base64
+                public_key_out = base64.b64decode(public_key_b64).hex()
+                label = "hex-encoded Ed25519 raw public key (64 hex chars)"
+            elif fmt in ("base64", "b64"):
+                public_key_out = public_key_b64
+                label = "base64-encoded Ed25519 raw public key, 32 bytes"
+            else:
+                console.print(f"[red][FAIL] Unknown export format:[/red] {export_format}")
+                console.print("[dim]Valid formats: base64, hex[/dim]")
+                raise typer.Exit(1)
+            console.print(f"\n[bold]Public key for '{effective_name}':[/bold] [dim]({label})[/dim]")
+            console.print(f"[cyan]{public_key_out}[/cyan]\n")
         except FileNotFoundError as e:
             console.print(f"[red][FAIL] Error:[/red] {e}")
             raise typer.Exit(1)
-    
+
+    elif action == "trust":
+        if not key:
+            console.print("[red][FAIL] trust requires a key name, PEM path, or .epi path.[/red]")
+            console.print(
+                "[dim]Usage:[/dim]\n"
+                "[dim]  epi keys trust default[/dim]\n"
+                "[dim]  epi keys trust sealer.pub --name sealer[/dim]\n"
+                '[dim]  epi keys trust "C:\\path\\artifact.epi" --name sealer[/dim]\n'
+                "[dim]  (from .epi: pins manifest.public_key into ~/.epi/trusted_keys/)[/dim]"
+            )
+            raise typer.Exit(1)
+        try:
+            # For .epi sources, default trusted name to workflow/stem if --name left at default
+            trusted_name = None if name == "default" else name
+            source_path = Path(key)
+            if source_path.exists() and source_path.suffix.lower() == ".epi" and trusted_name is None:
+                try:
+                    from epi_core.container import EPIContainer
+
+                    man = EPIContainer.read_manifest(source_path)
+                    sig = getattr(man, "signature", None) or ""
+                    if isinstance(sig, str) and sig.startswith("ed25519:") and sig.count(":") >= 2:
+                        trusted_name = sig.split(":")[1][:32]
+                    else:
+                        trusted_name = source_path.stem[:32]
+                except Exception:
+                    trusted_name = source_path.stem[:32]
+
+            target = key_manager.trust_key(
+                key,
+                trusted_keys_dir=trusted_keys_dir,
+                trusted_name=trusted_name,
+                overwrite=overwrite,
+            )
+            console.print(f"\n[bold green][OK] Trusted key:[/bold green] {target}")
+            console.print(
+                "[dim]Re-run:[/dim] [cyan]epi verify "
+                f'"{key if source_path.suffix.lower() == ".epi" else "artifact.epi"}"'
+                "[/cyan]  — identity should leave UNKNOWN if this key sealed the file.\n"
+            )
+        except (FileExistsError, FileNotFoundError, ValueError) as e:
+            console.print(f"[red][FAIL] Error:[/red] {e}")
+            raise typer.Exit(1)
+
+    elif action == "revoke":
+        target_name = key or name
+        try:
+            target = key_manager.revoke_key(target_name, trusted_keys_dir=trusted_keys_dir)
+            console.print(f"\n[bold green][OK] Revoked key:[/bold green] {target}\n")
+        except (FileNotFoundError, ValueError) as e:
+            console.print(f"[red][FAIL] Error:[/red] {e}")
+            raise typer.Exit(1)
+
+    elif action in ("bundle-export", "bundle_export", "bundle"):
+        # bundle-export [names...]  OR  bundle as alias when --out set
+        from epi_core.keys import export_trust_bundle
+
+        names: list[str] = []
+        if key:
+            names.append(key)
+        # Additional free args not available easily; support comma-separated in key
+        if key and "," in key:
+            names = [n.strip() for n in key.split(",") if n.strip()]
+        out_path = out or Path("epi-trust-bundle.zip")
+        try:
+            written = export_trust_bundle(
+                key_manager,
+                out_path,
+                names=names or None,
+                trusted_keys_dir=trusted_keys_dir,
+            )
+            console.print(f"\n[bold green][OK] Trust bundle written:[/bold green] {written}")
+            console.print(
+                "[dim]Share this zip with auditors (public keys only). "
+                "They run: [cyan]epi keys bundle-import "
+                f"{written.name}[/cyan][/dim]\n"
+            )
+        except (FileNotFoundError, ValueError) as e:
+            console.print(f"[red][FAIL] Error:[/red] {e}")
+            raise typer.Exit(1)
+
+    elif action in ("bundle-import", "bundle_import"):
+        from epi_core.keys import import_trust_bundle
+
+        if not key:
+            console.print("[red][FAIL] bundle-import requires a path to the zip.[/red]")
+            console.print("[dim]Usage: epi keys bundle-import epi-trust-bundle.zip[/dim]")
+            raise typer.Exit(1)
+        try:
+            imported = import_trust_bundle(
+                Path(key),
+                trusted_keys_dir=trusted_keys_dir,
+                overwrite=overwrite,
+            )
+            console.print(f"\n[bold green][OK] Imported {len(imported)} trusted key(s):[/bold green]")
+            for p in imported:
+                console.print(f"  [cyan]{p}[/cyan]")
+            console.print(
+                "\n[dim]Now [cyan]epi verify file.epi --policy strict[/cyan] can PASS for those sealers.[/dim]\n"
+            )
+        except (FileNotFoundError, ValueError) as e:
+            console.print(f"[red][FAIL] Error:[/red] {e}")
+            raise typer.Exit(1)
+
     else:
         console.print(f"[red][FAIL] Unknown action:[/red] {action}")
-        console.print("[dim]Valid actions: generate, list, export[/dim]")
+        console.print(
+            "[dim]Valid actions: generate, list, export, trust, revoke, "
+            "bundle-export, bundle-import[/dim]"
+        )
         raise typer.Exit(1)
 
 
-@app.command()
+@app.command(rich_help_panel="Start here")
 def init(
     demo_filename: str = typer.Option("epi_demo.py", "--name", "-n", help="Name of the demo script"),
     no_open: bool = typer.Option(False, "--no-open", help="Don't open viewer automatically (for testing)"),
@@ -1325,7 +1710,9 @@ print(f"\\n[OK] Done! Open with: epi view {output_file}")
     console.print(f"[dim]Open the case file with:[/dim] epi view {artifact_path}")
     try:
         from epi_core.telemetry import track_event
+        from epi_core import telemetry as telemetry_core
 
+        telemetry_core.record_first_use()
         track_event(
             "epi.init.completed",
             {
@@ -1358,7 +1745,7 @@ print(f"\\n[OK] Done! Open with: epi view {output_file}")
             console.print(f"[dim]Use: epi view {artifact_path}[/dim]")
 
 
-@app.command()
+@app.command(rich_help_panel="Start here")
 def doctor(
     gateway_url: str = typer.Option(
         "",
@@ -1514,7 +1901,7 @@ def doctor(
         try:
             importlib.import_module(pkg)
             _ok(pkg, desc)
-        except ImportError:
+        except Exception:
             _fail(f"{pkg} missing ({desc})", f"pip install {pkg}")
 
     console.print()
@@ -1523,7 +1910,7 @@ def doctor(
         try:
             importlib.import_module(pkg)
             _ok(pkg, desc)
-        except ImportError:
+        except Exception:
             console.print(f"  [dim][-]  {pkg} not installed ({desc})[/dim]")
 
     # ── 7. epi command on PATH ────────────────────────────────────────────
@@ -1636,7 +2023,7 @@ def cli_main():
     app()
 
 
-@app.command()
+@app.command(rich_help_panel="Everyday")
 def status():
     """Show EPI project health: policy, recordings, signing key, and last fault verdict.
 

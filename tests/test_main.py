@@ -91,11 +91,28 @@ _DIAG_STUB = {"status": "OK", "issues": [], "extension_progid": "EPIRecorder.Fil
                "registered_command": '"epi.exe" view "%1"', "user_choice": None}
 
 
+
+def _mock_tiktoken_read(blobpath, expected_hash=None):
+    """Mock tiktoken token data fetch to avoid external network call in tests."""
+    raise ConnectionError("External network access blocked in tests")
+
+# Save real importlib.import_module before any test patches it
+import importlib as _real_importlib
+_real_import_module = _real_importlib.import_module
+
+def _mock_import_module(name):
+    """Block litellm import in doctor/associate tests to avoid tiktoken CDN fetch."""
+    if name == "litellm":
+        raise ImportError("litellm not installed in test")
+    return _real_import_module(name)
+
+
 class TestAssociateCommand:
     def test_skips_when_not_needed(self):
         from epi_cli.main import associate
         mock_console = _mock_console()
         with patch("epi_cli.main.console", mock_console), \
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics", return_value=_DIAG_STUB), \
              patch("epi_core.platform.associate._needs_registration", return_value=False), \
              _DIAG_PATCH:
@@ -106,6 +123,7 @@ class TestAssociateCommand:
         from epi_cli.main import associate
         mock_console = _mock_console()
         with patch("epi_cli.main.console", mock_console), \
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics", return_value=_DIAG_STUB), \
              patch("epi_core.platform.associate._needs_registration", return_value=True), \
              patch("epi_core.platform.associate.register_file_association", return_value=True), \
@@ -117,6 +135,7 @@ class TestAssociateCommand:
         from epi_cli.main import associate
         mock_console = _mock_console()
         with patch("epi_cli.main.console", mock_console), \
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics", return_value=_DIAG_STUB), \
              patch("epi_core.platform.associate._needs_registration", return_value=True), \
              patch("epi_core.platform.associate.register_file_association", return_value=False), \
@@ -128,6 +147,7 @@ class TestAssociateCommand:
         from epi_cli.main import associate
         mock_console = _mock_console()
         with patch("epi_cli.main.console", mock_console), \
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics", return_value=_DIAG_STUB), \
              patch("epi_core.platform.associate.register_file_association", return_value=True), \
              _DIAG_PATCH:
@@ -143,6 +163,7 @@ class TestAssociateCommand:
             "issues": ["Registered open command does not match the current installation."],
         }
         with patch("epi_cli.main.console", mock_console), \
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics", return_value=drift_diag), \
              patch("epi_core.platform.associate._needs_registration", return_value=False), \
              patch("epi_core.platform.associate.register_file_association", return_value=True) as mock_register, \
@@ -222,7 +243,7 @@ class TestKeysCommand:
         mock_km.export_public_key.return_value = "base64pubkey=="
         with patch("epi_cli.main.console", _mock_console()), \
              patch("epi_cli.keys.KeyManager", return_value=mock_km):
-            code = _call(keys, action="export", name="default", overwrite=False)
+            code = _call(keys, action="export", name="default", overwrite=False, export_format="base64")
         assert code == 0
 
     def test_export_not_found_exits_1(self):
@@ -234,6 +255,24 @@ class TestKeysCommand:
             code = _call(keys, action="export", name="default", overwrite=False)
         assert code == 1
 
+    def test_export_hex_format(self):
+        from epi_cli.main import keys
+        mock_km = MagicMock()
+        mock_km.export_public_key.return_value = "YWJjZGVmZ2hpamtsbW5vcA=="  # base64 of 16 bytes
+        with patch("epi_cli.main.console", _mock_console()), \
+             patch("epi_cli.keys.KeyManager", return_value=mock_km):
+            code = _call(keys, action="export", name="default", export_format="hex", overwrite=False)
+        assert code == 0
+
+    def test_export_unknown_format_exits_1(self):
+        from epi_cli.main import keys
+        mock_km = MagicMock()
+        mock_km.export_public_key.return_value = "dummy"
+        with patch("epi_cli.main.console", _mock_console()), \
+             patch("epi_cli.keys.KeyManager", return_value=mock_km):
+            code = _call(keys, action="export", name="default", export_format="binary", overwrite=False)
+        assert code == 1
+
     def test_unknown_action_exits_1(self):
         from epi_cli.main import keys
         mock_km = MagicMock()
@@ -242,10 +281,63 @@ class TestKeysCommand:
             code = _call(keys, action="invalid", name="default", overwrite=False)
         assert code == 1
 
+    def test_trust_action_succeeds(self, tmp_path):
+        from epi_cli.main import keys
+        mock_km = MagicMock()
+        mock_km.trust_key.return_value = tmp_path / "trusted.pub"
+        mock_registry = MagicMock()
+        mock_registry.trusted_keys_dir = tmp_path / "trusted_keys"
+        with patch("epi_cli.main.console", _mock_console()), \
+             patch("epi_cli.keys.KeyManager", return_value=mock_km), \
+             patch("epi_core.trust.TrustRegistry", return_value=mock_registry):
+            code = _call(keys, action="trust", key="mykey", name="default", overwrite=False)
+        assert code == 0
+        mock_km.trust_key.assert_called_once()
+
+    def test_revoke_action_succeeds(self, tmp_path):
+        from epi_cli.main import keys
+        mock_km = MagicMock()
+        mock_km.revoke_key.return_value = tmp_path / "mykey.revoked"
+        mock_registry = MagicMock()
+        mock_registry.trusted_keys_dir = tmp_path / "trusted_keys"
+        with patch("epi_cli.main.console", _mock_console()), \
+             patch("epi_cli.keys.KeyManager", return_value=mock_km), \
+             patch("epi_core.trust.TrustRegistry", return_value=mock_registry):
+            code = _call(keys, action="revoke", key="mykey", name="default", overwrite=False)
+        assert code == 0
+        mock_km.revoke_key.assert_called_once_with("mykey", trusted_keys_dir=mock_registry.trusted_keys_dir)
+
+    def test_trust_action_missing_key_exits_1(self, tmp_path):
+        from epi_cli.main import keys
+        mock_km = MagicMock()
+        mock_km.trust_key.side_effect = FileNotFoundError("not found")
+        mock_registry = MagicMock()
+        mock_registry.trusted_keys_dir = tmp_path / "trusted_keys"
+        with patch("epi_cli.main.console", _mock_console()), \
+             patch("epi_cli.keys.KeyManager", return_value=mock_km), \
+             patch("epi_core.trust.TrustRegistry", return_value=mock_registry):
+            code = _call(keys, action="trust", key="missing", name="default", overwrite=False)
+        assert code == 1
+
+    def test_revoke_action_missing_key_exits_1(self, tmp_path):
+        from epi_cli.main import keys
+        mock_km = MagicMock()
+        mock_km.revoke_key.side_effect = FileNotFoundError("not found")
+        mock_registry = MagicMock()
+        mock_registry.trusted_keys_dir = tmp_path / "trusted_keys"
+        with patch("epi_cli.main.console", _mock_console()), \
+             patch("epi_cli.keys.KeyManager", return_value=mock_km), \
+             patch("epi_core.trust.TrustRegistry", return_value=mock_registry):
+            code = _call(keys, action="revoke", key="missing", name="default", overwrite=False)
+        assert code == 1
+
 
 # ─────────────────────────────────────────────────────────────
 # doctor command
 # ─────────────────────────────────────────────────────────────
+
+
+
 
 class TestDoctorCommand:
     def test_healthy_system_no_crash(self):
@@ -254,6 +346,7 @@ class TestDoctorCommand:
              patch("epi_cli.keys.generate_default_keypair_if_missing", return_value=False), \
              patch("shutil.which", return_value="/usr/bin/epi"), \
              patch("webbrowser.get"), \
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics",
                    return_value={"status": "OK", "extension_progid": "EPIRecorder.File", "issues": []}):
             code = _call(doctor)
@@ -266,6 +359,7 @@ class TestDoctorCommand:
              patch("shutil.which", return_value=None), \
              patch("sys.platform", "linux"), \
              patch("webbrowser.get"), \
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics",
                    return_value={"status": "OK", "extension_progid": "EPIRecorder.File", "issues": []}):
             code = _call(doctor)
@@ -277,6 +371,7 @@ class TestDoctorCommand:
              patch("epi_cli.keys.generate_default_keypair_if_missing", return_value=True), \
              patch("shutil.which", return_value="/usr/bin/epi"), \
              patch("webbrowser.get"), \
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics",
                    return_value={"status": "OK", "extension_progid": "EPIRecorder.File", "issues": []}):
             code = _call(doctor)
@@ -288,6 +383,7 @@ class TestDoctorCommand:
              patch("epi_cli.keys.generate_default_keypair_if_missing", return_value=False), \
              patch("shutil.which", return_value="/usr/bin/epi"), \
              patch("webbrowser.get"), \
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics",
                    return_value={"status": "OK", "extension_progid": None, "issues": []}):
             code = _call(doctor)
@@ -299,6 +395,7 @@ class TestDoctorCommand:
              patch("epi_cli.keys.generate_default_keypair_if_missing", return_value=False), \
              patch("shutil.which", return_value="/usr/bin/epi"), \
              patch("webbrowser.get"), \
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics",
                    return_value={"status": "OVERRIDDEN", "extension_progid": None,
                                  "issues": ["Windows is forcing '.epi' to open with 'SomeApp'"]}):
@@ -311,6 +408,7 @@ class TestDoctorCommand:
              patch("epi_cli.keys.generate_default_keypair_if_missing", return_value=False), \
              patch("shutil.which", return_value="/usr/bin/epi"), \
              patch("webbrowser.get", side_effect=Exception("no browser")), \
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics",
                    return_value={"status": "OK", "extension_progid": "EPIRecorder.File", "issues": []}):
             code = _call(doctor)
@@ -628,6 +726,7 @@ class TestAutoRepairWindowsAssociation:
              patch("sys.platform", "win32"), \
              patch("epi_cli.main._windows_association_probe_due", return_value=True), \
              patch("epi_core.platform.associate.register_file_association", return_value=False), \
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics", return_value=diag):
             _auto_repair_windows_association(interactive=True, command_name="doctor")
         assert mock_console.print.call_count >= 3
@@ -640,6 +739,7 @@ class TestAutoRepairWindowsAssociation:
              patch("sys.platform", "win32"), \
              patch("epi_cli.main._windows_association_probe_due", return_value=True), \
              patch("epi_core.platform.associate.register_file_association", return_value=True), \
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics", return_value=diag):
             _auto_repair_windows_association(interactive=True, command_name="doctor")
         mock_console.print.assert_called_once()
@@ -650,6 +750,7 @@ class TestAutoRepairWindowsAssociation:
         diag = {"status": "OK", "extension_progid": "EPIRecorder.File"}
         with patch("sys.platform", "win32"), \
              patch("epi_core.platform.associate._is_association_broken", return_value=True), \
+             patch("importlib.import_module", side_effect=_mock_import_module), \
              patch("epi_core.platform.associate.get_association_diagnostics", return_value=diag) as mock_diag, \
              patch("epi_core.platform.associate.register_file_association") as mock_register:
             _auto_repair_windows_association(interactive=True, command_name="view")

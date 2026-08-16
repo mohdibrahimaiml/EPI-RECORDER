@@ -132,7 +132,28 @@ def _compute_leaf_hash(tree_index: int, entry_hash: bytes) -> bytes:
 def _verify_audit_path(
     leaf_hash: bytes, leaf_index: int, audit_path: list[tuple[bytes, bool]], root: bytes
 ) -> bool:
-    """Verify an audit path by recomputing the root."""
+    """Verify an audit path by recomputing the Merkle root from ``leaf_hash``.
+
+    Each element of ``audit_path`` is a ``(sibling_hash, is_left_sibling)`` pair:
+
+    * ``is_left_sibling = True``  → the sibling is to the *left* of the current
+      node at this level; concatenate as ``sha256(0x01 + sibling + current)``.
+    * ``is_left_sibling = False`` → the sibling is to the *right*; concatenate
+      as ``sha256(0x01 + current + sibling)``.
+
+    This convention matches the encoding produced by
+    :func:`epi_core.local_scitt._compute_audit_path`.
+
+    Args:
+        leaf_hash:  SHA-256 leaf hash of the entry being proved.
+        leaf_index: Tree position of the entry (unused in verification but kept
+                    for API symmetry with callers that pass it).
+        audit_path: Proof path from :func:`epi_core.local_scitt._compute_audit_path`.
+        root:       Expected Merkle root to compare against.
+
+    Returns:
+        ``True`` if the recomputed root matches *root*, ``False`` otherwise.
+    """
     h = leaf_hash
     for sibling, is_left_sibling in audit_path:
         if is_left_sibling:
@@ -299,7 +320,10 @@ def create_scitt_statement(
         COSE_Sign1 bytes.
     """
     if isinstance(manifest, dict):
-        manifest = ManifestModel(**manifest)
+        try:
+            manifest = ManifestModel(**manifest)
+        except Exception as e:
+            raise SCITTError(f"Invalid manifest dict: {e}") from e
     manifest_hash = get_canonical_hash(manifest, exclude_fields={"signature", "governance"})
 
     # Payload is a CBOR-encoded claims object (SCITT architecture draft convention)
@@ -365,7 +389,10 @@ def verify_scitt_statement(
     5. Signature is valid (if public_key_bytes provided).
     """
     if isinstance(manifest, dict):
-        manifest = ManifestModel(**manifest)
+        try:
+            manifest = ManifestModel(**manifest)
+        except Exception as e:
+            raise SCITTError(f"Invalid manifest dict: {e}") from e
 
     statement = parse_scitt_statement(cose_bytes)
     expected_hash = get_canonical_hash(manifest, exclude_fields={"signature", "governance"})
@@ -632,10 +659,12 @@ class SCITTServiceClient:
                 entry_id = resp.headers.get("X-Scitt-Entry-Id", "")
                 if not entry_id:
                     entry_id = hashlib.sha256(statement_bytes).hexdigest()[:32]
+                server_ts = resp.headers.get("X-Scitt-Timestamp", "")
+                registered_at = server_ts if server_ts else datetime.now(UTC).isoformat()
                 info = SCITTServiceInfo(
                     service_url=self.base_url,
                     entry_id=entry_id,
-                    registered_at=datetime.now(UTC).isoformat(),
+                    registered_at=registered_at,
                 )
                 return receipt_bytes, info
         except urllib.error.HTTPError as exc:

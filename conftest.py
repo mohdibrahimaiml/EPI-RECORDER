@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import SimpleNamespace
+import argparse
 import ctypes
 import ipaddress
 import os
@@ -77,7 +78,10 @@ def _probe_temp_dir(path: Path) -> bool:
         probe.write_text("ok", encoding="utf-8")
         probe.unlink(missing_ok=True)
         return True
-    except Exception:
+    except (OSError, PermissionError):
+        # Only filesystem-level errors mean the directory is unusable.
+        # Any other exception type (AttributeError, TypeError …) is a
+        # programming error and should propagate normally.
         return False
 
 
@@ -127,7 +131,12 @@ def pytest_configure(config):  # type: ignore[no-untyped-def]
 
     _install_windows_api_test_shims()
     # Windows-only: mkdtemp can fail due to ACL issues in some environments.
-    # On Linux/macOS the standard mkdtemp works fine; only apply the shim on Windows.
+    # On Linux/macOS the standard mkdtemp works fine; only apply the shim on
+    # Windows.  The shim is session-scoped (applied once in pytest_configure)
+    # rather than per-test so that every code path — including import-time
+    # calls from library code — benefits from the workaround.
+    # The original function is preserved in _original_mkdtemp so that
+    # _safe_mkdtemp can delegate to it as the first attempt.
     if _sys.platform == "win32":
         tempfile.mkdtemp = _safe_mkdtemp  # type: ignore[assignment]
 
@@ -148,7 +157,11 @@ def pytest_addoption(parser):  # type: ignore[no-untyped-def]
             default=None,
             help="No-op fallback when pytest-timeout is not installed.",
         )
-    except Exception:
+    except (ValueError, argparse.ArgumentError):
+        # When pytest-timeout (or another plugin) is installed it registers
+        # --timeout first.  argparse raises ArgumentError on the conflict;
+        # older pytest versions surface it as ValueError.  Both are safe to
+        # swallow here — we only care about the no-plugin case.
         pass
     try:
         parser.addoption(
@@ -157,7 +170,8 @@ def pytest_addoption(parser):  # type: ignore[no-untyped-def]
             default=True,
             help="No-op fallback when pytest-playwright is not installed.",
         )
-    except Exception:
+    except (ValueError, argparse.ArgumentError):
+        # Same rationale as --timeout above.
         pass
 
 

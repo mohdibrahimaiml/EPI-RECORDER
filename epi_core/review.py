@@ -63,7 +63,13 @@ def _assert_canonical_json_value(value: Any, *, path: str = "$") -> None:
     if value is None or isinstance(value, (str, bool, int)):
         return
     if isinstance(value, float):
-        raise ValueError(f"Floats are not allowed in signed review payloads: {path}")
+        raise ValueError(
+            f"Floats are not allowed in signed review payloads (path={path}, "
+            f"value={value!r}). Floats are non-deterministic across platforms and "
+            f"JSON encoders, which would break signature reproducibility. "
+            f"Convert the value to a string (e.g. f'{value:.6f}') or use the "
+            f"helper: epi_core.review.canonicalize_floats(payload)"
+        )
     if isinstance(value, list):
         for index, item in enumerate(value):
             _assert_canonical_json_value(item, path=f"{path}[{index}]")
@@ -75,6 +81,35 @@ def _assert_canonical_json_value(value: Any, *, path: str = "$") -> None:
             _assert_canonical_json_value(item, path=f"{path}.{key}")
         return
     raise ValueError(f"Unsupported review JSON value at {path}: {type(value).__name__}")
+
+
+def canonicalize_floats(value: Any, *, precision: int = 6) -> Any:
+    """Recursively convert all ``float`` values in *value* to fixed-precision strings.
+
+    Use this helper before calling :func:`canonical_review_json` when your
+    review payload contains numeric confidence scores or other floating-point
+    fields::
+
+        payload = canonicalize_floats({"score": 0.95, "threshold": 0.7})
+        json_str = canonical_review_json(payload)   # now safe to sign
+
+    Args:
+        value:     The dict, list, or scalar to process.  Any ``float`` found
+                   (at any nesting depth) is replaced by
+                   ``f"{float_value:.{precision}f}"``.
+        precision: Number of decimal places to use.  Defaults to 6.
+
+    Returns:
+        A new structure identical to *value* but with all floats replaced by
+        deterministic decimal strings.
+    """
+    if isinstance(value, float):
+        return f"{value:.{precision}f}"
+    if isinstance(value, dict):
+        return {k: canonicalize_floats(v, precision=precision) for k, v in value.items()}
+    if isinstance(value, list):
+        return [canonicalize_floats(item, precision=precision) for item in value]
+    return value
 
 
 def canonical_review_json(value: Any) -> str:

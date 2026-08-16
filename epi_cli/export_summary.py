@@ -16,12 +16,19 @@ from epi_cli.view import _resolve_epi_file
 from epi_core.container import EPIContainer
 from epi_core.trust import verify_embedded_manifest_signature
 
-app = typer.Typer(help="Export a regulator-facing HTML or text Decision Record for a .epi artifact.")
 console = Console()
 
 
 def _resolve_option_value(value, default=None):
-    return default if isinstance(value, OptionInfo) else value
+    """Normalize Typer Option/Argument defaults when calling functions in-process."""
+    try:
+        from typer.models import ArgumentInfo, OptionInfo as TyperOptionInfo
+        param_types = (OptionInfo, TyperOptionInfo, ArgumentInfo)
+    except Exception:
+        param_types = (OptionInfo,)
+    if isinstance(value, param_types):
+        return default
+    return value
 
 
 def _format_ts(ts: str | None) -> str:
@@ -764,25 +771,13 @@ def _build_html_summary(
 </html>"""
 
 
-@app.command()
-def summary(
-    epi_file: str = typer.Argument(..., help="Path or name of .epi file to summarise."),
-    out: Optional[Path] = typer.Option(
-        None,
-        "--out",
-        "-o",
-        help="Output .html file (default: <name>_summary.html alongside the .epi file).",
-    ),
-    output_dir: Optional[Path] = typer.Option(
-        None,
-        "--output-dir",
-        help="Directory to write <name>_summary.html into. If you pass an .html path, it will be used as-is.",
-    ),
-    text: bool = typer.Option(False, "--text", help="Print plain text to stdout instead of writing HTML."),
-):
-    """
-    Export a Decision Record for a .epi artifact.
-    """
+def _export_decision_record(
+    epi_file: str,
+    out: Optional[Path] = None,
+    output_dir: Optional[Path] = None,
+    text: bool = False,
+) -> None:
+    """Shared implementation for flat and legacy `summary` invocation forms."""
     try:
         epi_path = _resolve_epi_file(epi_file)
     except FileNotFoundError:
@@ -845,3 +840,72 @@ def summary(
     )
     out.write_text(html_content, encoding="utf-8")
     console.print(f"[green][OK][/green] Decision Record written: {out}")
+
+
+def export_summary_command(
+    target: str = typer.Argument(
+        ...,
+        help="Path to .epi file, or the legacy keyword 'summary' followed by the file path.",
+    ),
+    maybe_file: Optional[str] = typer.Argument(
+        None,
+        help="Legacy second argument: .epi path when the first argument is 'summary'.",
+    ),
+    out: Optional[Path] = typer.Option(
+        None,
+        "--out",
+        "-o",
+        help="Output .html file (default: <name>_summary.html alongside the .epi file).",
+    ),
+    output_dir: Optional[Path] = typer.Option(
+        None,
+        "--output-dir",
+        help="Directory to write <name>_summary.html into. If you pass an .html path, it will be used as-is.",
+    ),
+    text: bool = typer.Option(False, "--text", help="Print plain text to stdout instead of writing HTML."),
+):
+    """Export a Decision Record for a .epi artifact.
+
+    Preferred:
+      epi export-summary case.epi
+      epi export-summary case.epi --text
+      epi export-summary case.epi -o report.html
+
+    Legacy (still works):
+      epi export-summary summary case.epi
+    """
+    # When invoked as a Python function (tests/library), Typer ParameterInfo
+    # defaults can leak in; normalize them to real values.
+    maybe_file = _resolve_option_value(maybe_file, None)
+    out = _resolve_option_value(out, None)
+    output_dir = _resolve_option_value(output_dir, None)
+    text = bool(_resolve_option_value(text, False))
+
+    if target == "summary":
+        if not maybe_file:
+            console.print(
+                "[red][FAIL][/red] Missing .epi file. Use: [cyan]epi export-summary case.epi[/cyan]"
+            )
+            raise typer.Exit(2)
+        epi_file = maybe_file
+    else:
+        if maybe_file is not None:
+            console.print(
+                "[red][FAIL][/red] Unexpected extra argument. Use: "
+                "[cyan]epi export-summary case.epi[/cyan]"
+            )
+            raise typer.Exit(2)
+        epi_file = target
+
+    _export_decision_record(epi_file, out=out, output_dir=output_dir, text=text)
+
+
+# Back-compat name used by a few tests/imports.
+summary = export_summary_command
+
+# Nested app kept for any code that still imports `app` from this module.
+app = typer.Typer(
+    help="Export a human-readable HTML or text Decision Record for a .epi case file.",
+    invoke_without_command=True,
+)
+app.command(name="summary")(export_summary_command)

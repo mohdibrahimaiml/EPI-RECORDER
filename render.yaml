@@ -5,16 +5,49 @@ services:
     plan: free
     buildCommand: pip install -e ".[gateway]"
     startCommand: python -m verify_portal.main
+    # FREE durable auth: set TURSO_DATABASE_URL + TURSO_AUTH_TOKEN (see docs/FREE_AUTH_DB_SETUP.md).
+    # No paid Render disk required when Turso free is configured.
     envVars:
       - key: PYTHON_VERSION
         value: 3.12
       - key: PORT
         value: 10000
+      - key: EPI_STORAGE_DIR
+        value: ./data
+      - key: EPI_VERIFY_BASE_URL
+        value: https://epi-verify-portal.onrender.com
+      - key: EPI_FRONTEND_URL
+        value: https://epilabs.org
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
       - key: EPI_ATTESTATION_PRIVATE_KEY
         sync: false
       - key: EPI_SCITT_SERVICE_PRIVATE_KEY
         sync: false
+      - key: EPI_VERIFY_TELEMETRY_ENABLED
+        value: true
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: EPI_ADMIN_API_KEY
+        sync: false
+      - key: PADDLE_API_KEY
+        sync: false
+      - key: PADDLE_CLIENT_TOKEN
+        sync: false
+      - key: PADDLE_WEBHOOK_SECRET
+        sync: false
+      - key: PADDLE_PRO_PRICE_ID
+        sync: false
+      - key: PADDLE_TEAM_PRICE_ID
+        sync: false
+      - key: PADDLE_ADVANCED_PRICE_ID
+        sync: false
+      - key: PADDLE_ENTERPRISE_PRICE_ID
+        sync: false
     domains:
-      - epilabs.org
-      - www.epilabs.org
       - verify.epilabs.org
+      - api.epilabs.org

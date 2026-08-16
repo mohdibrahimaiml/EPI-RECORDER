@@ -1,599 +1,282 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EPI Decision Ops | EPI LABS</title>
-<meta name="description" content="Open, review, explain, and verify AI decision case files directly in your browser with EPI Decision Ops.">
-<link rel="canonical" href="https://epilabs.org/viewer/">
-<link rel="icon" type="image/png" href="../assets/logo.png">
-<script id="epi-view-context" type="application/json">{}</script>
+<title>EPI Forensic Artifact Viewer</title>
 <link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/jpeg" href="data:image/jpeg;base64,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">
 </head>
 <body>
-<input type="file" id="file-input" accept=".epi" multiple hidden>
 
-<!-- Top navigation bar -->
-<nav class="topnav" aria-label="Site navigation">
-  <a class="topnav-brand" href="https://epilabs.org/" aria-label="EPI LABS home">
-    <img src="../assets/logo.png" alt="EPI LABS" class="topnav-logo">
-    <span class="topnav-name">EPI LABS</span>
-  </a>
-  <div class="topnav-links">
-    <a href="https://epilabs.org/how-it-works.html" class="topnav-link">How it works</a>
-    <a href="https://epilabs.org/verify/" class="topnav-link">Verify</a>
-    <a href="https://epilabs.org/pricing.html" class="topnav-link">Pricing</a>
-    <a href="https://github.com/mohdibrahimaiml/epi-recorder" class="topnav-link topnav-link-icon" target="_blank" rel="noopener" aria-label="GitHub">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
-    </a>
+<!-- ── Boot Terminal Overlay ─────────────────────────── -->
+<div id="boot-overlay">
+  <div class="boot-container">
+    <div class="boot-header">EPI Viewer __EPI_VERSION__</div>
+    <div id="boot-log"></div>
+    <span class="boot-cursor"></span>
   </div>
-</nav>
-
-<div class="page-shell">
-  <header class="hero">
-    <div>
-      <p class="eyebrow">EPI Decision Ops</p>
-      <h1>Review, explain, and verify AI decisions</h1>
-      <p class="hero-copy">
-        Open saved cases, connect to a source system, and review what happened.
-        Everything stays on this device.
-      </p>
-      <div class="hero-trust-badges">
-        <span class="trust-badge">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          100% local — zero uploads
-        </span>
-        <span class="trust-badge">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M9 12l2 2 4-4"/><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          Ed25519 verified
-        </span>
-        <span class="trust-badge">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-          Works offline
-        </span>
-      </div>
-    </div>
-    <div class="hero-actions">
-      <button class="secondary-button" id="example-case-button" type="button">Open example case</button>
-      <button class="primary-button" id="add-files-button" type="button">Open saved cases</button>
-      <button class="secondary-button" id="reset-workspace-button" type="button">Start over</button>
-    </div>
-  </header>
-
-  <section class="upload-panel card">
-    <div id="drop-zone" class="drop-zone" tabindex="0" role="button" aria-label="Drop EPI files here or open the file picker">
-      <div class="drop-zone-icon" aria-hidden="true">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-          <polyline points="17 8 12 3 7 8"/>
-          <line x1="12" y1="3" x2="12" y2="15"/>
-        </svg>
-      </div>
-      <h2 id="drop-zone-title">Open saved cases</h2>
-      <p id="drop-zone-copy">Drop <code class="inline-code">.epi</code> files here or choose them from your computer. Nothing is uploaded.</p>
-      <span id="drop-zone-action" class="drop-zone-action">Choose files</span>
-    </div>
-    <p class="panel-note">
-      Use this when you already have saved EPI case files and want to review them here.
-    </p>
-    <div id="load-status" class="status-banner info">No saved cases are open yet.</div>
-  </section>
-
-  <section class="setup-panel card">
-    <div class="setup-header">
-      <div>
-        <p class="section-label">Quick Setup</p>
-        <h2>Tell EPI what to watch</h2>
-        <p class="panel-note">
-          Pick a system and a decision type. EPI can open a safe sample right away,
-          then you can add real connector details only when you need them.
-        </p>
-      </div>
-      <span id="setup-ready-badge" class="pill-badge tone-neutral">Needs setup</span>
-    </div>
-
-    <div class="setup-grid setup-grid-primary">
-      <label>
-        1. Where decisions come from
-        <select id="setup-system" class="text-input">
-          <option value="zendesk">Zendesk</option>
-          <option value="salesforce">Salesforce</option>
-          <option value="servicenow">ServiceNow</option>
-          <option value="internal-app">Internal app</option>
-          <option value="csv-export">CSV or exported logs</option>
-        </select>
-      </label>
-      <label>
-        2. What kind of decision this is
-        <select id="setup-workflow" class="text-input">
-          <option value="refund-approval">Refund approvals</option>
-          <option value="loan-underwriting">Loan underwriting</option>
-          <option value="claims-review">Claims review</option>
-          <option value="support-escalation">Support escalations</option>
-          <option value="access-decision">Access decisions</option>
-          <option value="custom-approval">Custom approvals</option>
-        </select>
-      </label>
-    </div>
-
-    <div class="action-row quick-setup-actions">
-      <button id="fetch-live-record-button" class="secondary-button" type="button">Try a safe sample</button>
-      <button id="setup-workspace-button" class="primary-button" type="button">Set up EPI</button>
-      <button id="download-starter-pack-button" class="secondary-button" type="button">Use this in my system</button>
-    </div>
-
-    <details class="advanced-setup">
-      <summary>Advanced setup options</summary>
-      <div class="setup-grid">
-        <label>
-          Who reviews flagged cases
-          <input id="setup-reviewer-role" class="text-input" type="text" value="manager" placeholder="manager">
-        </label>
-        <label>
-          Where this runs
-          <select id="setup-environment" class="text-input">
-            <option value="production">Production</option>
-            <option value="staging">Staging</option>
-            <option value="testing">Testing</option>
-          </select>
-        </label>
-        <label class="setup-field-span">
-          What must happen before the final decision
-          <input id="setup-required-step" class="text-input" type="text" placeholder="verify_identity">
-        </label>
-      </div>
-
-      <div class="connector-config">
-        <div class="rules-card-header">
-          <div>
-            <p class="card-label">System Access</p>
-            <h3>Connect to your system</h3>
-          </div>
-          <div class="action-row">
-            <button id="save-setup-profile-button" class="secondary-button" type="button">Remember here</button>
-            <button id="load-setup-profile-button" class="secondary-button" type="button">Use saved setup</button>
-            <button id="clear-setup-profile-button" class="secondary-button" type="button">Forget saved setup</button>
-          </div>
-        </div>
-
-        <div id="connector-fields" class="setup-grid"></div>
-        <p id="setup-storage-note" class="helper-copy">EPI can remember this setup only in this browser on this device.</p>
-
-        <div class="setup-connection-row">
-          <span id="setup-connection-status" class="pill-badge tone-neutral">Connection not checked</span>
-        </div>
-
-        <details class="advanced-connection">
-          <summary>Connection address</summary>
-          <div class="setup-grid">
-            <label class="setup-field-span">
-              Connection address
-              <input id="setup-bridge-url" class="text-input" type="text" value="http://127.0.0.1:8765" placeholder="http://127.0.0.1:8765">
-            </label>
-          </div>
-          <div class="action-row">
-            <button id="check-bridge-button" class="secondary-button" type="button">Test connection</button>
-          </div>
-        </details>
-
-        <div id="setup-live-record" class="setup-preview" hidden></div>
-      </div>
-    </details>
-
-    <div id="setup-preview" class="setup-preview"></div>
-  </section>
-
-  <section class="summary-strip" id="summary-strip">
-    <article class="summary-card">
-      <div class="summary-icon summary-icon-cases" aria-hidden="true">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      </div>
-      <span class="summary-label">Cases</span>
-      <strong id="summary-total">0</strong>
-    </article>
-    <article class="summary-card">
-      <div class="summary-icon summary-icon-review" aria-hidden="true">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      </div>
-      <span class="summary-label">Need review</span>
-      <strong id="summary-review">0</strong>
-    </article>
-    <article class="summary-card">
-      <div class="summary-icon summary-icon-trusted" aria-hidden="true">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      </div>
-      <span class="summary-label">Trusted</span>
-      <strong id="summary-trusted">0</strong>
-    </article>
-    <article class="summary-card">
-      <div class="summary-icon summary-icon-workflows" aria-hidden="true">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="16" y="3" width="6" height="6" rx="1"/><rect x="9" y="15" width="6" height="6" rx="1"/><path d="M5 9v3a1 1 0 001 1h12a1 1 0 001-1V9"/><line x1="12" y1="13" x2="12" y2="15"/></svg>
-      </div>
-      <span class="summary-label">Workflows</span>
-      <strong id="summary-workflows">0</strong>
-    </article>
-  </section>
-
-  <section id="workspace" class="workspace" hidden>
-    <aside class="sidebar card">
-      <p class="sidebar-label">Workspace</p>
-      <nav class="nav-grid" aria-label="Main navigation">
-        <button class="nav-button active" type="button" data-view="inbox">
-          <span class="nav-icon" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg>
-          </span>
-          Inbox
-        </button>
-        <button class="nav-button" type="button" data-view="case">
-          <span class="nav-icon" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-          </span>
-          Case
-        </button>
-        <button class="nav-button" type="button" data-view="rules">
-          <span class="nav-icon" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          </span>
-          Rules
-        </button>
-        <button class="nav-button" type="button" data-view="reports">
-          <span class="nav-icon" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-          </span>
-          Reports
-        </button>
-      </nav>
-
-      <div class="sidebar-section">
-        <p class="sidebar-label">Selected case</p>
-        <select id="case-selector" class="text-input"></select>
-      </div>
-
-      <div class="sidebar-section">
-        <p class="sidebar-label">Local processing</p>
-        <p class="sidebar-copy">
-          Verification, review drafts, and exports all run locally in the browser. Your case files do not leave this device.
-        </p>
-      </div>
-
-      <div class="sidebar-section">
-        <p class="sidebar-label">Team Sync</p>
-        <div class="sidebar-inline">
-          <span id="shared-workspace-status" class="pill-badge tone-neutral">Local only</span>
-          <button id="refresh-shared-button" class="secondary-button compact-button" type="button">Refresh team cases</button>
-        </div>
-        <p class="sidebar-copy">
-          If your team uses the same self-hosted bridge, EPI can share case previews and review updates across users.
-        </p>
-      </div>
-    </aside>
-
-    <main class="main-panel">
-      <section class="view-panel active" data-view-panel="inbox">
-        <div class="section-header">
-          <div>
-            <p class="section-label">Inbox</p>
-            <h2>Review the cases that matter first</h2>
-          </div>
-        </div>
-
-        <div class="card filter-card">
-          <div class="filter-grid">
-            <label>
-              Search
-              <div class="input-with-icon">
-                <svg class="input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input id="search-input" class="text-input has-icon" type="search" placeholder="Search case title, workflow, file, or notes">
-              </div>
-            </label>
-            <label>
-              Trust
-              <select id="trust-filter" class="text-input">
-                <option value="all">All trust states</option>
-                <option value="trusted">Trusted</option>
-                <option value="verify-source">Verify source</option>
-                <option value="source-not-proven">Source not proven</option>
-                <option value="do-not-use">Do not use</option>
-              </select>
-            </label>
-            <label>
-              Review
-              <select id="review-filter" class="text-input">
-                <option value="all">All review states</option>
-                <option value="pending">Pending review</option>
-                <option value="reviewed">Reviewed</option>
-                <option value="not-required">No review required</option>
-              </select>
-            </label>
-            <label>
-              Workflow
-              <select id="workflow-filter" class="text-input">
-                <option value="all">All workflows</option>
-              </select>
-            </label>
-          </div>
-        </div>
-
-        <div id="empty-inbox" class="card empty-state">
-          <div class="empty-state-icon" aria-hidden="true">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg>
-          </div>
-          <h3>No cases yet</h3>
-          <p>Load one or more <code class="inline-code">.epi</code> files to create a review inbox.</p>
-          <div class="action-row empty-state-actions">
-            <button class="primary-button" type="button" onclick="document.getElementById('add-files-button').click()">Open saved cases</button>
-            <button class="secondary-button" type="button" onclick="document.getElementById('example-case-button').click()">Try an example</button>
-          </div>
-        </div>
-        <div id="case-list" class="case-list"></div>
-      </section>
-
-      <section class="view-panel" data-view-panel="case">
-        <div class="section-header">
-          <div>
-            <p class="section-label">Case</p>
-            <h2>Decision case file</h2>
-          </div>
-        </div>
-
-        <div id="no-case-selected" class="card empty-state">
-          <div class="empty-state-icon" aria-hidden="true">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          </div>
-          <h3>Select a case</h3>
-          <p>Choose a case from the inbox or the selector to review the decision record.</p>
-        </div>
-
-        <div id="case-view" class="case-layout" hidden>
-          <article class="card case-hero-card">
-            <div class="case-hero">
-              <div>
-                <p id="case-subtitle" class="case-subtitle"></p>
-                <h3 id="case-title"></h3>
-                <p id="case-summary-copy" class="case-summary-copy"></p>
-              </div>
-              <div class="badge-row">
-                <span id="case-trust-badge" class="pill-badge"></span>
-                <span id="case-risk-badge" class="pill-badge"></span>
-                <span id="case-review-badge" class="pill-badge"></span>
-                <span id="case-review-signature-badge" class="pill-badge"></span>
-              </div>
-            </div>
-          </article>
-
-          <article class="card case-guidance-card">
-            <div class="rules-card-header">
-              <div>
-                <p class="card-label">What To Do Next</p>
-                <h3 id="case-guidance-title"></h3>
-                <p id="case-guidance-copy" class="helper-copy"></p>
-              </div>
-              <div class="action-row">
-                <button id="case-guidance-review-button" class="primary-button" type="button">Start review</button>
-                <button id="case-guidance-rules-button" class="secondary-button" type="button">Check rules</button>
-                <button id="case-guidance-report-button" class="secondary-button" type="button">Open report</button>
-              </div>
-            </div>
-            <div id="case-guidance-list" class="stack-list"></div>
-          </article>
-
-          <div class="case-grid">
-            <article class="card">
-              <p class="card-label">Decision summary</p>
-              <dl id="case-summary-grid" class="detail-grid"></dl>
-            </article>
-
-            <article class="card">
-              <p class="card-label">Trust and review</p>
-              <div id="case-alerts" class="stack-list"></div>
-            </article>
-
-            <article class="card">
-              <p class="card-label">Findings and rules</p>
-              <div id="case-findings" class="stack-list"></div>
-            </article>
-
-            <article class="card">
-              <p class="card-label">Review workspace</p>
-              <form id="review-form" class="review-form">
-                <label>
-                  Reviewer
-                  <input id="reviewer-name" class="text-input" type="text" placeholder="manager@example.com">
-                </label>
-                <label>
-                  Review outcome
-                  <select id="review-outcome" class="text-input">
-                    <option value="confirmed_fault">Confirmed issue</option>
-                    <option value="dismissed">Dismissed after review</option>
-                    <option value="skipped">Decide later</option>
-                  </select>
-                </label>
-                <label>
-                  Notes
-                  <textarea id="review-notes" class="text-area" rows="5" placeholder="Add the decision, context, and next step."></textarea>
-                </label>
-                <label>
-                  Optional signing key
-                  <textarea id="review-signing-key" class="text-area" rows="5" placeholder="Paste your EPI Ed25519 private key PEM to sign this review"></textarea>
-                </label>
-                <p class="helper-copy">
-                  Optional. Paste the contents of your EPI <code class="inline-code">.key</code> file to sign the review in the browser.
-                  If left blank, the review will stay unsigned.
-                </p>
-                <div class="action-row">
-                  <button id="apply-review-button" class="primary-button" type="submit">Apply review locally</button>
-                  <button id="download-reviewed-epi-button" class="primary-button" type="button">Download reviewed .epi</button>
-                  <button id="download-review-button" class="secondary-button" type="button">Download review record</button>
-                  <button id="download-case-report-button" class="secondary-button" type="button">Download case summary</button>
-                </div>
-                <p id="review-save-status" class="helper-copy"></p>
-              </form>
-            </article>
-
-            <article class="card case-span">
-              <p class="card-label">Case timeline</p>
-              <div id="case-timeline" class="timeline"></div>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section class="view-panel" data-view-panel="rules">
-        <div class="section-header">
-          <div>
-            <p class="section-label">Rules</p>
-            <h2>Readable policy context</h2>
-          </div>
-        </div>
-
-        <div class="rules-layout">
-          <article class="card">
-            <div class="rules-card-header">
-              <div>
-                <p class="card-label">Policy file</p>
-                <h3>Build a real rulebook for this workflow</h3>
-              </div>
-              <div class="action-row">
-                <button id="reset-policy-button" class="secondary-button" type="button">Reset from case</button>
-                <button id="download-policy-button" class="primary-button" type="button">Download epi_policy.json</button>
-                <button id="download-policy-summary-button" class="secondary-button" type="button">Download policy summary</button>
-              </div>
-            </div>
-
-            <p id="policy-source-note" class="helper-copy"></p>
-
-            <div class="policy-meta-grid">
-              <label>
-                Policy ID
-                <input id="policy-id" class="text-input" type="text" placeholder="refund-agent-prod">
-              </label>
-              <label>
-                System name
-                <input id="policy-system-name" class="text-input" type="text" placeholder="refund-agent">
-              </label>
-              <label>
-                System version
-                <input id="policy-system-version" class="text-input" type="text" placeholder="1.0">
-              </label>
-              <label>
-                Policy version
-                <input id="policy-version" class="text-input" type="text" placeholder="2026-04-01">
-              </label>
-              <label>
-                Profile ID
-                <input id="policy-profile-id" class="text-input" type="text" placeholder="finance.refund-agent">
-              </label>
-              <label>
-                Organization
-                <input id="policy-scope-organization" class="text-input" type="text" placeholder="Acme Corp">
-              </label>
-              <label>
-                Team
-                <input id="policy-scope-team" class="text-input" type="text" placeholder="finance-ops">
-              </label>
-              <label>
-                Application
-                <input id="policy-scope-application" class="text-input" type="text" placeholder="refund-agent">
-              </label>
-              <label>
-                Workflow
-                <input id="policy-scope-workflow" class="text-input" type="text" placeholder="refund-approval">
-              </label>
-              <label>
-                Environment
-                <input id="policy-scope-environment" class="text-input" type="text" placeholder="production">
-              </label>
-            </div>
-
-            <div class="badge-row policy-meta-badges">
-              <span id="policy-rule-count-badge" class="pill-badge tone-neutral">0 rules</span>
-              <span id="policy-approval-count-badge" class="pill-badge tone-neutral">0 approval policies carried forward</span>
-            </div>
-
-            <pre id="policy-json-preview" class="code-block"></pre>
-          </article>
-
-          <article class="card">
-            <div class="rules-card-header">
-              <div>
-                <p class="card-label">Rules in this policy</p>
-                <h3>Turn business controls into enforceable EPI rules</h3>
-              </div>
-              <div class="rule-toolbar">
-                <label>
-                  New rule type
-                  <select id="add-rule-type" class="text-input">
-                    <option value="threshold_guard">Threshold guard</option>
-                    <option value="approval_guard">Approval guard</option>
-                    <option value="sequence_guard">Sequence guard</option>
-                    <option value="constraint_guard">Constraint guard</option>
-                    <option value="prohibition_guard">Prohibition guard</option>
-                    <option value="tool_permission_guard">Tool permission guard</option>
-                  </select>
-                </label>
-                <button id="add-rule-button" class="primary-button" type="button">Add rule</button>
-              </div>
-            </div>
-            <div id="policy-rule-editor" class="policy-rule-editor"></div>
-          </article>
-        </div>
-      </section>
-
-      <section class="view-panel" data-view-panel="reports">
-        <div class="section-header">
-          <div>
-            <p class="section-label">Reports</p>
-            <h2>Export a business-readable record</h2>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="filter-grid reports-grid">
-            <label>
-              Report type
-              <select id="report-type" class="text-input">
-                <option value="summary">Summary report</option>
-                <option value="review">Review report</option>
-                <option value="trust">Trust report</option>
-              </select>
-            </label>
-            <label>
-              Scope
-              <select id="report-scope" class="text-input">
-                <option value="all">All loaded cases</option>
-                <option value="filtered">Inbox filters</option>
-                <option value="selected">Selected case</option>
-              </select>
-            </label>
-          </div>
-          <div id="report-preview" class="report-preview"></div>
-          <div class="action-row">
-            <button id="download-report-text" class="primary-button" type="button">Download text report</button>
-            <button id="download-report-json" class="secondary-button" type="button">Download JSON report</button>
-            <button id="download-report-csv" class="secondary-button" type="button">Download CSV report</button>
-          </div>
-        </div>
-      </section>
-    </main>
-  </section>
-
-  <footer class="app-footer">
-    <div class="footer-left">
-      <span class="footer-version">EPI Viewer 4.0.1</span>
-      <span class="footer-sep" aria-hidden="true">·</span>
-      <span class="footer-desc">Decision Ops surface for AI case review</span>
-    </div>
-    <div class="footer-links">
-      <a href="https://epilabs.org/" class="footer-link">epilabs.org</a>
-      <a href="https://epilabs.org/verify/" class="footer-link">Verifier</a>
-      <a href="https://epilabs.org/how-it-works.html" class="footer-link">Docs</a>
-      <a href="https://github.com/mohdibrahimaiml/epi-recorder" class="footer-link" target="_blank" rel="noopener">GitHub</a>
-    </div>
-  </footer>
 </div>
 
+<!-- ── Mobile Hamburger ──────────────────────────────── -->
+<button id="nav-toggle" aria-label="Open navigation">☰</button>
+
+<!-- ── Sidebar Navigation ────────────────────────────── -->
+<nav id="forensic-index">
+  <div class="index-title">Audit_Index <button id="nav-close" aria-label="Close navigation">✕</button></div>
+  <a href="#doc-header">§0 Summary</a>
+  <a href="#integrity-status">§1 Integrity</a>
+  <a href="#case-context" id="nav-context" class="hidden">§2 Context</a>
+  <a href="#verdict-section">§3 Verdict</a>
+  <a href="#evidence-trace">§4 Evidence</a>
+  <a href="#governance-basis" id="nav-governance" class="hidden">§5 Governance</a>
+  <a href="#analysis-section" id="nav-analysis" class="hidden">§6 Analysis</a>
+  <a href="#attestation-section">§7 Attestation</a>
+  <a href="#appendix-section">§8 Appendix</a>
+</nav>
+
+<!-- ── Main Document ─────────────────────────────────── -->
+<div id="document-root">
+
+  <!-- § 0 — Document Header -->
+  <header id="doc-header">
+    <div class="doc-label">Official_Forensic_Record · EPI Artifact Viewer __EPI_VERSION__</div>
+    <h1 id="header-title">Loading...</h1>
+    <div id="header-uuid" class="header-uuid"></div>
+    <div class="meta-grid">
+      <div class="meta-item">
+        <div class="meta-key">Created_At</div>
+        <div id="meta-created" class="meta-val">—</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-key">Container</div>
+        <div id="meta-container" class="meta-val">—</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-key">Spec_Version</div>
+        <div id="meta-spec" class="meta-val">—</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-key">Steps</div>
+        <div id="meta-steps" class="meta-val">—</div>
+      </div>
+    </div>
+    <div id="header-pills" class="header-status-pills"></div>
+  </header>
+
+  <!-- § 1 — Trust & Integrity -->
+  <section id="integrity-status">
+    <div class="section-label">1.0 Trust_&amp;_Integrity_Verification</div>
+    <div class="status-box">
+      <div class="trust-grid">
+        <!-- Left: status indicators -->
+        <div>
+          <div class="details-list">
+            <div class="dl-row">
+              <span class="dl-key">Integrity</span>
+              <span id="ind-integrity" class="indicator verified">VERIFIED</span>
+            </div>
+            <div class="dl-row" style="margin-top:14px;">
+              <span class="dl-key">Signature</span>
+              <span id="ind-signature" class="indicator unknown">UNKNOWN</span>
+            </div>
+            <div class="dl-row" style="margin-top:14px;">
+              <span class="dl-key">Identity</span>
+              <span id="ind-identity" class="indicator unknown" style="font-size:13px; word-break:break-all;">—</span>
+            </div>
+          </div>
+        </div>
+        <!-- Right: diagnostic matrix -->
+        <div>
+          <div style="font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:1px; color:var(--text-faint); margin-bottom:10px;">Diagnostic Matrix</div>
+          <div class="diagnostic-matrix">
+            <div class="diag-item">
+              <span class="diag-label">File Integrity</span>
+              <span id="diag-files" class="diag-status unknown">—</span>
+            </div>
+            <div class="diag-item">
+              <span class="diag-label">Chain Integrity</span>
+              <span id="diag-chain" class="diag-status unknown">—</span>
+            </div>
+            <div class="diag-item">
+              <span class="diag-label">Completeness</span>
+              <span id="diag-completeness" class="diag-status unknown">—</span>
+            </div>
+            <div class="diag-item">
+              <span class="diag-label">Public Key</span>
+              <span id="diag-pubkey" class="diag-status unknown" style="font-size:9px; word-break:break-all;">—</span>
+            </div>
+          </div>
+          <div id="verify-cmd-block" class="verify-cmd" title="Click to copy" onclick="copyVerifyCmd(this)">
+            <span class="verify-cmd-label">Verify</span>
+            <span id="verify-cmd-text" class="verify-cmd-text">epi verify ...</span>
+            <span class="copy-hint">click to copy</span>
+          </div>
+        </div>
+      </div>
+      <!-- Notarization / Timestamp sub-section -->
+      <div id="notarization-block" class="hidden" style="margin-top:20px; border-top:1px solid var(--border-color); padding-top:18px;">
+        <div style="font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:1px; color:var(--text-faint); margin-bottom:12px;">RFC 3161 Timestamp &amp; Envelope</div>
+        <div class="diagnostic-matrix">
+          <div class="diag-item">
+            <span class="diag-label">RFC 3161 TSA</span>
+            <span id="diag-rfc3161" class="diag-status unknown">—</span>
+          </div>
+          <div class="diag-item">
+            <span class="diag-label">Bitcoin (OTS)</span>
+            <span id="diag-ots" class="diag-status unknown">—</span>
+          </div>
+          <div class="diag-item">
+            <span class="diag-label">Envelope UUID</span>
+            <span id="diag-envelope-uuid" class="diag-status unknown" style="font-size:9px; word-break:break-all;">—</span>
+          </div>
+          <div class="diag-item">
+            <span class="diag-label">Payload Hash</span>
+            <span id="diag-payload-hash" class="diag-status unknown" style="font-size:9px; word-break:break-all;">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- § 2 — Case Context (hidden if no data) -->
+  <section id="case-context" class="hidden">
+    <div class="section-label">2.0 Case_Context</div>
+    <div class="status-box">
+      <div id="context-inner"></div>
+    </div>
+  </section>
+
+  <!-- § 3 — Verdict / Decision -->
+  <section id="verdict-section">
+    <div class="section-label">3.0 Verdict_&amp;_Decision</div>
+    <div class="verdict-box">
+      <div class="verdict-meta">
+        <div>
+          <div id="verdict-text" class="verdict-text unknown">PENDING</div>
+          <div id="compliance-stats" class="compliance-stats"></div>
+          <div id="risk-level-badge" class="risk-level-badge"></div>
+        </div>
+        <div id="verdict-note" class="verdict-analysis-note"></div>
+      </div>
+      <div id="verdict-diag" class="diagnostic-matrix" style="margin-top:20px;"></div>
+    </div>
+  </section>
+
+  <!-- § 4 — Evidence Timeline -->
+  <section id="evidence-trace">
+    <div class="section-label">4.0 Chronological_Evidence_Log</div>
+    <div id="evidence-heatmap" class="heatmap-bar"></div>
+    <div id="evidence-table" class="evidence-table"></div>
+  </section>
+
+  <!-- § 5 — Governance (hidden if no policy) -->
+  <section id="governance-basis" class="hidden">
+    <div class="section-label">5.0 Governance_Basis_Rulebook</div>
+    <div id="rulebook-content"></div>
+  </section>
+
+  <!-- § 6 — Analysis (hidden if no analysis) -->
+  <section id="analysis-section" class="hidden">
+    <div class="section-label">6.0 Fault_Analysis</div>
+    <div id="analysis-content"></div>
+  </section>
+
+  <!-- § 7 — Human Attestation -->
+  <section id="attestation-section">
+    <div class="section-label">7.0 Human_Attestation_&amp;_Sign-Off</div>
+    <div class="status-box" style="border-style:double; border-width:6px;">
+
+      <!-- Display if review already exists -->
+      <div id="review-display" class="hidden">
+        <div id="review-seal" class="verdict-seal">—</div>
+        <div id="review-content" class="review-content"></div>
+        <div class="review-meta">
+          <div>Certified By: <strong id="reviewer-name">—</strong></div>
+          <div id="review-date">—</div>
+        </div>
+      </div>
+
+      <!-- Form if no review yet -->
+      <div id="review-form" class="review-station">
+        <p class="review-instruction">As the designated human auditor, review the evidence above and provide your final attestation verdict.</p>
+        <div class="form-group">
+          <label>Reviewer Name / Identity</label>
+          <input type="text" id="id-reviewer" placeholder="e.g. Senior Auditor — Jane Smith">
+        </div>
+        <div class="form-group">
+          <label>Final Attestation Verdict</label>
+          <div class="verdict-buttons">
+            <button class="v-btn approve" id="btn-approved">Approve</button>
+            <button class="v-btn reject" id="btn-rejected">Reject</button>
+            <button class="v-btn escalate" id="btn-escalated">Escalate</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Audit Notes &amp; Rationale</label>
+          <textarea id="id-notes" placeholder="Describe your findings..."></textarea>
+        </div>
+        <button class="sign-button" id="sign-btn">Sign &amp; Seal This Artifact</button>
+        <div id="sign-status" class="sign-status-msg"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- § 8 — Technical Appendix -->
+  <section id="appendix-section">
+    <div class="section-label">8.0 Technical_Appendix</div>
+    <div class="status-box">
+      <div style="font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:1px; color:var(--text-faint); margin-bottom:12px;">Execution Environment</div>
+      <div id="env-block" class="appendix-block">—</div>
+
+      <div class="collapsible-toggle" id="manifest-toggle">
+        <span class="toggle-arrow">▶</span>
+        Full Manifest (JSON)
+      </div>
+      <div class="collapsible-body" id="manifest-body">
+        <pre id="manifest-json">—</pre>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /#document-root -->
+
+<!-- ── Injected data placeholders (replaced by Python) ── -->
+<script id="epi-view-context" type="application/json">{}</script>
+
+<!-- ── JS libraries (inlined by viewer_assets.py) ────── -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-<script src="crypto.js"></script>
+<script src="../epi_viewer_static/crypto.js"></script>
 <script src="app.js"></script>
+
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <img src="../assets/logo.png" alt="EPI Labs" class="footer-logo">
+        <span class="footer-copy">&copy; 2026 EPI LABS. MIT License. Built in India. Engineered for the world.</span>
+      </div>
+      <ul class="footer-links">
+        <li><a href="/verify/">Verify</a></li>
+        <li><a href="/pricing">Pricing</a></li>
+        <li><a href="/enterprise">Enterprise</a></li>
+        <li><a href="/account">Account</a></li>
+        <li><a href="/how-it-works">Docs</a></li>
+        <li><a href="/trust">Trust</a></li>
+        <li><a href="/integrations">Integrations</a></li>
+        <li><a href="/use-cases">Use cases</a></li>
+        <li><a href="/status">Status</a></li>
+        <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="/terms">Terms</a></li>
+        <li><a href="/privacy">Privacy</a></li>
+        <li><a href="/refund">Refunds</a></li>
+        <li><a href="mailto:mohdibrahim@epilabs.org">Contact</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
 </body>
 </html>

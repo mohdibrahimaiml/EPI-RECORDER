@@ -1,13 +1,24 @@
-# EPI CLI Reference (v4.2.0)
+# EPI CLI Reference (v4.4.0)
 
-**Version:** 4.2.0
+**Version:** 4.4.0
 **Primary entrypoint:** `epi`
 
 ---
 
 ## Start Here
 
+**Docs map:** [README.md](./README.md) · **Pilot:** [PILOT.md](./PILOT.md)
+
 Start with `epi demo` if you want to capture one AI run from Python, open it in the browser, and verify the resulting `.epi` artifact in minutes. The first browser screen is case-first: it leads with decision, review state, trust, and the evidence trail instead of a setup dashboard.
+
+For an enterprise customer pilot (org kit + auditor pack), use:
+
+```bash
+epi enterprise setup
+epi enterprise pack your-run.epi
+```
+
+See [ENTERPRISE-15-MINUTES.md](./ENTERPRISE-15-MINUTES.md).
 
 If you already have exported Microsoft Agent Governance Toolkit evidence, start with:
 
@@ -37,6 +48,7 @@ If you prefer zero local setup, use the Colab notebook linked from [README.md](.
 | Command | Purpose |
 | --- | --- |
 | `epi demo` | Start the sample refund workflow and open the case-first investigation flow in the browser. Recommended first run. |
+| `epi enterprise setup` / `pack` / `capabilities` | Enterprise evidence kit (org trust scaffold + auditor pack). See [ENTERPRISE-15-MINUTES.md](./ENTERPRISE-15-MINUTES.md). |
 | `epi import agt <input> --out <file.epi>` | Convert exported AGT evidence into a portable `.epi` case file from a bundle JSON, evidence directory, or AGT import manifest. |
 | `epi run <script.py>` | Record a Python workflow that already emits EPI steps. |
 | `epi record --out <file.epi> -- <cmd...>` | Record an arbitrary command with an explicit output path. |
@@ -52,7 +64,11 @@ If you prefer zero local setup, use the Colab notebook linked from [README.md](.
 | `epi associate` | Register file association support. Best used as a repair or developer path on Windows. |
 | `epi unassociate` | Remove file association support. |
 | `epi doctor` | Run self-healing diagnostics. |
-| `epi keys` | Manage signing keys. |
+| `epi keys generate` | Generate an Ed25519 signing key pair. |
+| `epi keys list` | List signing key pairs. |
+| `epi keys export [--format hex]` | Export a public key as base64 (default) or hex. |
+| `epi keys trust <name-or-path>` | Copy a public key into the local trust registry. |
+| `epi keys revoke <name>` | Create a revocation marker for a trusted/signing key. |
 | `epi policy` | Create, explain, and validate `epi_policy.json` rule files. |
 | `epi review <file.epi>` | Confirm or dismiss policy-grounded issues and save human review notes. |
 
@@ -324,7 +340,7 @@ epi doctor
 
 Creates and validates `epi_policy.json` files that define acceptable agent behavior.
 
-In the current `v4.2.0` line, `epi policy init` is the guided front door for
+In the current **v4.4.0** line, `epi policy init` is the guided front door for
 policy. It asks a small number of business-language questions and writes the
 machine-readable rulebook for you.
 It now shares the same starter rule shapes as the browser Rules editor, and the custom starter path can be pinned with repeated `--starter-rule` options.
@@ -434,16 +450,67 @@ The bridge stays local to the machine by default and is meant for self-hosted se
 
 ---
 
+## `epi keys`
+
+Manage Ed25519 signing keys and the local trust registry.
+
+```bash
+epi keys generate
+epi keys generate --name team-key
+epi keys list
+epi keys export default
+epi keys export default --format hex
+epi keys trust team-key
+epi keys trust /path/to/key.pub --name external-signer
+epi keys revoke team-key
+```
+
+Actions:
+
+- `generate` — Create a new Ed25519 key pair in `~/.epi/keys/`.
+- `list` — Show all signing key pairs.
+- `export` — Print a public key. Use `--format hex` to get the raw 64-character hex string (useful for DID documents).
+- `trust` — Copy a public key into `~/.epi/trusted_keys/` so `epi verify` can recognize it as a known identity.
+- `revoke` — Write a `.revoked` marker for a key so `epi verify` treats it as untrusted.
+
 ## `epi review <file.epi>`
 
 Supports human review of policy-grounded faults. Reviewers can confirm, dismiss, or skip flagged issues. The result is appended to the case file as review notes without replacing the original sealed evidence files.
 
 ```bash
 epi review payment_run.epi
+epi review payment_run.epi --reviewer alice@example.com --key default
 epi review payment_run.epi show
+epi review payment_run.epi bind --reviewer alice@example.com
 ```
 
+Options:
+
+- `--reviewer`, `-r` — Reviewer identity (email or name).
+- `--key`, `-k` — Name of the signing key to use for the review signature (default: `default`).
+
+Subcommands:
+
+- `show` — Display the existing review record, if present.
+- `bind` — Promote the latest unbound review into a signed, artifact-bound review entry.
+
 ---
+
+## epi annex
+
+Generate and manage EU AI Act Annex IV compliance artifacts.
+
+| Command | Description |
+|---------|-------------|
+| init | Create template JSON files for all 9 sections |
+| validate | Validate section JSON against Pydantic schemas |
+| status | Show per-section completion and approval status |
+| compile | Generate compliance-summary.json |
+| sign | Ed25519 sign a section (or all) |
+| verify | Verify Ed25519 signatures |
+| report | Generate browser-viewable HTML compliance report |
+
+Full docs: [ANNEX-IV.md](ANNEX-IV.md)
 
 ## Notes
 

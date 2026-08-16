@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import os
 import sys
+import webbrowser
 
 import typer
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
 
+from epi_cli._shared import require_service
 from epi_core import telemetry as telemetry_core
 
 app = typer.Typer(help="Manage privacy-first opt-in telemetry and pilot signup.")
@@ -44,7 +47,7 @@ def enable(
     org: str = typer.Option("", "--org", help="Pilot signup organization."),
     role: str = typer.Option("", "--role", help="Pilot signup role."),
     use_case: str = typer.Option(
-        "other",
+        "",
         "--use-case",
         help="Pilot use case: debugging | governance | compliance | agt integration | ci/cd | other.",
     ),
@@ -83,11 +86,11 @@ def enable(
         org = Prompt.ask("Org", default="")
     if not role and _is_interactive():
         role = Prompt.ask("Role", default="")
-    if (not use_case or use_case == "other") and _is_interactive():
+    if not use_case and _is_interactive():
         use_case = Prompt.ask(
             "Use case",
             choices=["debugging", "governance", "compliance", "agt integration", "ci/cd", "other"],
-            default=use_case or "other",
+            default="other",
         )
     if not link_telemetry and _is_interactive():
         link_telemetry = Confirm.ask(
@@ -128,6 +131,22 @@ def disable() -> None:
     telemetry_core.disable()
     console.print("[green][OK][/green] Telemetry disabled")
     console.print("[dim]No telemetry events will be sent unless EPI_TELEMETRY_OPT_IN=true is set.[/dim]")
+
+
+@app.command("dashboard")
+def dashboard() -> None:
+    """Open the EPI telemetry dashboard in your browser."""
+    url = os.getenv("EPI_TELEMETRY_DASHBOARD_URL") or telemetry_core.telemetry_url().replace(
+        "/api/telemetry/events", "/admin/telemetry.html"
+    )
+    require_service(url, label="EPI telemetry dashboard")
+    console.print(f"[bold]EPI Telemetry Dashboard[/bold]")
+    console.print(f"[dim]{url}[/dim]")
+    try:
+        webbrowser.open(url)
+    except Exception as exc:
+        console.print(f"[yellow]Could not open browser:[/yellow] {exc}")
+        console.print(f"[cyan]Please open the URL manually.[/cyan]")
 
 
 @app.command("test")

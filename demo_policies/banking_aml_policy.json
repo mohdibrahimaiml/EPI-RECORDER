@@ -1,0 +1,32 @@
+{
+  "policy_format_version": "1.0",
+  "policy_id": "policy.banking.aml.v1",
+  "system_name": "Banking AML Transaction Monitoring",
+  "system_version": "1.0",
+  "policy_version": "2026.04",
+  "profile_id": "banking-aml-v1",
+  "rules": [
+    {
+      "id": "aml_threshold_check",
+      "name": "BSA/AML Mandatory Review Threshold ($10,000)",
+      "severity": "high",
+      "description": "International wire transfers exceeding $10,000 USD require compliance officer SAR evaluation.",
+      "type": "constraint_guard",
+      "watch_for": ["threshold_usd"],
+      "violation_if": "transaction amount exceeds threshold_usd ($10,000)"
+    },
+    {
+      "id": "aml_human_approval_required",
+      "name": "Compliance Officer Hold Release Approval",
+      "severity": "critical",
+      "description": "Releasing wire holds on flagged AML transfers requires explicit compliance officer approval.",
+      "type": "approval_guard",
+      "approval_action": "release_wire_hold",
+      "approved_by": "aml_officer_sarah@bank.example"
+    }
+  ],
+  "context_tracking": {
+    "identity_fields": ["transaction_id", "account_id"],
+    "exempt_fields": ["policy_ref", "bsa_ref", "disclaimer"]
+  }
+}

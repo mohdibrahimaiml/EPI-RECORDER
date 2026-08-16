@@ -13,6 +13,7 @@ This command:
 - Auto-signs the manifest with the default Ed25519 key
 """
 
+import os
 import shlex
 import time
 from pathlib import Path
@@ -92,10 +93,25 @@ def record(
 
     import subprocess
 
+    # EPI_RECORD_TIMEOUT (seconds): how long to wait for the child process before
+    # forcibly killing it.  Unset (default) means wait indefinitely — the same
+    # behaviour as before.  Set to a positive integer in CI to avoid infinite hangs.
+    _timeout_raw = child_env.get("EPI_RECORD_TIMEOUT") or os.environ.get("EPI_RECORD_TIMEOUT")
+    record_timeout: float | None = float(_timeout_raw) if _timeout_raw else None
+
     start = time.time()
     with open(stdout_log, "wb") as out_f, open(stderr_log, "wb") as err_f:
         proc = subprocess.Popen(cmd, env=child_env, stdout=out_f, stderr=err_f)
-        rc = proc.wait()
+        try:
+            rc = proc.wait(timeout=record_timeout)
+        except subprocess.TimeoutExpired:
+            console.print(
+                f"\n[red][TIMEOUT][/red] Child process exceeded {record_timeout}s limit. "
+                "Terminating."
+            )
+            proc.kill()
+            proc.wait()  # reap the zombie after kill
+            rc = 124  # conventional timeout exit code (matches GNU timeout)
     duration = round(time.time() - start, 3)
 
     # Build manifest

@@ -1,10 +1,12 @@
-name: Deploy Website
+name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
     paths:
-      - 'epi-official/**'
+      - 'website/**'
+      - '.github/workflows/deploy-website.yml'
+      - 'scripts/sync_website.py'
   workflow_dispatch:
 
 permissions:
@@ -24,11 +26,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-        with:
-          enablement: true
+
+      - name: Ensure website source exists
+        run: test -f website/index.html && test -f website/account.html && test -f website/CNAME
+
+      - uses: actions/configure-pages@v4
+
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: epi-official
-      - uses: actions/deploy-pages@v4
+          # Single source of truth
+          path: website
+
+      - name: Deploy to GitHub Pages
         id: deployment
+        uses: actions/deploy-pages@v4

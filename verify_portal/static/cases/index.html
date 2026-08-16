@@ -142,30 +142,38 @@
 
         .hidden { display: none !important; }
     </style>
+<link rel="stylesheet" href="/css/epi.css?v=27">
+<link rel="stylesheet" href="/css/epi-v2.css?v=7">
+<script>
+(function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();
+</script>
 </head>
-<body>
-    <nav class="nav">
-        <div class="container nav-container">
-            <div class="nav-logo">
-                <a href="../index.html" title="Go to Home">
-                    <img src="../assets/logo.png" alt="EPI LABS" class="logo-img">
-                </a>
-            </div>
-            <div class="nav-links">
-                <a href="../how-it-works.html#top">How It Works</a>
-                <a href="../technology.html">Technology</a>
-                <a href="../use-cases.html#top">Use Cases</a>
-                <a href="../verify.html">Verify</a>
-                <a href="../contact.html#top">Contact</a>
-            </div>
-            <div class="nav-cta">
-                <a href="https://github.com/mohdibrahimaiml/epi-recorder" class="btn-secondary" target="_blank">GitHub</a>
-                <a href="../verify.html" class="btn-primary">Verify Another File</a>
-            </div>
-        </div>
-    </nav>
-
-    <main class="page-container">
+<body class="epi-instrument">
+<nav id="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo"><img src="../assets/logo.png" alt="EPI Labs"></a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="/verify/">Verify</a></li>
+      <li><a href="/how-it-works">Docs</a></li>
+      <li><a href="/pricing">Pricing</a></li>
+      <li><a href="/enterprise">Enterprise</a></li>
+      <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
+      <li id="nav-auth-slot"></li>
+      <li><button type="button" class="theme-toggle-nav" id="themeToggleNav" data-theme-toggle aria-label="Toggle color theme" title="Toggle theme">&#9788;</button></li>
+    </ul>
+    <button type="button" class="nav-mob" id="mobBtn" aria-label="Open menu" aria-expanded="false" aria-controls="mobMenu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+<div class="mob-menu" id="mobMenu" hidden>
+  <a href="/verify/">Verify</a>
+  <a href="/how-it-works">Docs</a>
+  <a href="/pricing">Pricing</a>
+  <a href="/enterprise">Enterprise</a>
+  <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
+</div>
+<main class="page-container">
         <canvas id="particle-canvas" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index:-1; pointer-events:none; opacity: 0.6;"></canvas>
 
         <div class="case-card">
@@ -256,19 +264,6 @@
             </div>
         </div>
     </div>
-
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-brand">
-                    <a href="../index.html" title="Go to Home">
-                        <img src="../assets/logo.png" alt="EPI LABS" class="footer-logo">
-                    </a>
-                    <p>Portable repro artifacts for AI systems.</p>
-                </div>
-            </div>
-        </div>
-    </footer>
 
     <script type="module">
         import { analyzeArtifactBlob } from '../js/epi-verify-core.js';
@@ -465,5 +460,36 @@
     </script>
     <script src="../js/app.js?v=8.0"></script>
     <script src="../js/particles.js?v=4.0.1"></script>
+<script src="/js/theme.js"></script>
+<script src="/js/instrument-nav.js"></script>
+<script src="/js/auth-ui.js"></script>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <img src="../assets/logo.png" alt="EPI Labs" class="footer-logo">
+        <span class="footer-copy">&copy; 2026 EPI LABS. MIT License. Built in India. Engineered for the world.</span>
+      </div>
+      <ul class="footer-links">
+        <li><a href="/verify/">Verify</a></li>
+        <li><a href="/pricing">Pricing</a></li>
+        <li><a href="/enterprise">Enterprise</a></li>
+        <li><a href="/account">Account</a></li>
+        <li><a href="/how-it-works">Docs</a></li>
+        <li><a href="/trust">Trust</a></li>
+        <li><a href="/integrations">Integrations</a></li>
+        <li><a href="/use-cases">Use cases</a></li>
+        <li><a href="/status">Status</a></li>
+        <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="/terms">Terms</a></li>
+        <li><a href="/privacy">Privacy</a></li>
+        <li><a href="/refund">Refunds</a></li>
+        <li><a href="mailto:mohdibrahim@epilabs.org">Contact</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
 </body>
 </html>
