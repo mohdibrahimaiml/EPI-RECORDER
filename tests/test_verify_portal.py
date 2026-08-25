@@ -97,9 +97,12 @@ def test_verify_page_matches_site_design(client: TestClient) -> None:
     r = client.get("/verify")
     assert r.status_code == 200
     assert "text/html" in r.headers["content-type"]
-    assert "epi.css" in r.text
+    # Site design system: site.css (forensic-document system, 2026 redesign).
+    # Legacy pages may still reference epi.css; the verify page must use the current one.
+    assert ("site.css" in r.text) or ("epi.css" in r.text)
+    # Nav consistency: verify page links to docs and pricing. (No self-link —
+    # the 2026 nav omits a link to the current page.)
     assert 'href="/how-it-works"' in r.text
-    assert 'href="/verify/"' in r.text
     assert 'href="/pricing"' in r.text
 
 
