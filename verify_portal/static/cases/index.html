@@ -1,154 +1,111 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shared EPI Case | EPI LABS</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/cbor-js@0.1.0/cbor.min.js"></script>
-    <link rel="stylesheet" href="../css/style.css?v=8.0">
-    <link rel="stylesheet" href="../css/terminal.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <style>
-        .page-container {
-            min-height: calc(100vh - 80px);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: var(--space-xl) var(--space-md);
-            position: relative;
-            z-index: 10;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <link rel="canonical" href="https://epilabs.org/cases/">
+  <title>Shared EPI Case | EPI Labs</title>
+  <meta name="description" content="View a shared sealed .epi case: verify the seal, inspect the evidence timeline and cryptographic file manifest.">
+  <meta name="robots" content="noindex, follow">
+  <link rel="icon" href="/favicon.ico">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
+  <script src="/js/epi-verify-core.js?v=34"></script>
+  <script>
+  (function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();
+  </script>
+  <style>
+    .case-main{max-width:860px;margin:0 auto;padding:130px 24px 80px}
+    @media(max-width:768px){.case-main{padding:96px 16px 48px}}
 
-        .case-card {
-            background: rgba(10, 13, 21, 0.7);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: var(--radius-xl);
-            padding: var(--space-xl);
-            width: 100%;
-            max-width: 860px;
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-        }
+    .page-head{text-align:center;margin-bottom:36px}
+    .eyebrow-badge{margin-bottom:18px}
+    .page-head h1{font-size:clamp(1.7rem,4vw,2.4rem);font-weight:700;letter-spacing:-0.03em;color:var(--ink);margin:0 0 10px}
+    .page-head p{color:var(--ink-muted);font-size:0.98rem;line-height:1.6;max-width:560px;margin:0 auto}
 
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            border-radius: 99px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            margin-bottom: var(--space-md);
-        }
+    .case-card{
+      background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
+      box-shadow:var(--shadow-lg);padding:32px;position:relative;z-index:1;
+    }
+    @media(max-width:640px){.case-card{padding:22px 16px}}
 
-        .status-success { color: var(--color-success); background: rgba(48, 209, 88, 0.1); border: 1px solid rgba(48, 209, 88, 0.2); }
-        .status-warning { color: var(--color-warning); background: rgba(255, 214, 10, 0.1); border: 1px solid rgba(255, 214, 10, 0.2); }
-        .status-error { color: var(--color-error); background: rgba(255, 69, 58, 0.1); border: 1px solid rgba(255, 69, 58, 0.2); }
+    .status-badge{
+      display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;
+      font-family:var(--mono);font-weight:700;font-size:0.74rem;text-transform:uppercase;
+      letter-spacing:0.06em;border:1px solid transparent;
+    }
+    .status-success{color:var(--verified);background:var(--verified-bg)}
+    .status-warning{color:var(--warn);background:var(--warn-bg)}
+    .status-error{color:var(--tamper);background:var(--tamper-bg)}
 
-        .metadata-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: var(--space-sm) var(--space-md);
-            margin: var(--space-md) 0 var(--space-lg) 0;
-            background: rgba(0,0,0,0.2);
-            padding: var(--space-md);
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-subtle);
-        }
+    .metadata-grid{
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+      gap:18px 24px;margin:26px 0;padding:20px;background:var(--bg-alt);
+      border-radius:var(--radius-sm);border:1px solid var(--border);
+    }
+    .meta-label{font-family:var(--mono);color:var(--ink-muted);font-size:0.66rem;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:5px}
+    .meta-value{color:var(--ink);font-size:0.9rem;word-break:break-word}
+    .meta-value.mono{font-family:var(--mono);font-size:0.78rem}
 
-        .meta-label { color: var(--color-gray-500); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
-        .meta-value { color: var(--color-white); font-size: 0.9rem; word-break: break-word; }
-        .meta-value.mono { font-family: var(--font-mono); color: var(--color-teal-400); }
+    .action-row{display:flex;gap:10px;flex-wrap:wrap}
+    .action-row .btn{padding:11px 20px;font-size:0.88rem}
 
-        .action-row {
-            display: flex;
-            gap: var(--space-sm);
-            flex-wrap: wrap;
-        }
+    /* Modals */
+    .glass-modal{
+      position:fixed;inset:0;background:rgba(11,18,32,0.55);backdrop-filter:blur(6px);
+      z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;
+      opacity:0;pointer-events:none;transition:opacity 0.25s ease;
+    }
+    [data-theme="dark"] .glass-modal{background:rgba(0,0,0,0.65)}
+    .glass-modal.active{opacity:1;pointer-events:auto}
+    .glass-modal-content{
+      background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
+      width:100%;max-width:900px;max-height:85vh;display:flex;flex-direction:column;
+      box-shadow:var(--shadow-lg);
+    }
+    .modal-header{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .modal-header h3{margin:0;color:var(--ink);font-size:1.05rem}
+    .modal-header p{margin:2px 0 0;font-size:0.78rem;color:var(--ink-muted)}
+    .modal-body{padding:24px;overflow-y:auto;flex:1}
+    .modal-body table{width:100%;text-align:left;border-collapse:collapse;font-size:0.85rem}
+    .modal-body th{font-family:var(--mono);font-size:0.64rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--ink-muted);padding:10px 12px;border-bottom:1px solid var(--border-str);background:var(--bg-alt)}
+    .modal-body td{padding:11px 12px;border-bottom:1px solid var(--border);color:var(--ink-soft);word-break:break-word}
 
-        .timeline-item {
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            margin-bottom: var(--space-md);
-            overflow: hidden;
-        }
-        .timeline-header {
-            padding: var(--space-sm) var(--space-md);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            background: rgba(255, 255, 255, 0.02);
-        }
-        .timeline-body {
-            padding: var(--space-md);
-            background: #000;
-            border-top: 1px solid var(--border-subtle);
-            color: var(--color-teal-400);
-            font-family: var(--font-mono);
-            font-size: 0.85rem;
-            overflow-x: auto;
-            display: none;
-        }
-        .timeline-body.active { display: block; }
+    /* Timeline */
+    .timeline-item{
+      background:var(--bg-alt);border:1px solid var(--border);border-radius:var(--radius-sm);
+      margin-bottom:10px;overflow:hidden;
+    }
+    .timeline-header{
+      padding:13px 16px;display:flex;flex-direction:column;gap:6px;cursor:pointer;
+      transition:background 0.15s;
+    }
+    .timeline-header:hover{background:var(--accent-glow)}
+    .timeline-topline{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .step-index{font-family:var(--mono);color:var(--ink-dim);font-size:0.76rem}
+    .kind-tag{
+      font-family:var(--mono);font-size:0.62rem;font-weight:700;text-transform:uppercase;
+      letter-spacing:0.06em;padding:3px 8px;border-radius:5px;
+      background:var(--accent-glow);color:var(--accent);border:1px solid var(--accent-line);
+    }
+    .step-preview{color:var(--ink);font-size:0.86rem;line-height:1.45}
+    .step-time{font-family:var(--mono);font-size:0.68rem;color:var(--ink-muted);margin-left:auto}
+    .timeline-body{
+      padding:16px;background:var(--bg-dark);border-top:1px solid var(--border);
+      font-family:var(--mono);font-size:0.72rem;color:#C4CBD8;overflow-x:auto;display:none;
+    }
+    .timeline-body.active{display:block}
+    .timeline-body pre{margin:0;white-space:pre-wrap;word-break:break-word}
 
-        .glass-modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(10px);
-            z-index: 2000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: var(--space-md);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-        .glass-modal.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        .glass-modal-content {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-lg);
-            width: 100%;
-            max-width: 900px;
-            max-height: 85vh;
-            display: flex;
-            flex-direction: column;
-            box-shadow: var(--shadow-xl);
-        }
-        .modal-header {
-            padding: var(--space-md) var(--space-lg);
-            border-bottom: 1px solid var(--border-subtle);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .modal-body {
-            padding: var(--space-lg);
-            overflow-y: auto;
-            flex: 1;
-        }
+    .hidden{display:none!important}
+    .muted{color:var(--ink-muted)}
 
-        .hidden { display: none !important; }
-    </style>
-<link rel="stylesheet" href="/css/epi.css?v=27">
-<link rel="stylesheet" href="/css/epi-v2.css?v=7">
-<script>
-(function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();
-</script>
+    footer.site-footer{margin-top:0}
+  </style>
+  <link rel="stylesheet" href="/css/meridian.css?v=2">
+  <meta name="theme-color" content="#0A0B0D">
 </head>
 <body class="epi-instrument">
+
 <nav id="nav">
   <div class="nav-inner">
     <a href="/" class="nav-logo"><img src="../assets/logo.png" alt="EPI Labs"></a>
@@ -159,7 +116,7 @@
       <li><a href="/enterprise">Enterprise</a></li>
       <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
       <li id="nav-auth-slot"></li>
-      <li><button type="button" class="theme-toggle-nav" id="themeToggleNav" data-theme-toggle aria-label="Toggle color theme" title="Toggle theme">&#9788;</button></li>
+      <li><button type="button" class="theme-toggle-nav" data-theme-toggle aria-label="Toggle color theme" title="Toggle theme">&#9788;</button></li>
     </ul>
     <button type="button" class="nav-mob" id="mobBtn" aria-label="Open menu" aria-expanded="false" aria-controls="mobMenu">
       <span></span><span></span><span></span>
@@ -173,323 +130,291 @@
   <a href="/enterprise">Enterprise</a>
   <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
 </div>
-<main class="page-container">
-        <canvas id="particle-canvas" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index:-1; pointer-events:none; opacity: 0.6;"></canvas>
 
-        <div class="case-card">
-            <div style="text-align: center; margin-bottom: var(--space-xl);">
-                <div class="hero-badge" style="border-color: var(--color-primary); color: var(--color-primary); background: rgba(10, 132, 255, 0.1); margin-bottom: var(--space-md); padding: 0.25rem 0.75rem; display:inline-block; border-radius:99px; font-weight:600; font-size:0.8rem;">SHARED CASE LINK</div>
-                <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem;" class="text-gradient">Review Shared Case</h1>
-                <p id="pageCopy" style="font-size: 1rem;">Loading the shared `.epi` case file...</p>
-            </div>
+<main class="case-main">
+  <div class="page-head">
+    <div class="eyebrow-badge">Shared evidence link</div>
+    <h1>Review shared case</h1>
+    <p id="pageCopy">Loading the shared <code>.epi</code> case file…</p>
+  </div>
 
-            <div id="statusBadge" class="status-badge status-warning">
-                <span id="statusIcon">...</span> <span id="statusText">Loading case</span>
-            </div>
-            <p id="statusDesc" style="color: var(--color-gray-300); font-size: 0.95rem;"></p>
+  <div class="case-card">
+    <div id="statusBadge" class="status-badge status-warning">
+      <span id="statusIcon">…</span> <span id="statusText">Loading case</span>
+    </div>
+    <p id="statusDesc" class="muted" style="font-size:0.92rem;margin-top:10px"></p>
 
-            <div class="metadata-grid">
-                <div>
-                    <div class="meta-label">Filename</div>
-                    <div id="metaFilename" class="meta-value mono">--</div>
-                </div>
-                <div>
-                    <div class="meta-label">Workflow ID</div>
-                    <div id="metaWorkflow" class="meta-value mono">--</div>
-                </div>
-                <div>
-                    <div class="meta-label">Created At</div>
-                    <div id="metaCreatedAt" class="meta-value">--</div>
-                </div>
-                <div>
-                    <div class="meta-label">Expires</div>
-                    <div id="metaExpiresAt" class="meta-value">--</div>
-                </div>
-                <div>
-                    <div class="meta-label">Signer</div>
-                    <div id="metaSigner" class="meta-value mono">--</div>
-                </div>
-                <div>
-                    <div class="meta-label">Steps Recorded</div>
-                    <div id="metaSteps" class="meta-value">--</div>
-                </div>
-            </div>
-
-            <div class="action-row">
-                <button id="timelineButton" class="btn-primary" style="padding: 0.75rem;" disabled>
-                    Inspect Timeline
-                </button>
-                <button id="filesButton" class="btn-secondary" style="padding: 0.75rem; border-color: rgba(255,255,255,0.2); color: #fff;" disabled>
-                    File Manifest
-                </button>
-                <a id="downloadButton" class="btn-secondary hidden" style="padding: 0.75rem; border-color: rgba(255,255,255,0.2); color: #fff;" href="#">
-                    Download .epi
-                </a>
-            </div>
-        </div>
-    </main>
-
-    <div id="timelineModal" class="glass-modal">
-        <div class="glass-modal-content">
-            <div class="modal-header">
-                <div>
-                    <h3 style="margin-bottom: 0;">Evidence Timeline</h3>
-                    <p style="font-size: 0.8rem; margin:0;">Execution trace reconstructed from `steps.jsonl`.</p>
-                </div>
-                <button class="btn-secondary" style="padding: 0.25rem 0.5rem; border:none;" id="closeTimelineButton">X</button>
-            </div>
-            <div class="modal-body" id="timelineContent"></div>
-        </div>
+    <div class="metadata-grid">
+      <div><div class="meta-label">Filename</div><div id="metaFilename" class="meta-value mono">--</div></div>
+      <div><div class="meta-label">Workflow ID</div><div id="metaWorkflow" class="meta-value mono">--</div></div>
+      <div><div class="meta-label">Created At</div><div id="metaCreatedAt" class="meta-value">--</div></div>
+      <div><div class="meta-label">Expires</div><div id="metaExpiresAt" class="meta-value">--</div></div>
+      <div><div class="meta-label">Signer</div><div id="metaSigner" class="meta-value mono">--</div></div>
+      <div><div class="meta-label">Steps Recorded</div><div id="metaSteps" class="meta-value">--</div></div>
     </div>
 
-    <div id="filesModal" class="glass-modal">
-        <div class="glass-modal-content" style="max-width: 600px;">
-            <div class="modal-header">
-                <div>
-                    <h3 style="margin-bottom: 0;">File Manifest</h3>
-                    <p style="font-size: 0.8rem; margin:0;">Cryptographic inventory (SHA-256)</p>
-                </div>
-                <button class="btn-secondary" style="padding: 0.25rem 0.5rem; border:none;" id="closeFilesButton">X</button>
-            </div>
-            <div class="modal-body" style="padding: 0;">
-                <table style="width: 100%; text-align: left; border-collapse: collapse;">
-                    <thead style="background: rgba(0,0,0,0.5); border-bottom: 1px solid var(--border-subtle);">
-                        <tr>
-                            <th style="padding: 0.75rem 1rem; color: var(--color-gray-400); font-size: 0.8rem; text-transform: uppercase;">Filename</th>
-                            <th style="padding: 0.75rem 1rem; color: var(--color-gray-400); font-size: 0.8rem; text-transform: uppercase;">SHA-256 Hash</th>
-                        </tr>
-                    </thead>
-                    <tbody id="filesTableBody"></tbody>
-                </table>
-            </div>
-        </div>
+    <div class="action-row">
+      <button id="timelineButton" class="btn btn-primary" disabled>Inspect timeline</button>
+      <button id="filesButton" class="btn btn-secondary" disabled>File manifest</button>
+      <a id="downloadButton" class="btn btn-secondary hidden" href="#">Download .epi</a>
     </div>
+  </div>
+</main>
 
-    <script type="module">
-        import { analyzeArtifactBlob } from '../js/epi-verify-core.js';
+<div id="timelineModal" class="glass-modal" role="dialog" aria-modal="true" aria-labelledby="tlTitle">
+  <div class="glass-modal-content">
+    <div class="modal-header">
+      <div>
+        <h3 id="tlTitle">Evidence timeline</h3>
+        <p>Execution trace reconstructed from <code>steps.jsonl</code>.</p>
+      </div>
+      <button class="btn btn-secondary" style="padding:6px 12px" id="closeTimelineButton" aria-label="Close timeline">✕</button>
+    </div>
+    <div class="modal-body" id="timelineContent"></div>
+  </div>
+</div>
 
-        const API_BASE_URL = 'https://api.epilabs.org';
-        let currentSteps = [];
-        let currentFileManifest = {};
+<div id="filesModal" class="glass-modal" role="dialog" aria-modal="true" aria-labelledby="fmTitle">
+  <div class="glass-modal-content" style="max-width:640px">
+    <div class="modal-header">
+      <div>
+        <h3 id="fmTitle">File manifest</h3>
+        <p>Cryptographic inventory (SHA-256)</p>
+      </div>
+      <button class="btn btn-secondary" style="padding:6px 12px" id="closeFilesButton" aria-label="Close file manifest">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0">
+      <table>
+        <thead><tr><th>Filename</th><th>SHA-256 hash</th></tr></thead>
+        <tbody id="filesTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
-        const statusBadge = document.getElementById('statusBadge');
-        const statusIcon = document.getElementById('statusIcon');
-        const statusText = document.getElementById('statusText');
-        const statusDesc = document.getElementById('statusDesc');
-        const pageCopy = document.getElementById('pageCopy');
-        const timelineButton = document.getElementById('timelineButton');
-        const filesButton = document.getElementById('filesButton');
-        const downloadButton = document.getElementById('downloadButton');
+<script>
+(function(){
+  'use strict';
+  // Shared resolver — same-origin /api on prod/pages.dev, Render fallback.
+  function apiBase(){
+    var h=(location&&location.hostname)||'';
+    if(h==='epilabs.org'||h==='www.epilabs.org'||h.endsWith('.pages.dev'))return'';
+    if(h==='localhost'||h==='127.0.0.1')return'https://epi-verify-portal.onrender.com';
+    return'https://epi-verify-portal.onrender.com';
+  }
 
-        document.getElementById('closeTimelineButton').addEventListener('click', () => {
-            document.getElementById('timelineModal').classList.remove('active');
-        });
-        document.getElementById('closeFilesButton').addEventListener('click', () => {
-            document.getElementById('filesModal').classList.remove('active');
-        });
-        timelineButton.addEventListener('click', () => document.getElementById('timelineModal').classList.add('active'));
-        filesButton.addEventListener('click', () => document.getElementById('filesModal').classList.add('active'));
+  var currentSteps=[];
+  var currentFileManifest={};
 
-        void loadSharedCase();
+  var statusBadge=document.getElementById('statusBadge');
+  var statusIcon=document.getElementById('statusIcon');
+  var statusText=document.getElementById('statusText');
+  var statusDesc=document.getElementById('statusDesc');
+  var pageCopy=document.getElementById('pageCopy');
+  var timelineButton=document.getElementById('timelineButton');
+  var filesButton=document.getElementById('filesButton');
+  var downloadButton=document.getElementById('downloadButton');
 
-        async function loadSharedCase() {
-            const shareId = new URLSearchParams(window.location.search).get('id');
-            if (!shareId) {
-                setStatus('error', 'Missing case link', 'This link is missing a case id. Ask the sender for the full share URL.');
-                pageCopy.textContent = 'The shared link is incomplete.';
-                return;
-            }
+  document.getElementById('closeTimelineButton').addEventListener('click',function(){document.getElementById('timelineModal').classList.remove('active')});
+  document.getElementById('closeFilesButton').addEventListener('click',function(){document.getElementById('filesModal').classList.remove('active')});
+  timelineButton.addEventListener('click',function(){document.getElementById('timelineModal').classList.add('active')});
+  filesButton.addEventListener('click',function(){document.getElementById('filesModal').classList.add('active')});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'){document.getElementById('timelineModal').classList.remove('active');document.getElementById('filesModal').classList.remove('active')}});
 
-            try {
-                const metaResponse = await fetch(`${API_BASE_URL}/api/share/${encodeURIComponent(shareId)}/meta`);
-                if (metaResponse.status === 404) {
-                    setStatus('error', 'Case link not found', 'This shared link does not exist or has already been removed.');
-                    pageCopy.textContent = 'The shared case could not be found.';
-                    return;
-                }
-                if (metaResponse.status === 410) {
-                    setStatus('warning', 'Case link expired', 'This shared link has expired. Ask the sender to upload the case again.');
-                    pageCopy.textContent = 'The shared case is no longer available.';
-                    return;
-                }
-                if (!metaResponse.ok) {
-                    throw new Error(`Share metadata request failed with status ${metaResponse.status}`);
-                }
+  loadSharedCase();
 
-                const meta = await metaResponse.json();
-                const downloadUrl = `${API_BASE_URL}/api/share/${encodeURIComponent(shareId)}`;
-                const artifactResponse = await fetch(downloadUrl);
-                if (artifactResponse.status === 410) {
-                    setStatus('warning', 'Case link expired', 'This shared link has expired. Ask the sender to upload the case again.');
-                    pageCopy.textContent = 'The shared case is no longer available.';
-                    return;
-                }
-                if (!artifactResponse.ok) {
-                    throw new Error(`Shared case download failed with status ${artifactResponse.status}`);
-                }
+  async function loadSharedCase(){
+    var shareId=new URLSearchParams(window.location.search).get('id');
+    if(!shareId){
+      setStatus('error','Missing case link','This link is missing a case id. Ask the sender for the full share URL.');
+      pageCopy.textContent='The shared link is incomplete.';
+      return;
+    }
+    try{
+      var metaResponse=await fetch(apiBase()+'/api/share/'+encodeURIComponent(shareId)+'/meta');
+      if(metaResponse.status===404){
+        setStatus('error','Case link not found','This shared link does not exist or has already been removed.');
+        pageCopy.textContent='The shared case could not be found.';
+        return;
+      }
+      if(metaResponse.status===410){
+        setStatus('warning','Case link expired','This shared link has expired. Ask the sender to upload the case again.');
+        pageCopy.textContent='The shared case is no longer available.';
+        return;
+      }
+      if(!metaResponse.ok)throw new Error('Share metadata request failed with status '+metaResponse.status);
 
-                const artifactBlob = await artifactResponse.blob();
-                const artifact = await analyzeArtifactBlob(artifactBlob, { allowEmbeddedViewer: false });
-                currentSteps = artifact.steps;
-                currentFileManifest = artifact.fileManifest;
-                renderCase(meta, artifact, downloadUrl);
-            } catch (error) {
-                setStatus('error', 'Could not load case', error.message || String(error));
-                pageCopy.textContent = 'The hosted case could not be loaded right now.';
-            }
-        }
+      var meta=await metaResponse.json();
+      var downloadUrl=apiBase()+'/api/share/'+encodeURIComponent(shareId);
+      var artifactResponse=await fetch(downloadUrl);
+      if(artifactResponse.status===410){
+        setStatus('warning','Case link expired','This shared-case download has expired.');
+        pageCopy.textContent='The shared case is no longer available.';
+        return;
+      }
+      if(!artifactResponse.ok)throw new Error('Shared case download failed with status '+artifactResponse.status);
 
-        function renderCase(meta, artifact, downloadUrl) {
-            const verification = artifact.verification;
-            const stateText = verification.state === 'success'
-                ? 'Verified case'
-                : verification.state === 'warning'
-                    ? 'Unsigned case'
-                    : verification.state === 'tampered'
-                        ? 'Tampered case'
-                        : 'Verification failed';
-            setStatus(verification.state, stateText, verification.description);
-            pageCopy.textContent = 'This hosted page reads the raw `.epi` bytes and renders the case timeline without executing the artifact\'s embedded viewer.';
+      var blob=await artifactResponse.blob();
+      var artifact=await window.verifyEPI(blob);
+      currentSteps=artifact.steps||[];
+      currentFileManifest=(artifact.manifest&&artifact.manifest.file_manifest)||artifact.file_manifest||{};
+      renderCase(meta,artifact,downloadUrl);
+    }catch(error){
+      setStatus('error','Could not load case',(error&&error.message)||String(error));
+      pageCopy.textContent='The hosted case could not be loaded right now.';
+    }
+  }
 
-            document.getElementById('metaFilename').textContent = meta.filename || '--';
-            document.getElementById('metaWorkflow').textContent = meta.workflow_id || artifact.manifest.workflow_id || '--';
-            document.getElementById('metaCreatedAt').textContent = formatDate(meta.artifact_created_at || artifact.manifest.created_at);
-            document.getElementById('metaExpiresAt').textContent = formatDate(meta.expires_at);
-            document.getElementById('metaSigner').textContent = verification.signerLabel || meta.signer || 'Unsigned';
-            document.getElementById('metaSteps').textContent = String(meta.steps_count || artifact.steps.length || 0);
+  function renderCase(meta,artifact,downloadUrl){
+    // Real verdict from the actual crypto result — never a presence check.
+    var state, label, desc;
+    if(!artifact.structure||!artifact.integrity){
+      state='error'; label='Seal failed'; desc='Integrity check failed — do not trust this copy.';
+    }else if(artifact.signature===false){
+      state='tampered'; label='Tampered case'; desc='Signature invalid — the artifact may have been modified after sealing.';
+    }else if(!artifact.signer){
+      state='warning'; label='Unsigned case'; desc='Integrity intact but no signature present — anyone could have produced this file.';
+    }else{
+      state='success'; label='Verified case'; desc='Seal valid · signer not org-pinned in browser — pin keys via CLI for claim-ready identity.';
+    }
+    setStatus(state,label,desc);
+    pageCopy.textContent='This hosted page reads the raw .epi bytes and renders the case timeline without executing the artifact\u2019s embedded viewer.';
 
-            downloadButton.href = downloadUrl;
-            downloadButton.classList.remove('hidden');
-            timelineButton.disabled = false;
-            filesButton.disabled = false;
-            populateTimeline();
-            populateFiles();
-        }
+    document.getElementById('metaFilename').textContent=meta.filename||'--';
+    document.getElementById('metaWorkflow').textContent=meta.workflow_id||'--';
+    document.getElementById('metaCreatedAt').textContent=formatDate(meta.artifact_created_at);
+    document.getElementById('metaExpiresAt').textContent=formatDate(meta.expires_at);
+    document.getElementById('metaSigner').textContent=artifact.signer||meta.signer||'Unsigned';
+    document.getElementById('metaSteps').textContent=String(meta.steps_count||(currentSteps.length||0));
 
-        function populateTimeline() {
-            const container = document.getElementById('timelineContent');
-            container.innerHTML = '';
-            if (!currentSteps.length) {
-                container.innerHTML = '<p style="text-align:center; color: var(--color-gray-500); padding: 2rem;">No recorded steps found in this artifact.</p>';
-                return;
-            }
+    downloadButton.href=downloadUrl;
+    downloadButton.classList.remove('hidden');
+    timelineButton.disabled=false;
+    filesButton.disabled=false;
+    populateTimeline();
+    populateFiles();
+  }
 
-            currentSteps.forEach((step) => {
-                const contentJson = JSON.stringify(step.content, null, 2);
-                const preview = truncate(step.content?.command || step.content?.prompt || contentJson, 80);
-                const item = document.createElement('div');
-                item.className = 'timeline-item';
-                item.innerHTML = `
-                    <div class="timeline-header">
-                        <div style="display: flex; align-items: center; gap: 1rem;">
-                            <span style="color: var(--color-gray-500); font-family: var(--font-mono);">#${step.index ?? '--'}</span>
-                            <span style="background: rgba(255,255,255,0.1); padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.75rem; text-transform: uppercase;">${escapeHtml(step.kind || 'step')}</span>
-                            <span style="color: var(--color-white);">${escapeHtml(preview)}</span>
-                        </div>
-                        <span style="color: var(--color-gray-500); font-size: 0.8rem;">${formatDate(step.timestamp)}</span>
-                    </div>
-                    <div class="timeline-body"><pre style="margin: 0;">${escapeHtml(contentJson)}</pre></div>
-                `;
-                item.querySelector('.timeline-header').addEventListener('click', function () {
-                    const body = this.nextElementSibling;
-                    const isOpen = body.classList.contains('active');
-                    document.querySelectorAll('.timeline-body').forEach((element) => element.classList.remove('active'));
-                    if (!isOpen) {
-                        body.classList.add('active');
-                    }
-                });
-                container.appendChild(item);
-            });
-        }
+  function populateTimeline(){
+    var container=document.getElementById('timelineContent');
+    container.innerHTML='';
+    if(!currentSteps.length){
+      container.innerHTML='<p class="muted" style="text-align:center;padding:2rem">No recorded steps found in this artifact.</p>';
+      return;
+    }
+    currentSteps.forEach(function(step){
+      step=step||{}; var content=step.content||{};
+      var contentJson=JSON.stringify(content,null,2);
+      var preview=truncate(content.command||content.prompt||content.name||contentJson,90);
+      var item=document.createElement('div');
+      item.className='timeline-item';
+      item.innerHTML=
+        '<div class="timeline-header">'+
+          '<div class="timeline-topline">'+
+            '<span class="step-index">#'+(step.index!=null?step.index:'--')+'</span>'+
+            '<span class="kind-tag">'+escapeHtml(step.kind||'step')+'</span>'+
+            '<span class="step-time">'+formatDate(step.timestamp)+'</span>'+
+          '</div>'+
+          '<div class="step-preview">'+escapeHtml(preview)+'</div>'+
+        '</div>'+
+        '<div class="timeline-body"><pre>'+escapeHtml(contentJson)+'</pre></div>';
+      item.querySelector('.timeline-header').addEventListener('click',function(){
+        var body=this.nextElementSibling;
+        var isOpen=body.classList.contains('active');
+        document.querySelectorAll('.timeline-body').forEach(function(el){el.classList.remove('active')});
+        if(!isOpen)body.classList.add('active');
+      });
+      container.appendChild(item);
+    });
+  }
 
-        function populateFiles() {
-            const tbody = document.getElementById('filesTableBody');
-            tbody.innerHTML = '';
-            const entries = Object.entries(currentFileManifest || {});
-            if (!entries.length) {
-                tbody.innerHTML = '<tr><td colspan="2" style="padding: 1rem; text-align:center; color: var(--color-gray-500);">No files mapped.</td></tr>';
-                return;
-            }
-            entries.forEach(([name, hash]) => {
-                tbody.innerHTML += `
-                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                        <td style="padding: 1rem; color: var(--color-white); font-weight: 500;">${escapeHtml(name)}</td>
-                        <td style="padding: 1rem; font-family: var(--font-mono); color: var(--color-gray-400); font-size: 0.85rem; word-break: break-all;">${escapeHtml(hash)}</td>
-                    </tr>
-                `;
-            });
-        }
+  function populateFiles(){
+    var tbody=document.getElementById('filesTableBody');
+    tbody.innerHTML='';
+    var entries=Object.entries(currentFileManifest||{});
+    if(!entries.length){
+      tbody.innerHTML='<tr><td colspan="2" class="muted" style="padding:1rem;text-align:center">No files mapped.</td></tr>';
+      return;
+    }
+    entries.forEach(function(entry){
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td style="font-weight:500;color:var(--ink)">'+escapeHtml(entry[0])+'</td>'+
+        '<td style="font-family:var(--mono);font-size:0.78rem">'+escapeHtml(entry[1])+'</td>';
+      tbody.appendChild(tr);
+    });
+  }
 
-        function setStatus(state, label, description) {
-            statusBadge.className = 'status-badge';
-            if (state === 'success') {
-                statusBadge.classList.add('status-success');
-                statusIcon.textContent = 'OK';
-            } else if (state === 'warning') {
-                statusBadge.classList.add('status-warning');
-                statusIcon.textContent = 'WARN';
-            } else {
-                statusBadge.classList.add('status-error');
-                statusIcon.textContent = state === 'tampered' ? '!' : 'X';
-            }
-            statusText.textContent = label;
-            statusDesc.textContent = description;
-        }
+  function setStatus(state,label,description){
+    statusBadge.className='status-badge';
+    if(state==='success'){statusBadge.classList.add('status-success');statusIcon.textContent='OK'}
+    else if(state==='warning'){statusBadge.classList.add('status-warning');statusIcon.textContent='WARN'}
+    else{statusBadge.classList.add('status-error');statusIcon.textContent=state==='tampered'?'!':'X'}
+    statusText.textContent=label;
+    statusDesc.textContent=description||'';
+  }
 
-        function formatDate(value) {
-            if (!value) {
-                return '--';
-            }
-            const date = new Date(value);
-            if (Number.isNaN(date.getTime())) {
-                return String(value);
-            }
-            return date.toLocaleString();
-        }
+  function formatDate(value){
+    if(!value)return'--';
+    var d=new Date(value);
+    if(Number.isNaN(d.getTime()))return String(value);
+    return d.toLocaleString();
+  }
 
-        function truncate(value, maxLength) {
-            const text = String(value || '');
-            return text.length <= maxLength ? text : text.slice(0, maxLength - 3) + '...';
-        }
+  function truncate(value,maxLength){
+    var text=String(value||'');
+    return text.length<=maxLength?text:text.slice(0,maxLength-3)+'\u2026';
+  }
 
-        function escapeHtml(value) {
-            const div = document.createElement('div');
-            div.textContent = String(value ?? '');
-            return div.innerHTML;
-        }
-    </script>
-    <script src="../js/app.js?v=8.0"></script>
-    <script src="../js/particles.js?v=4.0.1"></script>
+  function escapeHtml(v){
+    var div=document.createElement('div');
+    div.textContent=String(v==null?'':v);
+    return div.innerHTML;
+  }
+})();
+</script>
 <script src="/js/theme.js"></script>
-<script src="/js/instrument-nav.js"></script>
+<script src="/js/nav.js?v=3"></script>
 <script src="/js/auth-ui.js"></script>
 
 <footer class="site-footer">
   <div class="container">
-    <div class="footer-inner">
-      <div class="footer-left">
-        <img src="../assets/logo.png" alt="EPI Labs" class="footer-logo">
-        <span class="footer-copy">&copy; 2026 EPI LABS. MIT License. Built in India. Engineered for the world.</span>
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="../assets/logo.png" alt="EPI Labs">
+        <p>The evidence layer that makes AI agents insurable and auditable. Sealed .epi files — verify offline, forever.</p>
       </div>
-      <ul class="footer-links">
-        <li><a href="/verify/">Verify</a></li>
-        <li><a href="/pricing">Pricing</a></li>
-        <li><a href="/enterprise">Enterprise</a></li>
-        <li><a href="/account">Account</a></li>
-        <li><a href="/how-it-works">Docs</a></li>
-        <li><a href="/trust">Trust</a></li>
-        <li><a href="/integrations">Integrations</a></li>
-        <li><a href="/use-cases">Use cases</a></li>
-        <li><a href="/status">Status</a></li>
-        <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
-        <li><a href="/terms">Terms</a></li>
-        <li><a href="/privacy">Privacy</a></li>
-        <li><a href="/refund">Refunds</a></li>
-        <li><a href="mailto:mohdibrahim@epilabs.org">Contact</a></li>
-      </ul>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="/verify/">Verify a file</a></li>
+          <li><a href="/how-it-works">How it works</a></li>
+          <li><a href="/integrations">Integrations</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Evidence</h4>
+        <ul>
+          <li><a href="/trust">Trust model</a></li>
+          <li><a href="/use-cases">Use cases</a></li>
+          <li><a href="/enterprise">Enterprise</a></li>
+          <li><a href="/status">Status</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="/account">Account</a></li>
+          <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="/terms">Terms</a></li>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="mailto:mohdibrahim@epilabs.org">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 EPI LABS · MIT License</span>
     </div>
   </div>
-</footer>
-
-</body>
+</footer></body>
 </html>

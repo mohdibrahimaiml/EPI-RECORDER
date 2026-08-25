@@ -3,14 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <link rel="canonical" href="https://epilabs.org/welcome">
 <title>Welcome to EPI Labs</title>
 <meta name="description" content="Thank you for subscribing to EPI Labs. Your plan is now active.">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
-<link rel="stylesheet" href="css/epi.css?v=30">
-<link rel="stylesheet" href="css/epi-v2.css?v=10">
-<link rel="stylesheet" href="css/polish.css?v=4">
-<link rel="stylesheet" href="css/wow.css?v=5">
-<link rel="stylesheet" href="css/mobile.css?v=2">
 <style>
 .welcome-card{max-width:560px;margin:80px auto;background:var(--bg-card);border-radius:16px;border:1px solid var(--border-str);padding:48px 36px;text-align:center}
 .welcome-card .check-circle{width:64px;height:64px;border-radius:50%;background:var(--verified-bg);display:inline-flex;align-items:center;justify-content:center;font-size:2rem;color:var(--verified);margin-bottom:20px}
@@ -28,6 +24,8 @@ if (location.search.indexOf('paddle') >= 0 || location.hash) {
   // Soft redirect for new successUrl (account handles success)
 }
 </script>
+  <link rel="stylesheet" href="css/meridian.css?v=2">
+  <meta name="theme-color" content="#0A0B0D">
 </head>
 <body class="epi-instrument">
 <nav id="nav">
@@ -58,31 +56,44 @@ if (location.search.indexOf('paddle') >= 0 || location.hash) {
 
 <footer class="site-footer">
   <div class="container">
-    <div class="footer-inner">
-      <div class="footer-left">
-        <img src="assets/logo.png" alt="EPI Labs" class="footer-logo">
-        <span class="footer-copy">&copy; 2026 EPI LABS. MIT License. Built in India. Engineered for the world.</span>
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="assets/logo.png" alt="EPI Labs">
+        <p>The evidence layer that makes AI agents insurable and auditable. Sealed .epi files — verify offline, forever.</p>
       </div>
-      <ul class="footer-links">
-        <li><a href="/verify/">Verify</a></li>
-        <li><a href="/pricing">Pricing</a></li>
-        <li><a href="/enterprise">Enterprise</a></li>
-        <li><a href="/account">Account</a></li>
-        <li><a href="/how-it-works">Docs</a></li>
-        <li><a href="/trust">Trust</a></li>
-        <li><a href="/integrations">Integrations</a></li>
-        <li><a href="/use-cases">Use cases</a></li>
-        <li><a href="/status">Status</a></li>
-        <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
-        <li><a href="/terms">Terms</a></li>
-        <li><a href="/privacy">Privacy</a></li>
-        <li><a href="/refund">Refunds</a></li>
-        <li><a href="mailto:mohdibrahim@epilabs.org">Contact</a></li>
-      </ul>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="/verify/">Verify a file</a></li>
+          <li><a href="/how-it-works">How it works</a></li>
+          <li><a href="/integrations">Integrations</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Evidence</h4>
+        <ul>
+          <li><a href="/trust">Trust model</a></li>
+          <li><a href="/use-cases">Use cases</a></li>
+          <li><a href="/enterprise">Enterprise</a></li>
+          <li><a href="/status">Status</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="/account">Account</a></li>
+          <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="/terms">Terms</a></li>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="mailto:mohdibrahim@epilabs.org">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 EPI LABS · MIT License</span>
     </div>
   </div>
-</footer>
-
-<script src="js/wow.js?v=2"></script>
+</footer><script src="js/wow.js?v=2"></script>
 </body>
 </html>

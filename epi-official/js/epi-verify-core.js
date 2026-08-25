@@ -259,8 +259,16 @@
         mismatches.push(filename + ': file missing');
         continue;
       }
-      var contentBuffer = await fileInZip.async('arraybuffer');
-      var actualHash = await sha256Hex(contentBuffer);
+      var actualHash;
+      try {
+        var contentBuffer = await fileInZip.async('arraybuffer');
+        actualHash = await sha256Hex(contentBuffer);
+      } catch (e) {
+        // Corrupt member (bad CRC / deflate stream): treat as mismatch,
+        // never let the whole verification throw.
+        mismatches.push(filename + ': unreadable/corrupt (' + (e && e.message ? e.message : 'decompression failed') + ')');
+        continue;
+      }
       if (actualHash !== expectedHash) {
         mismatches.push(filename + ': hash mismatch');
       }

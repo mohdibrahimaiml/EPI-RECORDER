@@ -1,413 +1,633 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>EPI Labs | Evidence as a file — verify offline</title>
-<meta name="description" content="Sealed .epi evidence for AI agents. Portable proof you can verify offline — not locked behind a dashboard. Free open-source CLI.">
-<meta property="og:title" content="EPI Labs | Evidence as a file">
-<meta property="og:description" content="Evidence as a file — not a dashboard. Seal agent runs. Verify offline. Same bytes in CI and for auditors.">
+<title>EPI Labs — The evidence layer that makes AI agents insurable and auditable</title>
+<meta name="description" content="EPI seals AI agent runs into portable .epi evidence files — Ed25519 signatures, SHA-256 hash chains, verifiable offline. The proof layer for insurers, auditors, and enterprises deploying agents.">
+<link rel="canonical" href="https://epilabs.org/">
+<meta property="og:title" content="EPI Labs — The evidence layer that makes AI agents insurable and auditable">
+<meta property="og:description" content="Sealed .epi files: cryptographically verifiable proof of what your AI agents did. Offline-verifiable. Free forever.">
+<meta property="og:url" content="https://epilabs.org/">
 <meta property="og:image" content="https://epilabs.org/assets/logo.png">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" type="image/x-icon" href="favicon.ico">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon.ico">
-<link rel="apple-touch-icon" href="favicon.ico">
-<link rel="stylesheet" href="css/epi.css?v=30">
-<link rel="stylesheet" href="css/epi-v2.css?v=10">
-<link rel="stylesheet" href="css/polish.css?v=4">
-<link rel="stylesheet" href="css/wow.css?v=5">
-<link rel="stylesheet" href="css/mobile.css?v=2">
+<meta name="theme-color" content="#F7F5F0">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
+<link rel="stylesheet" href="/css/aos.css">
+<link rel="stylesheet" href="/css/contact.css">
+<link rel="stylesheet" href="/css/site.css?v=15">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"Organization","name":"EPI Labs","url":"https://epilabs.org","logo":"https://epilabs.org/assets/logo.png","description":"Portable sealed .epi evidence files for AI agent runs. Offline verify. MIT open source.","sameAs":["https://github.com/mohdibrahimaiml/epi-recorder","https://pypi.org/project/epi-recorder/"]}
+{"@context":"https://schema.org","@type":"Organization","name":"EPI Labs","url":"https://epilabs.org","logo":"https://epilabs.org/assets/logo.png","description":"The evidence layer that makes AI agents insurable and auditable. Sealed .epi evidence files with Ed25519 signatures and SHA-256 hash chains.","sameAs":["https://github.com/mohdibrahimaiml/epi-recorder","https://pypi.org/project/epi-recorder/"]}
 </script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"SoftwareApplication","name":"EPI Recorder","applicationCategory":"DeveloperApplication","operatingSystem":"Cross-platform","description":"Record AI agent runs into sealed .epi files. Ed25519, SHA-256, offline verify.","url":"https://epilabs.org","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Organization","name":"EPI Labs","url":"https://epilabs.org"}}
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"EPI Recorder","applicationCategory":"DeveloperApplication","operatingSystem":"Cross-platform","description":"Record AI agent runs into sealed .epi evidence files. Ed25519, SHA-256 hash chain, offline verify.","url":"https://epilabs.org","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Organization","name":"EPI Labs","url":"https://epilabs.org"}}
 </script>
-<script defer data-domain="epilabs.org" src="https://plausible.io/js/script.js"></script>
 <script>
-(function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();
+(function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){t='light'}document.documentElement.setAttribute('data-theme',t)}catch(e){}})();
 </script>
+<noscript><style>.srow{opacity:1!important;transform:none!important}.verdict{opacity:1!important}.rv{opacity:1;transform:none;filter:none}</style></noscript>
 </head>
-<body class="v2-home epi-instrument">
-<a class="v2-skip" href="#proof">Skip to verify</a>
+<body class="canvas has-annc" onload="injectIcons()">
+<a class="skip" href="#verify">Skip to verify</a>
 
-<!-- 1 · NAV -->
-<nav id="nav">
-  <div class="nav-inner">
-    <a href="/" class="nav-logo"><img src="assets/logo.png" alt="EPI Labs"></a>
-    <ul class="nav-links" id="navLinks">
-      <li><a href="/verify/">Verify</a></li>
-      <li><a href="/how-it-works">Docs</a></li>
-      <li><a href="/pricing">Pricing</a></li>
+<!-- ANNOUNCEMENT -->
+<div class="annc">Open source under MIT · v4.4.0 on PyPI · <a href="/how-it-works">See how sealing works →</a></div>
+
+<!-- NAV -->
+<nav class="nav" id="nav">
+  <div class="nav-in">
+    <a href="/" class="logo"><img src="/assets/logo.png" alt="EPI Labs"></a>
+    <ul class="nlinks">
+      <li><a href="/how-it-works">How it works</a></li>
+      <li><a href="/trust">Trust model</a></li>
+      <li><a href="/use-cases">Use cases</a></li>
       <li><a href="/enterprise">Enterprise</a></li>
+      <li><a href="/pricing">Pricing</a></li>
       <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
-      <li id="nav-auth-slot"></li>
-      <li><button type="button" class="theme-toggle-nav" id="themeToggleNav" data-theme-toggle aria-label="Toggle color theme" title="Toggle theme">&#9788;</button></li>
-
+      <li><button type="button" class="tgl" data-theme-toggle aria-label="Toggle color theme">&#9788;</button></li>
     </ul>
-    <button class="nav-mob" id="mobBtn" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+    <a href="#verify" class="nav-cta">Verify a file</a>
+    <button class="burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
   </div>
 </nav>
-<div class="mob-menu" id="mobMenu" hidden>
-  <a href="/verify/">Verify</a>
-  <a href="/how-it-works">Docs</a>
-  <a href="/pricing">Pricing</a>
+<div class="mmenu" id="mmenu">
+  <a href="/verify/">Verify a file</a>
+  <a href="/how-it-works">How it works</a>
+  <a href="/trust">Trust model</a>
+  <a href="/use-cases">Use cases</a>
   <a href="/enterprise">Enterprise</a>
+  <a href="/pricing">Pricing</a>
   <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
-  <a href="#proof">Try sample</a>
-  <a href="/account">Sign in</a>
-  <button type="button" class="mob-theme-btn theme-toggle-nav" data-theme-toggle aria-label="Toggle color theme">Theme</button>
+  <button type="button" class="tgl" data-theme-toggle style="margin-top:14px;width:100%">Toggle theme</button>
 </div>
 
-<!-- 2 · HERO (Magic UI / Aceternity-style FX — vanilla) -->
-<section class="hero" id="hero">
-  <div class="hero-fx" aria-hidden="true">
-    <div class="aurora"></div>
-    <div class="dot-grid"></div>
-    <div class="spotlight"></div>
-    <div class="meteors"><span></span><span></span><span></span><span></span><span></span></div>
-    <div class="vignette"></div>
-  </div>
-  <div class="hero-content v2-hero-grid">
-    <div class="v2-hero-copy">
-      <div class="hero-eyebrow">Sealed agent evidence · offline verify</div>
-      <h1>Evidence as a <em>file</em> — not a dashboard <span class="epi-badge">.epi</span></h1>
-      <p class="hero-sub">Portable proof of what an AI agent did. Seal the run, share the bytes, verify offline — no login required to trust the record.</p>
-      <p class="hero-sub">Observability shows <em>you</em> what happened. EPI gives <em>anyone</em> a sealed receipt that still works without our UI.</p>
-      <div class="hero-actions">
-        <span class="beam-wrap"><a href="#proof" class="btn btn-primary btn-lg">Verify a sample <span class="btn-arrow">&rarr;</span></a></span>
-        <a href="#walkthrough" class="btn btn-secondary btn-lg">Watch 20s demo</a>
+<!-- HERO -->
+<header class="hero">
+  <div class="wrap hero-g">
+    <div>
+      <span class="tag">Evidence layer for AI agents</span>
+      <h1 class="d1x">Your agent's deal is stuck on <em>"prove it."</em> Hand them a file.</h1>
+      <p class="lede">EPI seals every agent run into a portable <strong>.epi</strong> file — Ed25519 signature, SHA-256 hash chain — that your customer's auditor, insurer, or board can verify offline. <strong>Without trusting you, or us.</strong></p>
+      <div class="hacts">
+        <a href="#verify" class="btn btn-pri btn-lg">Verify a sample <span class="btn-ar">&rarr;</span></a>
+        <a href="/pricing#contact" class="btn btn-sec btn-lg">Unblock your deal</a>
       </div>
-      <div class="v2-install-chip" id="installChip">
-        <code>pip install epi-recorder</code>
-        <button type="button" id="copyInstall" aria-label="Copy install command">Copy</button>
+      <div class="pip"><code>pip install epi-recorder</code><button type="button" id="copyInstall">Copy</button></div>
+      <div class="friction"><span>✓ No account required</span><span>✓ Offline from first run</span><span>✓ MIT · free forever</span><span>✓ Python 3.11+</span></div>
+      <div class="facts">
+        <span><b>MIT</b> open source</span>
+        <span><b>Offline</b> verify</span>
+        <span><b>v4.4.0</b> on PyPI</span>
+        <span><b>JCS-style</b> canonical</span>
       </div>
-      <div class="v2-proof">
-        <span><strong>MIT</strong> open source</span>
-        <span><strong>Offline</strong> verify</span>
-        <span><strong>Seal ≠</strong> identity</span>
-        <span><strong>Same bytes</strong> in CI</span>
-      </div>
-      <p class="hero-meta">Free forever offline · Sprint $1,500 · <a href="/pricing">Pricing</a> · <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></p>
     </div>
-    <div class="v2-hero-visual">
-      <div class="v2-file-card">
-        <div class="v2-file-card-top">
-          <div class="v2-file-name">demo_refund<span>.epi</span></div>
-          <div class="v2-seal-pill">Seal OK</div>
-        </div>
-        <div class="v2-file-rows">
-          <div class="v2-file-row"><span class="k">SHA-256</span><span class="v">a7b3…f21c</span></div>
-          <div class="v2-file-row"><span class="k">Signature</span><span class="v ok">Ed25519 · valid</span></div>
-          <div class="v2-file-row"><span class="k">Identity</span><span class="v">LOCAL · pin for strict</span></div>
-          <div class="v2-file-row"><span class="k">Policy</span><span class="v">Separate from seal</span></div>
-        </div>
-        <p class="v2-file-foot">Drop your own file below · full tool at <a href="/verify/">verify/</a></p>
+    <div class="cli" role="img" aria-label="Real epi verify report output for an unpinned seal">
+      <div class="cli-bar">
+        <span class="cli-dots"><i></i><i></i><i></i></span>
+        <span class="cli-title">epi verify demo.epi</span>
+        <span class="cli-flag">⚠ UNVERIFIED IDENTITY</span>
+      </div>
+      <pre class="cli-body"><span class="c-dim">$ epi verify demo.epi</span>
+
+<span class="c-amber">⚠ UNVERIFIED IDENTITY — EPI Verification Report</span>
+
+<span class="c-bright">DECISION: PASS</span>
+<span class="c-dim">Policy: standard</span>
+
+<span class="c-bright">IDENTITY</span>  <span class="c-dim">(who sealed — required for claim trust)</span>
+  Status:      <span class="c-amber">NOT_PINNED</span>
+  Fingerprint: <span class="c-dim">6090c0d9…</span>
+
+<span class="c-bright">SEAL</span>  <span class="c-dim">(objective proofs — not identity)</span>
+  Integrity:   <span class="c-green">Verified</span>
+  Signature:   <span class="c-green">Valid</span>
+  Forensic:    <span class="c-green">PASS</span>
+  Notarized:   <span class="c-dim">Not available</span>
+
+<span class="c-dim">Seal is valid. Identity is not pinned — anyone
+can re-sign a rebuilt chain with a fresh key.</span></pre>
+    </div>
+  </div>
+</header>
+
+<!-- DRIFT FACTS -->
+<div class="drift" aria-label="Trust facts">
+  <div class="drift-track">
+    <span>Offline-verifiable</span><span>Ed25519 signatures</span><span>SHA-256 step chain</span><span>JCS-style canonicalization (RFC 8785)</span><span>MIT-licensed verifier</span><span>Verification free forever</span>
+    <span aria-hidden="true">Offline-verifiable</span><span aria-hidden="true">Ed25519 signatures</span><span aria-hidden="true">SHA-256 step chain</span><span aria-hidden="true">JCS-style canonicalization (RFC 8785)</span><span aria-hidden="true">MIT-licensed verifier</span><span aria-hidden="true">Verification free forever</span>
+  </div>
+</div>
+
+<!-- HONEST STATS BAND -->
+<section class="stats">
+  <div class="stats-in stagger">
+    <div class="stat in" data-aos="fade-up"><div class="sv"><span>3</span> questions</div><div class="sk">One artifact answers</div><div class="sd">Seal · Identity · Policy — separated in code, never collapsed into one green badge.</div></div>
+    <div class="stat in" data-aos="fade-up"><div class="sv"><span>0</span> servers</div><div class="sk">Required to verify</div><div class="sd">Verification is fully offline — CLI or this website's tab. No EPI server, no login.</div></div>
+    <div class="stat in" data-aos="fade-up"><div class="sv">$<span>0</span></div><div class="sk">Cost of verification</div><div class="sd">Free forever, by design. Trustless evidence can't sit behind a paywall.</div></div>
+    <div class="stat in" data-aos="fade-up"><div class="sv"><span>1</span> byte</div><div class="sk">Breaks the seal</div><div class="sd">A single altered byte fails the signature. That is the entire trust model.</div></div>
+  </div>
+</section>
+
+<!-- WHY EPI EXISTS — SPLIT STORYTELLING -->
+<section class="blk" id="why">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="tag" style="justify-content:center"><span class="n">01 /</span> Why EPI exists</span>
+      <h2 class="d2x">Agents make decisions.<br>Evidence has to outlive them.</h2>
+      <p>In insurance, finance, and healthcare, AI agents approve claims and move money. When a decision is challenged, today's answer is a log your vendor wrote about itself.</p>
+    </div>
+    <div class="split">
+      <div class="s-copy" data-aos="fade-left">
+        <span class="phase">The gap</span>
+        <h3>Self-reported logs carry no independent weight</h3>
+        <p>A dashboard is written, hosted, and editable by the same party it describes. Under adverse review — litigation, examination, a claim dispute — that's not evidence.</p>
+        <ul>
+          <li>Logs can be edited after the fact</li>
+          <li>Dashboards require trusting the vendor</li>
+          <li>Six months later, nobody can reconstruct what happened</li>
+        </ul>
+      </div>
+      <div class="s-vis" data-aos="fade-right">
+        <div class="sv-bar"><span class="sv-dot" style="background:#B4483C"></span><span class="sv-dot" style="background:#9A6A12"></span><span class="sv-dot" style="background:#2F7D4F"></span>&nbsp;vendor-log.txt — self-report</div>
+        <pre>$ cat vendor-log.txt
+2026-08-22 09:41:02 agent ran ✓
+<span style="color:#78735F"># edited 2026-08-24 (nobody can tell)</span></pre>
+      </div>
+    </div>
+    <div class="split flip">
+      <div class="s-copy" data-aos="fade-right">
+        <span class="phase">The mechanism</span>
+        <h3>A sealed file, made at run time</h3>
+        <p>EPI records every step into an append-only ledger as the agent executes, then seals it cryptographically when the run closes.</p>
+        <ul>
+          <li>Ed25519 signature over the canonical manifest (JCS-style, RFC 8785)</li>
+          <li>SHA-256 hash chain across every recorded step</li>
+          <li>Optional RFC 3161 timestamp at seal time</li>
+          <li>One altered byte breaks the signature — visibly</li>
+        </ul>
+      </div>
+      <div class="s-vis" data-aos="fade-left">
+        <div class="sv-bar"><span class="sv-dot" style="background:#2F7D4F"></span>&nbsp;run.epi — sealed evidence</div>
+        <pre>$ epi verify claim.epi --policy strict
+<span style="color:#6FBF8F">SEAL</span>     valid · ed25519
+CHAIN    142/142 steps intact
+<span style="color:#D9A94E">IDENTITY</span> LOCAL — not claim-ready
+<span style="color:#DCB871">→ pin org keys for strict mode</span></pre>
+      </div>
+    </div>
+    <div class="split">
+      <div class="s-copy" data-aos="fade-left">
+        <span class="phase">The consequence</span>
+        <h3>Evidence that survives us</h3>
+        <p>The format and verifier are MIT-licensed open source. If EPI Labs disappeared tomorrow, your evidence would still verify — offline, forever, with open tools.</p>
+        <ul>
+          <li>No dashboard login required to trust a record</li>
+          <li>No vendor key escrow, no phone-home</li>
+          <li>Independent third-party cryptographic review completed</li>
+        </ul>
+      </div>
+      <div class="s-vis" data-aos="fade-right">
+        <div class="sv-bar"><span class="sv-dot" style="background:#2F7D4F"></span>&nbsp;any machine, any year</div>
+        <pre>$ pip install epi-recorder
+$ epi verify archive/run.epi
+<span style="color:#6FBF8F">valid</span> — no account, no server,
+no EPI Labs required.</pre>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Magic UI–style marquee -->
-<div class="epi-marquee" aria-hidden="true">
-  <div class="epi-marquee-track">
-    <span><strong>pip</strong> install epi-recorder</span>
-    <span>Ed25519 seal</span>
-    <span>Offline verify</span>
-    <span>OpenAI · Anthropic · LangChain</span>
-    <span>GitHub Action</span>
-    <span>SCITT · RFC 3161</span>
-    <span>Seal ≠ identity ≠ policy</span>
-    <span><strong>.epi</strong> portable evidence</span>
-    <span><strong>pip</strong> install epi-recorder</span>
-    <span>Ed25519 seal</span>
-    <span>Offline verify</span>
-    <span>OpenAI · Anthropic · LangChain</span>
-    <span>GitHub Action</span>
-    <span>SCITT · RFC 3161</span>
-    <span>Seal ≠ identity ≠ policy</span>
-    <span><strong>.epi</strong> portable evidence</span>
-  </div>
-</div>
-
-<!-- 3 · PROOF: verify + video -->
-<section id="proof">
-  <div class="container">
-    <div class="block-head">
-      <div class="section-label" style="justify-content:center">Proof · try it</div>
-      <h2 class="section-title">Drop a .epi — see the seal</h2>
-      <p class="section-desc">Runs in this tab. <strong style="color:var(--accent)">File is not uploaded</strong> here.
-        <a href="assets/sample.epi" download style="color:var(--signal);font-weight:600">Download sample.epi</a>
-        · <a href="/verify/" style="color:var(--signal);font-weight:600">Private vs full report</a>
-      </p>
+<!-- LIFECYCLE -->
+<section class="blk alt">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="tag" style="justify-content:center"><span class="n">02 /</span> How it works</span>
+      <h2 class="d2x">Verifiable evidence across the agent lifecycle</h2>
+      <p>Three moments, three guarantees. Each one is a property of the file — not a promise from us.</p>
     </div>
-    <div class="proof-stack">
-      <div class="verify-grid">
-        <div class="drop-zone reveal" id="dropZoneEl" role="button" tabindex="0" aria-label="Drop or choose a .epi file to verify offline">
-          <span class="drop-icon" aria-hidden="true"></span>
-          <p class="drop-title">Drop a .epi file here</p>
-          <p class="drop-hint">or click to browse · verification stays in this browser</p>
+    <div class="grid g3 rail stagger">
+      <div class="card" data-aos="fade-up">
+        <span class="phase">Before · Record</span>
+        <h3>Capture while it happens</h3>
+        <p>One context manager wraps any framework. Every prompt, tool call, and output lands in an append-only ledger as the run executes.</p>
+        <div class="term"><span class="a">with</span> record(<span class="g">"run.epi"</span>): ...</div>
+      </div>
+      <div class="card" data-aos="fade-up">
+        <span class="phase">At close · Seal</span>
+        <h3>Cryptographically close the file</h3>
+        <p>SHA-256 over every member, Ed25519 over the canonical manifest, optional timestamp. One altered byte breaks the signature.</p>
+        <div class="term"><span class="g">SEAL</span> ed25519 · sha256 · rfc3161 ✓
+<span class="w">tamper-evident from this moment</span></div>
+      </div>
+      <div class="card" data-aos="fade-up">
+        <span class="phase">After · Prove</span>
+        <h3>Anyone verifies, anywhere</h3>
+        <p>Auditors, insurers, regulators — re-verify offline with open tools. No dashboard login, no EPI server required.</p>
+        <div class="term"><span class="g">$</span> epi verify claim.epi --policy strict
+<span class="g">SEAL</span> valid · identity pinned · chain intact</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LIVE VERIFY -->
+<section class="blk" id="verify">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="tag" style="justify-content:center"><span class="n">03 /</span> Proof, not promises</span>
+      <h2 class="d2x">Drop a .epi — watch the seal resolve</h2>
+      <p>Runs entirely in this tab. <strong style="color:var(--ink)">Your file is not uploaded.</strong>
+      &nbsp;<a href="/assets/sample.epi" download style="color:var(--acc);font-weight:600">Download sample.epi</a> · <a href="/verify/" style="color:var(--acc);font-weight:600">Full verify tool</a></p>
+    </div>
+    <div class="inst" data-aos="fade-up">
+      <div class="inst-top">
+        <span class="inst-title">epi verify — browser engine</span>
+        <span class="vpill pass" id="enginePill" style="display:none">Ready</span>
+      </div>
+      <div class="inst-grid">
+        <div class="drop" id="dropZoneEl" role="button" tabindex="0" aria-label="Drop or choose a .epi file to verify offline">
+          <h3>Drop a .epi file here</h3>
+          <p>or click to browse · verification stays in this browser</p>
           <input type="file" id="fileInput" accept=".epi,.zip" style="display:none">
-          <div id="dropResult" style="display:none"></div>
+          <div id="dropResult" style="display:none" aria-live="polite" role="status"></div>
         </div>
-        <div class="checks-list reveal">
-          <div class="check-item" id="chk1"><span class="check-dot"></span> 01 · Structure</div>
-          <div class="check-item" id="chk2"><span class="check-dot"></span> 02 · File hashes</div>
-          <div class="check-item" id="chk3"><span class="check-dot"></span> 03 · Signature</div>
-          <div class="check-item" id="chk4"><span class="check-dot"></span> 04 · Step chain</div>
-          <div class="check-item" id="chk5"><span class="check-dot"></span> 05 · Identity (browser)</div>
-          <div class="check-item" id="chk6"><span class="check-dot"></span> 06 · Full audit → CLI</div>
-        </div>
-      </div>
-
-      <div id="walkthrough">
-        <div class="block-head" style="margin-bottom:20px">
-          <div class="section-label" style="justify-content:center">Or watch · ~20s</div>
-          <h2 class="section-title" style="font-size:1.35rem">From PyPI to a sealed .epi</h2>
-        </div>
-        <div class="v2-video-wrap">
-          <video class="v2-video" controls playsinline preload="metadata"
-            poster="assets/demo/frames/01_title.png"
-            title="EPI product walkthrough: install, record, seal, verify">
-            <source src="assets/epi-walkthrough.mp4" type="video/mp4">
-            <a href="assets/epi-walkthrough.mp4">Download walkthrough (MP4)</a>
-          </video>
-          <div class="v2-video-meta">
-            <span>Animated · silent · 1080p</span>
-            <span><a href="assets/sample.epi" download>sample.epi</a></span>
-            <span><a href="/verify/">Full verify tool</a></span>
-          </div>
-          <div class="v2-video-chapters" role="group" aria-label="Jump to walkthrough chapters">
-            <button type="button" data-t="0">Install</button>
-            <button type="button" data-t="5">Record</button>
-            <button type="button" data-t="10">Seal</button>
-            <button type="button" data-t="15">Verify</button>
-          </div>
+        <div class="checks">
+          <div class="chk" id="chk1"><span class="cd"></span> 01 · Structure</div>
+          <div class="chk" id="chk2"><span class="cd"></span> 02 · File hashes</div>
+          <div class="chk" id="chk3"><span class="cd"></span> 03 · Signature</div>
+          <div class="chk" id="chk4"><span class="cd"></span> 04 · Step chain</div>
+          <div class="chk" id="chk5"><span class="cd"></span> 05 · Identity (browser)</div>
+          <div class="chk" id="chk6"><span class="cd"></span> 06 · Full audit → CLI</div>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- 4 · TRUTH TRIO -->
-<section id="truths">
-  <div class="container">
-    <div class="block-head">
-      <div class="section-label" style="justify-content:center">Trust model</div>
-      <h2 class="section-title">Three different questions</h2>
-      <p class="section-desc">The code separates these on purpose. A green seal is not a moral judgment — and LOCAL identity is not a failed seal.</p>
+<!-- INSURABILITY -->
+<section class="blk alt">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="tag" style="justify-content:center"><span class="n">04 /</span> From evidence to coverage</span>
+      <h2 class="d2x">Why underwriters and auditors need a file</h2>
+      <p>Insurance and audits fail on one word: <em>prove it</em>. A sealed .epi answers before the question is asked.</p>
     </div>
-    <div class="truth-trio">
-      <div class="truth-card truth-card--seal reveal">
-        <div class="truth-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>
-        </div>
-        <div class="truth-kicker">01 · Seal</div>
-        <h3>Was this file tampered with?</h3>
-        <p>SHA-256 member hashes + Ed25519 over the canonical manifest. Offline. No EPI server required.</p>
-        <div class="truth-ex">epi verify · valid seal ≠ known who</div>
+    <div class="grid stagger" style="grid-template-columns:repeat(12,1fr)">
+      <div class="card" data-aos="fade-up" style="grid-column:span 7">
+        <div class="ic"><svg class="icn"><use href="#lucide-trending-up"></use></svg></div>
+        <h3>Underwriting with real data</h3>
+        <p>Carriers can't price agent-liability coverage from questionnaires. Sealed artifacts are verifiable evidence of what an agent actually did, bound to the moment it happened — raw material for pricing risk instead of guessing at it.</p>
+        <div class="term"><span class="g">✓</span> sealed run history · org-pinned signer · offline-verifiable</div>
       </div>
-      <div class="truth-card truth-card--identity reveal">
-        <div class="truth-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
-        </div>
-        <div class="truth-kicker">02 · Identity</div>
-        <h3>Do we trust who sealed it?</h3>
-        <p>KNOWN (org pin) / LOCAL / NOT_PINNED. Unpinned is WARN — not claim-ready. Insurers: <code>--policy strict</code>.</p>
-        <div class="truth-ex">epi keys trust · --policy strict</div>
+      <div class="card" data-aos="fade-up" style="grid-column:span 5">
+        <div class="ic"><svg class="icn"><use href="#lucide-list-checks"></use></svg></div>
+        <h3>Audits that don't stall</h3>
+        <p>Hand auditors a file they verify offline with open tools — no dashboard access, no vendor trust required.</p>
       </div>
-      <div class="truth-card truth-card--policy reveal">
-        <div class="truth-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><path d="M8 6h11M8 12h11M8 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>
-        </div>
-        <div class="truth-kicker">03 · Policy</div>
-        <h3>Did the run break our rules?</h3>
-        <p>Optional <code>epi_policy.json</code> + deterministic fault analyzer. Policy FAULT can sit next to verify PASS — the record is intact; the rules fired.</p>
-        <div class="truth-ex">epi analyze · mechanical rules · human review</div>
+      <div class="card" data-aos="fade-up" style="grid-column:span 5">
+        <div class="ic"><svg class="icn"><use href="#lucide-user-search"></use></svg></div>
+        <h3>Incident forensics</h3>
+        <p>Reconstruct the exact decision trail — inputs, tool calls, approvals — when an action is disputed.</p>
+      </div>
+      <div class="card" data-aos="fade-up" style="grid-column:span 7">
+        <div class="ic"><svg class="icn"><use href="#lucide-gavel"></use></svg></div>
+        <h3>Claims defense in minutes</h3>
+        <p>The .epi file <em>is</em> the case file. Cryptographic continuity from the run to the courtroom.</p>
+        <div class="term"><span class="g">$</span> epi verify claim.epi --policy strict
+<span class="g">SEAL</span> valid · chain intact · 142/142 steps</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- 5 · COMMAND STRIP -->
-<section id="loop">
-  <div class="container">
-    <div class="block-head">
-      <div class="section-label" style="justify-content:center">Do this</div>
-      <h2 class="section-title">Four steps. One file.</h2>
-      <p class="section-desc">The product loop — not a dashboard setup wizard.</p>
+<!-- INDUSTRIES -->
+<section class="blk">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="tag" style="justify-content:center"><span class="n">05 /</span> Industries</span>
+      <h2 class="d2x">Where sealed evidence changes outcomes</h2>
+      <p>EPI is a portable record of what an agent did — useful wherever "show me the run six months later" matters.</p>
     </div>
-    <div class="command-strip">
-      <ol>
-        <li>
-          <div class="n">01</div>
-          <div>
-            <p class="cmd"><span>$</span> pip install epi-recorder</p>
-            <p class="hint">MIT · offline · no account</p>
-          </div>
-        </li>
-        <li>
-          <div class="n">02</div>
-          <div>
-            <p class="cmd">with record(<span>"run.epi"</span>): …</p>
-            <p class="hint">Or wrap_openai / LangChain / LiteLLM — capture the run</p>
-          </div>
-        </li>
-        <li>
-          <div class="n">03</div>
-          <div>
-            <p class="cmd"><span>$</span> epi verify run.epi</p>
-            <p class="hint">Integrity + signature offline · identity is separate</p>
-          </div>
-        </li>
-        <li>
-          <div class="n">04</div>
-          <div>
-            <p class="cmd"><span>$</span> epi view run.epi</p>
-            <p class="hint">Forensic timeline in any browser · no login</p>
-          </div>
-        </li>
-      </ol>
+    <div class="ind-grid stagger">
+      <a href="/use-cases" class="ind" data-aos="fade-up"><h3>Financial services</h3><p>Credit, fraud, refund, and underwriting agents. Seal the trail for audit and model-risk review.</p></a>
+      <a href="/use-cases" class="ind" data-aos="fade-up"><h3>Healthcare</h3><p>Clinical decision support. Signed execution snapshots for review — not a 510(k) certificate by itself.</p></a>
+      <a href="/use-cases" class="ind" data-aos="fade-up"><h3>Insurance</h3><p>Claims and underwriting agents. Full step trails for reconstruction of "what the system did."</p></a>
+      <a href="/use-cases" class="ind" data-aos="fade-up"><h3>Government</h3><p>Benefits, procurement, casework. Offline-verifiable evidence for oversight bodies.</p></a>
+      <a href="/use-cases" class="ind" data-aos="fade-up"><h3>AI safety &amp; eval</h3><p>Red-team runs as sealed artifacts — reproducible evidence of what was tested.</p></a>
+      <a href="/use-cases" class="ind" data-aos="fade-up"><h3>Legal &amp; document AI</h3><p>Verifiable trails for "what did the agent do on this matter."</p></a>
     </div>
-    <p class="command-strip-foot">
-      Integrations: OpenAI · Anthropic · LangChain · LangGraph · LiteLLM · OTel · pytest · AGT
-      · <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
-    </p>
   </div>
 </section>
 
-<!-- 6 · PLANS (honest — matches /pricing) -->
-<section id="plans">
-  <div class="container">
-    <div class="block-head">
-      <div class="section-label" style="justify-content:center">Money · honest</div>
-      <h2 class="section-title">Free to verify. Pay for proof.</h2>
-      <p class="section-desc">No monthly prices for products that don&rsquo;t exist yet. Verification stays free forever.</p>
+<!-- PRINCIPLE QUOTE BAND -->
+<section class="blk alt" style="padding-bottom:clamp(60px,8vw,100px)">
+  <div class="wrap">
+    <div class="qband" data-aos="fade-up">
+      <p>Marketing that collapses seal, identity, and policy into one green badge is wrong.<br>We built the code so it can't lie about that.</p>
+      <cite>— The EPI trust model · read it at /trust</cite>
     </div>
-    <div class="v2-plans">
-      <div class="v2-plan reveal">
+  </div>
+</section>
+
+<!-- DEVELOPER LOOP -->
+<section class="blk" id="loop">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="tag" style="justify-content:center"><span class="n">05 /</span> For builders</span>
+      <h2 class="d2x">Four steps. One file.</h2>
+      <p>The product loop — not a dashboard setup wizard.</p>
+    </div>
+    <div class="grid g4 rail stagger">
+      <div class="card" data-aos="fade-up"><span class="phase">01 / Install</span><h3>One pip install</h3><p>MIT-licensed, offline, no account.</p><div class="term">$ pip install epi-recorder</div></div>
+      <div class="card" data-aos="fade-up"><span class="phase">02 / Record</span><h3>Wrap the run</h3><p>Or wrap_openai / LangChain / LiteLLM.</p><div class="term"><span class="a">with</span> record(<span class="g">"run.epi"</span>): ...</div></div>
+      <div class="card" data-aos="fade-up"><span class="phase">03 / Verify</span><h3>Prove integrity</h3><p>Integrity + signature offline. Identity separate.</p><div class="term">$ epi verify run.epi</div></div>
+      <div class="card" data-aos="fade-up"><span class="phase">04 / View</span><h3>Open the timeline</h3><p>Forensic timeline in any browser. No login.</p><div class="term">$ epi view run.epi</div></div>
+    </div>
+    <p style="text-align:center;margin-top:36px;font-size:.82rem;color:var(--dim)">Integrations: OpenAI · Anthropic · LangChain · LangGraph · LiteLLM · OTel · pytest · AGT — <a href="/integrations" style="color:var(--acc)">details</a></p>
+  </div>
+</section>
+
+<!-- TRUST MODEL — LAYER SWITCHER -->
+<section class="blk alt">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="tag" style="justify-content:center"><span class="n">06 /</span> Trust model</span>
+      <h2 class="d2x">Three different questions</h2>
+      <p>The code separates these on purpose. A green seal is not a moral judgment — and LOCAL identity is not a failed seal. Select a layer to see what it actually checks.</p>
+    </div>
+    <div class="lsw" data-aos="fade-up">
+      <div class="lsw-layers" role="tablist" aria-label="Trust model layers">
+        <button class="layer active" role="tab" aria-selected="true" aria-controls="lx-term" data-layer="seal" id="ly-seal">
+          <span class="l-num" style="color:var(--ok)">01</span>
+          <span class="l-name">SEAL</span>
+          <span class="l-q">Was this file tampered with?</span>
+          <span class="l-verdict" style="color:var(--ok)">→ PASS — seal valid</span>
+        </button>
+        <button class="layer" role="tab" aria-selected="false" aria-controls="lx-term" data-layer="identity" id="ly-ident">
+          <span class="l-num" style="color:var(--warn)">02</span>
+          <span class="l-name">IDENTITY</span>
+          <span class="l-q">Do we trust who sealed it?</span>
+          <span class="l-verdict" style="color:var(--warn)">→ WARN — unpinned</span>
+        </button>
+        <button class="layer" role="tab" aria-selected="false" aria-controls="lx-term" data-layer="policy" id="ly-policy">
+          <span class="l-num">03</span>
+          <span class="l-name">POLICY</span>
+          <span class="l-q">Did the run break our rules?</span>
+          <span class="l-verdict" style="color:var(--bad)">→ FAULT — review</span>
+        </button>
+      </div>
+      <div class="lsw-stage">
+        <div class="lsw-term" id="lx-term" role="tabpanel" aria-live="polite">
+          <div class="lt-bar"><span class="lt-dot"></span><span class="lt-dot"></span><span class="lt-dot"></span><span class="lt-cmd" id="ltCmd">epi verify run.epi</span></div>
+          <pre class="lt-out" id="ltOut"></pre>
+        </div>
+        <div class="lsw-note" id="lxNote">A valid seal proves consistency under <em>some</em> key — not whose. <a href="/trust" style="color:var(--acc-hi)">Full trust model →</a></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EVIDENCE COMPARED -->
+<section class="blk">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="tag" style="justify-content:center"><span class="n">07 /</span> Evidence, compared</span>
+      <h2 class="d2x">What holds up under review</h2>
+      <p>When a decision is challenged, the format of your record decides how much it's worth.</p>
+    </div>
+    <div class="cmp-wrap" data-aos="fade-up">
+      <table class="cmp">
+        <thead>
+          <tr><th>Capability</th><th>App logs</th><th>Vendor dashboard</th><th class="hl">Sealed .epi</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Independent verification</td><td class="n">✗</td><td class="n">✗</td><td class="hl y">✓ offline, open tools</td></tr>
+          <tr><td>Tamper-evident after the fact</td><td class="n">✗</td><td class="p">editable</td><td class="hl y">✓ 1 byte breaks it</td></tr>
+          <tr><td>Works without the vendor</td><td class="p">partial</td><td class="n">✗</td><td class="hl y">✓ MIT format + verifier</td></tr>
+          <tr><td>Attributable to an org key</td><td class="n">✗</td><td class="n">✗</td><td class="hl y">✓ strict mode</td></tr>
+          <tr><td>Verifiable in 5 years</td><td class="p">maybe</td><td class="n">✗</td><td class="hl y">✓ offline, forever</td></tr>
+          <tr><td>Auditor needs an account</td><td class="p">sometimes</td><td class="n">✗ always</td><td class="hl y">✗ never</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="text-align:center;margin-top:22px;font-size:.8rem;color:var(--dim)">Every ✓ in the sealed column is a property of the file format — not a promise from us.</p>
+  </div>
+</section>
+
+<!-- WHO IT'S FOR -->
+<section class="blk alt">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="tag" style="justify-content:center"><span class="n">08 /</span> Who it's for</span>
+      <h2 class="d2x">Built for the people accountable when agents act</h2>
+      <p>Different roles, same question: <em>prove it.</em></p>
+    </div>
+    <div class="grid g4 stagger">
+      <div class="card" data-aos="fade-up"><div class="ic"><svg class="icn"><use href="#lucide-shield-check"></use></svg></div><h3>CISOs &amp; risk officers</h3><p>Cryptographic evidence instead of questionnaires. Strict mode enforces org-pinned signers before anything counts as claim-ready.</p></div>
+      <div class="card" data-aos="fade-up"><div class="ic"><svg class="icn"><use href="#lucide-list-checks"></use></svg></div><h3>Auditors &amp; compliance</h3><p>Verify offline with open tools, on your terms. The record survives us — MIT-licensed format and verifier.</p></div>
+      <div class="card" data-aos="fade-up"><div class="ic"><svg class="icn"><use href="#lucide-trending-up"></use></svg></div><h3>Insurers &amp; underwriters</h3><p>Price coverage on sealed run history instead of self-reported logs. Identity pinning ties evidence to an org key.</p></div>
+      <div class="card" data-aos="fade-up"><div class="ic"><svg class="icn"><use href="#lucide-code"></use></svg></div><h3>Engineering teams</h3><p>One context manager wraps any framework. Evidence ships with the run — not bolted on for the audit later.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="blk" id="pricing">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="tag" style="justify-content:center"><span class="n">09 /</span> Pricing · honest</span>
+      <h2 class="d2x">Free to verify. Pay for proof.</h2>
+      <p>No monthly prices for products that don't exist yet. Verification stays free forever.</p>
+    </div>
+    <div class="plans stagger">
+      <div class="plan" data-aos="fade-up">
         <h3>Open source</h3>
-        <div class="price">$0</div>
+        <div class="pr">$0</div>
+        <div class="pn">MIT · forever</div>
         <p>Recorder, verifier, viewer, format. Unlimited offline. Verification will never cost money.</p>
-        <a class="btn btn-secondary" href="https://pypi.org/project/epi-recorder/" target="_blank" rel="noopener">pip install</a>
+        <a class="btn btn-sec" href="https://pypi.org/project/epi-recorder/" target="_blank" rel="noopener">pip install</a>
       </div>
-      <div class="v2-plan featured reveal">
-        <span class="plan-badge">Buyable now · 3 / mo</span>
+      <div class="plan feat" data-aos="fade-up">
+        <span class="flag">Buyable now · 3 / mo</span>
         <h3>Agent Evidence Sprint</h3>
-        <div class="price">$1,500</div>
-        <p>Five days, one workflow, signed artifacts, findings report. Deals stall on &ldquo;prove the agent&rdquo; — this is the answer in a week.</p>
-        <a class="btn btn-primary" href="mailto:mohdibrahim@epilabs.org?subject=Agent%20Evidence%20Sprint%20%28%241%2C500%29" style="width:100%;justify-content:center">Email to book a sprint</a>
-        <a class="btn btn-secondary" href="/pricing#sprint" style="width:100%;justify-content:center;margin-top:8px">See sprint details</a>
+        <div class="pr">$1,500</div>
+        <div class="pn">5 days · one workflow</div>
+        <p>Five days, one workflow, signed artifacts, findings report. Deals stall on "prove the agent" — this is the answer in a week.</p>
+        <a class="btn btn-pri" href="/pricing#contact">Book a sprint</a>
       </div>
-      <div class="v2-plan reveal">
+      <div class="plan" data-aos="fade-up">
         <h3>Control plane</h3>
-        <div class="price" style="font-size:1.25rem">Design partners</div>
-        <p>Org keys, hosted receipts, retention — in development. 3–5 partners, pilots from $5K.</p>
-        <a class="btn btn-secondary" href="/pricing">Partner inquiry</a>
+        <div class="pr" style="font-size:1.35rem;padding-top:14px">Design partners</div>
+        <div class="pn">pilots from $5K</div>
+        <p>Org keys, hosted receipts, retention — in development. 3–5 partners.</p>
+        <a class="btn btn-sec" href="#early-access">Join early access</a>
       </div>
     </div>
   </div>
 </section>
 
-<!-- 7 · CLOSE + FOOTER -->
-<section id="close">
-  <div class="container">
-    <div class="section-label" style="justify-content:center">Next</div>
-    <h2 class="section-title">Evidence starts with one command.</h2>
-    <p class="section-desc">Founder-led pilots welcome. No fake self-serve enterprise checklist.</p>
-    <div class="cta-actions">
-      <span class="beam-wrap"><a class="btn btn-primary btn-lg" href="https://pypi.org/project/epi-recorder/" target="_blank" rel="noopener">pip install epi-recorder</a></span>
-      <a class="btn btn-secondary btn-lg" href="mailto:mohdibrahim@epilabs.org?subject=EPI%20pilot">Email for pilot</a>
-      <a class="btn btn-secondary btn-lg" href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/PILOT.md" target="_blank" rel="noopener">Pilot guide</a>
+<!-- LIMITS BAND -->
+<div class="limits" id="limits">
+  <div class="limits-in">
+      <svg class="icn"><use href="#lucide-shield-alert"></use></svg>
+    <div>
+      <h3>Known limitations — read them before you rely on this.</h3>
+      <p>The seal proves integrity <em>after</em> sealing, not completeness of capture. A signed file shows the run wasn't altered since the seal; it cannot prove everything was recorded. Full list: <a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/KNOWN_LIMITATIONS.md" target="_blank" rel="noopener">KNOWN_LIMITATIONS.md</a></p>
     </div>
-    <p class="command-strip-foot" style="margin-top:28px">
-      Depth:
-      <a href="/how-it-works">How it works</a>
-      · <a href="/trust">Trust model</a>
-      · <a href="/integrations">Integrations</a>
-      · <a href="/use-cases">Use cases</a>
-      · <a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/KNOWN_LIMITATIONS.md">Known limits</a>
-    </p>
   </div>
-</section>
-
-<div class="v2-sticky-cta" aria-label="Quick actions">
-  <a class="btn btn-secondary" href="#proof">Verify sample</a>
-  <a class="btn btn-primary" href="#loop">Install CLI</a>
 </div>
 
-<script>
-(function(){
-  document.querySelectorAll('a[href^="#"]').forEach(function(a){
-    a.addEventListener('click',function(e){
-      var id=this.getAttribute('href');
-      if(!id||id==='#')return;
-      var t=document.querySelector(id);
-      if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});}
-    });
-  });
-  var obs=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('visible');obs.unobserve(x.target)}})},{threshold:0.1,rootMargin:'0px 0px -30px 0px'});
-  document.querySelectorAll('.reveal').forEach(function(el){obs.observe(el)});
-  var vid=document.querySelector('.v2-video');
-  document.querySelectorAll('.v2-video-chapters button').forEach(function(btn){
-    btn.addEventListener('click',function(){
-      if(!vid)return;
-      var t=parseFloat(btn.getAttribute('data-t')||'0');
-      try{vid.currentTime=t;vid.play()}catch(_e){}
-    });
-  });
-  var copyBtn=document.getElementById('copyInstall');
-  if(copyBtn){
-    copyBtn.addEventListener('click',function(){
-      var cmd='pip install epi-recorder';
-      function done(){copyBtn.textContent='Copied';setTimeout(function(){copyBtn.textContent='Copy'},1600)}
-      if(navigator.clipboard&&navigator.clipboard.writeText){
-        navigator.clipboard.writeText(cmd).then(done).catch(function(){
-          var ta=document.createElement('textarea');ta.value=cmd;document.body.appendChild(ta);ta.select();
-          try{document.execCommand('copy')}catch(e){}
-          document.body.removeChild(ta);done();
-        });
-      }
-    });
-  }
-})();
-</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
-<script src="js/epi-verify-core.js?v=33"></script>
-<script src="js/home-verify.js?v=35"></script>
-<script src="js/wow.js?v=3"></script>
-<script src="js/theme.js"></script>
-<script src="js/nav.js?v=3"></script>
-<script src="js/instrument-nav.js"></script>
-<script src="js/auth-ui.js"></script>
+<!-- CLOSING BAND -->
+<section class="close-band">
+  <p>Evidence starts with one command</p>
+  <h2>Make your agents insurable.</h2>
+  <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:38px">
+    <a class="btn btn-lg" style="background:var(--acc);color:#fff;border-radius:999px;padding:16px 34px;font-weight:600" href="https://pypi.org/project/epi-recorder/" target="_blank" rel="noopener">pip install epi-recorder</a>
+    <a class="btn btn-lg" style="border:1px solid rgba(255,255,255,.4);color:inherit;border-radius:999px;padding:16px 34px;font-weight:600;background:transparent" href="/pricing#contact">Book a sprint</a>
+  </div>
+  <div id="early-access" style="margin-top:44px;max-width:460px;margin-left:auto;margin-right:auto;scroll-margin-top:120px">
+    <p style="font-family:var(--mono);font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;margin-bottom:14px;color:inherit;opacity:.75">Control plane in development — get early access</p>
+    <form class="wl-form" novalidate>
+      <input type="email" name="email" placeholder="work email" required aria-label="Work email">
+      <button type="submit">Join waitlist</button>
+    </form>
+    <p class="wl-status" role="status" aria-live="polite"></p>
+    <p style="font-size:.7rem;opacity:.6;margin-top:10px">Founding pricing for design partners. No spam — one update when the pilot program opens.</p>
+  </div>
+</section>
 
-<footer class="site-footer">
-  <div class="container">
-    <div class="footer-inner">
-      <div class="footer-left">
-        <img src="assets/logo.png" alt="EPI Labs" class="footer-logo">
-        <span class="footer-copy">&copy; 2026 EPI LABS. MIT License. Built in India. Engineered for the world.</span>
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="fgrid">
+      <div class="fbrand">
+        <a href="/" class="logo"><img src="/assets/logo.png" alt="EPI Labs"></a>
+        <p>The evidence layer that makes AI agents insurable and auditable. Sealed .epi files — verify offline, forever.</p>
       </div>
-      <ul class="footer-links">
-        <li><a href="/verify/">Verify</a></li>
-        <li><a href="/pricing">Pricing</a></li>
-        <li><a href="/enterprise">Enterprise</a></li>
-        <li><a href="/account">Account</a></li>
-        <li><a href="/how-it-works">Docs</a></li>
-        <li><a href="/trust">Trust</a></li>
-        <li><a href="/integrations">Integrations</a></li>
-        <li><a href="/use-cases">Use cases</a></li>
-        <li><a href="/status">Status</a></li>
-        <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
-        <li><a href="/terms">Terms</a></li>
-        <li><a href="/privacy">Privacy</a></li>
-        <li><a href="/refund">Refunds</a></li>
-        <li><a href="mailto:mohdibrahim@epilabs.org">Contact</a></li>
-      </ul>
+      <div class="fcol"><h4>Product</h4><ul>
+        <li><a href="/verify/">Verify a file</a></li><li><a href="/how-it-works">How it works</a></li><li><a href="/integrations">Integrations</a></li><li><a href="/pricing">Pricing</a></li></ul></div>
+      <div class="fcol"><h4>Evidence</h4><ul>
+        <li><a href="/trust">Trust model</a></li><li><a href="/use-cases">Use cases</a></li><li><a href="/enterprise">Enterprise</a></li><li><a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/KNOWN_LIMITATIONS.md" target="_blank" rel="noopener">Known limitations</a></li></ul></div>
+      <div class="fcol"><h4>Company</h4><ul>
+        <li><a href="/terms">Terms</a></li><li><a href="/privacy">Privacy</a></li><li><a href=".well-known/security.txt">Security.txt</a></li><li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li><li><a href="/terms">Terms</a></li><li><a href="/privacy">Privacy</a></li><li><a href="mailto:mohdibrahim@epilabs.org">Contact</a></li></ul></div>
     </div>
+    <div class="fbot"><span>&copy; 2026 EPI LABS · MIT License</span><span>v4.4.0 · envelope-v2</span></div>
   </div>
 </footer>
 
+<script src="/js/jszip.min.js"></script>
+<script src="/js/epi-verify-core.js?v=34"></script>
+<script src="/js/home-verify.js?v=36"></script>
+<script src="/js/theme.js"></script>
+<script src="/js/contact.js"></script>
+<script>
+(function(){
+  'use strict';
+  var b=document.getElementById('burger'),m=document.getElementById('mmenu');
+  if(b&&m){b.addEventListener('click',function(){var o=m.classList.toggle('open');b.classList.toggle('x',o);b.setAttribute('aria-expanded',o);document.body.style.overflow=o?'hidden':''});}
+  // nav scrolled state
+  var nav=document.getElementById('nav');
+  var onS=function(){nav.classList.toggle('scrolled',scrollY>10)};
+  addEventListener('scroll',onS,{passive:true});onS();
+  var cb=document.getElementById('copyInstall');
+  if(cb){cb.addEventListener('click',function(){
+    var cmd='pip install epi-recorder';
+    function done(){cb.textContent='Copied';setTimeout(function(){cb.textContent='Copy'},1600)}
+    if(navigator.clipboard){navigator.clipboard.writeText(cmd).then(done).catch(done)}else{done()}
+  });}
+  // Stat count-up
+  (function(){
+    var nums=document.querySelectorAll('.stat .sv span');
+    if(!nums.length)return;
+    var reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var run=function(el){
+      var target=el.textContent.trim();
+      if(!/^\d+$/.test(target)){el.classList.add('cnt');return}
+      var n=parseInt(target,10);
+      if(reduced||n===0){return}
+      var t0=null,DUR=900;
+      function stepFn(ts){
+        if(!t0)t0=ts;
+        var p=Math.min((ts-t0)/DUR,1);
+        el.textContent=Math.round(n*(p*(2-p)));
+        if(p<1)requestAnimationFrame(stepFn);
+      }
+      requestAnimationFrame(stepFn);
+    };
+    if('IntersectionObserver' in window){
+      var so=new IntersectionObserver(function(es){
+        es.forEach(function(x){if(x.isIntersecting){run(x.target);so.unobserve(x.target)}});
+      },{threshold:.5});
+      nums.forEach(function(n){so.observe(n)});
+    }else{nums.forEach(run)}
+  })();
+  // Layer switcher with typewriter
+  var LDATA={
+    seal:{cmd:'epi verify run.epi',out:[
+      ['$ epi verify run.epi',''],
+      ['structure   envelope-v2 · ok',''],
+      ['hashes      142/142 steps match',''],
+      ['signature   ed25519 · valid',''],
+      ['chain       intact',''],
+      ['verdict: PASS — seal valid','g']
+    ],note:'A valid seal proves consistency under <em>some</em> key — not whose. <a href="/trust" style="color:var(--acc-hi)">Full trust model →</a>'},
+    identity:{cmd:'epi verify run.epi --policy strict',out:[
+      ['$ epi verify run.epi --policy strict',''],
+      ['seal        valid',''],
+      ['identity    LOCAL — unpinned signer',''],
+      ['verdict: WARN — UNVERIFIED IDENTITY','w'],
+      ['not claim-ready until org keys pinned','']
+    ],note:'First-run LOCAL is normal — but unpinned is WARN, never claim-ready. <a href="/trust" style="color:var(--acc-hi)">Identity pinning →</a>'},
+    policy:{cmd:'epi analyze run.epi --policy epi_policy.json',out:[
+      ['$ epi analyze run.epi --policy epi_policy.json',''],
+      ['seal        valid · record intact',''],
+      ['policy      FAULT — rule matched:','b'],
+      ['            external tool_call exceeded spend limit',''],
+      ['verdict: FAULT — review required','b']
+    ],note:'Policy FAULT sits next to verify PASS — the record is intact; a rule fired. <a href="/how-it-works" style="color:var(--acc-hi)">Policy analyzer →</a>'}
+  };
+  var lbtns=document.querySelectorAll('.layer');
+  var ltOut=document.getElementById('ltOut'),ltCmd=document.getElementById('ltCmd'),lxNote=document.getElementById('lxNote');
+  var typeTimer=null;
+  function typeLines(lines){
+    if(typeTimer){clearInterval(typeTimer);typeTimer=null}
+    var reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(reduced||!ltOut){
+      if(ltOut)ltOut.innerHTML=lines.map(function(l){return '<span class="'+l[1]+'">'+l[0]+'</span>'}).join('\n');
+      return;
+    }
+    var li=0,ci=0,acc='';
+    ltOut.textContent='';
+    typeTimer=setInterval(function(){
+      if(li>=lines.length){clearInterval(typeTimer);typeTimer=null;return}
+      var line=lines[li];
+      ci+=3;
+      if(ci>=line[0].length){
+        acc+='<span class="'+line[1]+'">'+line[0]+'</span>\n';
+        ltOut.innerHTML=acc;
+        li++;ci=0;
+      }else{
+        ltOut.innerHTML=acc+'<span class="'+line[1]+'">'+line[0].slice(0,ci)+'</span>';
+      }
+    },16);
+  }
+  lbtns.forEach(function(btn){
+    btn.addEventListener('click',function(){
+      lbtns.forEach(function(b){b.classList.remove('active');b.setAttribute('aria-selected','false')});
+      btn.classList.add('active');btn.setAttribute('aria-selected','true');
+      var d=LDATA[btn.dataset.layer];
+      if(!d)return;
+      if(ltCmd)ltCmd.textContent=d.cmd;
+      if(lxNote)lxNote.innerHTML=d.note;
+      typeLines(d.out);
+    });
+  });
+  if(ltOut&&LDATA.seal)typeLines(LDATA.seal.out);
+})();
+</script>
+<script src="/js/aos.js"></script>
+<script>AOS.init({duration:700,easing:"ease-out-cubic",once:true,offset:80});</script>
 </body>
 </html>

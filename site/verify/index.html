@@ -1,393 +1,121 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>EPI Labs | Check a .epi file</title>
-<meta name="description" content="Check a sealed .epi file. One page, two choices: never upload the file (private browser check), or upload for a full plan-backed report.">
-<link rel="icon" href="/favicon.ico">
-<link rel="stylesheet" href="/css/epi.css?v=30">
-<link rel="stylesheet" href="/css/epi-v2.css?v=10">
-<link rel="stylesheet" href="/css/polish.css?v=4">
-<link rel="stylesheet" href="/css/wow.css?v=5">
-<link rel="stylesheet" href="/css/mobile.css?v=2">
-<style>
-body.epi-instrument{background:var(--bg);color:var(--ink-soft)}
-.verify-main{max-width:800px;margin:0 auto;padding:120px 24px 80px}
-@media(max-width:768px){
-  .verify-main{padding:88px 16px 48px}
-  .drop-zone{padding:40px 16px !important}
-  .drop-zone h2{font-size:1.15rem}
-}
-.clarify{font-size:.9rem;color:var(--ink-soft);margin:0 0 18px;line-height:1.55;padding:14px 16px;background:var(--bg-alt);border-radius:10px;border:1px solid var(--border)}
-.clarify strong{color:var(--ink)}
-.mode-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 16px}
-@media(max-width:640px){.mode-row{grid-template-columns:1fr}}
-.mode-btn{border:2px solid var(--border-str);background:var(--bg-card);border-radius:12px;padding:16px 14px;cursor:pointer;text-align:left;font-family:var(--sans);transition:border-color .15s,box-shadow .15s}
-.mode-btn:hover{border-color:var(--accent-line)}
-.mode-btn.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
-.mode-btn .tag{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 8px;border-radius:999px;margin:0 0 8px}
-.mode-btn .tag.private{background:rgba(46,160,100,.15);color:var(--verified)}
-.mode-btn .tag.upload{background:rgba(80,120,255,.12);color:var(--accent)}
-.mode-btn strong{display:block;color:var(--ink);font-size:.95rem;margin:0 0 6px}
-.mode-btn span{display:block;color:var(--ink-muted);font-size:.82rem;line-height:1.45}
-.mode-hint{font-size:.88rem;color:var(--ink-soft);margin:0 0 20px;line-height:1.55;padding:12px 14px;background:var(--bg-card);border-radius:10px;border:1px solid var(--border-str)}
-.drop-zone{border:2px dashed var(--accent-line);border-radius:16px;padding:60px 40px;text-align:center;cursor:pointer;background:var(--bg-card);transition:all .2s}
-.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:var(--accent-glow);border-style:solid}
-.drop-zone h2{font-size:1.4rem;color:var(--ink);margin:0 0 8px}
-.drop-zone p{color:var(--ink-muted);margin:0;font-size:.92rem}
-.result-box{display:none;margin-top:32px;padding:24px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border-str)}
-.result-box.visible{display:block}
-.check-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
-.check-row .label{flex:1;font-size:.9rem;color:var(--ink-soft)}
-.check-row .status{font-weight:600;font-size:.85rem}
-.status.pass{color:var(--verified)}.status.fail{color:var(--tamper)}.status.pending{color:var(--ink-muted)}
-.decision-box{margin-top:20px;padding:16px;border-radius:10px;text-align:center;font-weight:700;font-size:1.05rem}
-.decision-box.pass{background:var(--verified-bg);color:var(--verified)}
-.decision-box.warn{background:rgba(200,160,0,.12);color:var(--warn)}
-.decision-box.fail{background:var(--tamper-bg);color:var(--tamper)}
-.verifier-hash{font-family:var(--mono);font-size:.75rem;color:var(--ink-muted);text-align:center;margin-top:12px;word-break:break-all}
-.engine-status{font-size:.8rem;color:var(--ink-muted);margin:0 0 16px}
-.engine-status.ok{color:var(--verified)}.engine-status.bad{color:var(--tamper)}
-.loading{display:none;text-align:center;padding:24px;color:var(--ink-muted);font-size:.9rem}
-.loading.active{display:block}
-</style>
+<title>Verify a .epi file — EPI Labs</title>
+<meta name="description" content="Verify a sealed .epi evidence file in your browser. Private check: the file never leaves this tab. Offline-verifiable, Ed25519 + SHA-256.">
+<link rel="canonical" href="https://epilabs.org/verify/">
+<meta name="theme-color" content="#F7F5F0">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
+<link rel="stylesheet" href="/css/aos.css">
+<link rel="stylesheet" href="/css/site.css?v=15">
 <script>
-(function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();
+(function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){}})();
 </script>
+<style>
+  .mode-row{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+  .mode-btn{flex:1;min-width:220px;text-align:left;background:var(--bg-3);border:1px solid var(--line);border-radius:10px;padding:14px 16px;color:var(--body);font-size:.86rem;line-height:1.5;transition:.2s}
+  .mode-btn b{display:block;color:var(--ink);margin-bottom:3px}
+  .mode-btn:hover{border-color:var(--acc-line)}
+  .mode-btn.active{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+  .note{max-width:940px;margin:22px auto 0;padding:16px 20px;border:1px solid var(--line);border-left:2px solid var(--acc);border-radius:9px;background:var(--bg-3);font-size:.85rem;color:var(--mut);line-height:1.7}
+  .note strong{color:var(--ink)}
+  .note code{font-family:var(--mono);font-size:.78rem;background:var(--well);color:#D8DCE3;padding:2px 7px;border-radius:4px;border:1px solid var(--line)}
+</style>
 </head>
-<body class="epi-instrument">
-<nav id="nav">
-  <div class="nav-inner">
-    <a href="/" class="nav-logo"><img src="../assets/logo.png" alt="EPI Labs"></a>
-    <ul class="nav-links" id="navLinks">
-      <li><a href="/verify/">Verify</a></li>
-      <li><a href="/how-it-works">Docs</a></li>
-      <li><a href="/pricing">Pricing</a></li>
+<body class="canvas">
+<a class="skip" href="#main">Skip to verify</a>
+<nav class="nav" id="nav">
+  <div class="nav-in">
+    <a href="/" class="logo"><img src="/assets/logo.png" alt="EPI Labs"></a>
+    <ul class="nlinks">
+      <li><a href="/how-it-works">How it works</a></li>
+      <li><a href="/trust">Trust model</a></li>
+      <li><a href="/use-cases">Use cases</a></li>
       <li><a href="/enterprise">Enterprise</a></li>
+      <li><a href="/pricing">Pricing</a></li>
       <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
-      <li id="nav-auth-slot"></li>
-      <li><button type="button" class="theme-toggle-nav" id="themeToggleNav" data-theme-toggle aria-label="Toggle color theme" title="Toggle theme">&#9788;</button></li>
-
+      <li><button type="button" class="tgl" data-theme-toggle aria-label="Toggle color theme">&#9788;</button></li>
     </ul>
-    <button type="button" class="nav-mob" id="mobBtn" aria-label="Open menu" aria-expanded="false" aria-controls="mobMenu">
-      <span></span><span></span><span></span>
-    </button>
+    <button class="burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
   </div>
 </nav>
-<div class="mob-menu" id="mobMenu" hidden>
-  <a href="/verify/">Verify</a>
-  <a href="/how-it-works">Docs</a>
+<div class="mmenu" id="mmenu">
+  <a href="/">Home</a>
+  <a href="/how-it-works">How it works</a>
+  <a href="/trust">Trust model</a>
   <a href="/pricing">Pricing</a>
-  <a href="/enterprise">Enterprise</a>
   <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
-  <a href="/account">Sign in</a>
+  <button type="button" class="tgl" data-theme-toggle style="margin-top:14px;width:100%">Toggle theme</button>
 </div>
-<main class="verify-main">
-  <div class="section-label">Verify</div>
-  <h1 style="font-size:1.9rem;color:var(--ink);margin:0 0 8px">Check a .epi file</h1>
-  <p class="clarify">
-    Yes — <strong>this page always loads over the internet</strong> (like any website).
-    That is <em>not</em> the choice. The only choice is:
-    <strong>does your .epi file get uploaded to EPI, or not?</strong>
-  </p>
 
-  <div class="mode-row" role="tablist" aria-label="Does the file get uploaded?">
-    <button type="button" class="mode-btn active" id="modeDevice" data-mode="device" aria-selected="true">
-      <span class="tag private">No upload</span>
-      <strong>Private check</strong>
-      <span>File stays in this browser tab. EPI never receives a copy. Free, no account needed.</span>
-    </button>
-    <button type="button" class="mode-btn" id="modeServer" data-mode="server" aria-selected="false">
-      <span class="tag upload">File is uploaded</span>
-      <strong>Full report (your plan)</strong>
-      <span>Sends the file to EPI for a deeper report. Counts against your hosted check quota if signed in (Free has a low monthly limit). Offline CLI verify is unlimited.</span>
-    </button>
+<main id="main">
+<section style="padding:calc(var(--navh) + 56px) 0 40px">
+  <div class="wrap" style="text-align:center">
+    <span class="tag" style="justify-content:center">Verify · private by default</span>
+    <h1 class="d2x">Check a .epi file</h1>
+    <p class="lede" style="margin:16px auto 0">Yes — this page loads over the internet (like any website). That is not the choice.
+    The only choice is: <strong style="color:var(--ink)">does your .epi file get uploaded to EPI, or not?</strong></p>
   </div>
-  <p class="mode-hint" id="modeHint">Selected: <strong>Private check</strong> — page online, <strong>file stays here</strong> (not uploaded).</p>
+</section>
 
-  <p id="engineStatus" class="engine-status">Loading checker...</p>
-  <div id="loading" class="loading">Checking file...</div>
-
-  <div id="dropZone" class="drop-zone" role="button" tabindex="0" aria-label="Drop or choose a .epi file">
-    <h2 id="dropTitle">Drop .epi file here</h2>
-    <p id="dropSub">or click to browse · file will not be uploaded</p>
-    <input type="file" id="fileInput" accept=".epi,application/octet-stream" style="display:none">
+<section style="padding:0 0 80px">
+  <div class="wrap">
+    <div class="inst in" data-aos="fade-up">
+      <div class="inst-top"><span class="inst-title">epi verify — browser engine</span><span class="vpill pass" id="enginePill" style="display:none">Ready</span></div>
+      <div style="padding:22px 24px">
+        <div class="mode-row" id="modeRow">
+          <button type="button" class="mode-btn active" data-mode="private"><b>Private check — recommended</b>Page online, <strong>file stays here</strong> (not uploaded). No account needed.</button>
+        </div>
+        <div class="inst-grid" style="padding:6px 0 0">
+          <div class="drop" id="dropZoneEl" role="button" tabindex="0" aria-label="Drop or choose a .epi file to verify offline">
+            <h3>Drop .epi file here</h3>
+            <p>or click to browse · file will not be uploaded</p>
+            <input type="file" id="fileInput" accept=".epi,.zip" style="display:none">
+            <div id="dropResult" style="display:none" aria-live="polite" role="status"></div>
+          </div>
+          <div class="checks">
+            <div class="chk" id="chk1"><span class="cd"></span> 01 · Structure</div>
+            <div class="chk" id="chk2"><span class="cd"></span> 02 · File hashes</div>
+            <div class="chk" id="chk3"><span class="cd"></span> 03 · Signature</div>
+            <div class="chk" id="chk4"><span class="cd"></span> 04 · Step chain</div>
+            <div class="chk" id="chk5"><span class="cd"></span> 05 · Identity (browser)</div>
+            <div class="chk" id="chk6"><span class="cd"></span> 06 · Full audit → CLI</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="note">
+      <strong>Truly offline</strong> (no website at all): install the CLI and run <code>epi verify file.epi</code> on your PC.
+      &nbsp;·&nbsp; <a href="/assets/sample.epi" download style="color:var(--acc);font-weight:600">Download sample.epi</a>
+    </div>
   </div>
-
-  <div id="resultBox" class="result-box">
-    <div id="checks"></div>
-    <div id="decisionBox" class="decision-box"></div>
-    <div class="verifier-hash" id="verifierHash"></div>
-  </div>
-  <p style="margin-top:28px;font-size:.88rem;color:var(--ink-muted);line-height:1.55">
-    <strong>Truly offline</strong> (no website at all): install the CLI and run
-    <code>epi verify file.epi</code> on your PC. ·
-    <a href="/account" style="color:var(--accent)">Account</a> ·
-    <a href="/enterprise" style="color:var(--accent)">Enterprise kit</a>
-  </p>
+</section>
 </main>
 
-<script src="/js/jszip.min.js?v=32"></script>
-<script src="/js/epi-verify-core.js?v=33"></script>
-<script>
-(function(){
-  var mode = 'device'; // device | server
-  var params = new URLSearchParams(location.search || '');
-  if (params.get('mode') === 'server' || params.get('mode') === 'account' || params.get('mode') === 'hosted' || location.hash === '#server') {
-    mode = 'server';
-  }
-
-  var modeDevice = document.getElementById('modeDevice');
-  var modeServer = document.getElementById('modeServer');
-  var modeHint = document.getElementById('modeHint');
-  var engineStatus = document.getElementById('engineStatus');
-  var loading = document.getElementById('loading');
-  var dropZone = document.getElementById('dropZone');
-  var dropTitle = document.getElementById('dropTitle');
-  var dropSub = document.getElementById('dropSub');
-  var fileInput = document.getElementById('fileInput');
-  var resultBox = document.getElementById('resultBox');
-  var checksEl = document.getElementById('checks');
-  var decisionBox = document.getElementById('decisionBox');
-  var verifierHash = document.getElementById('verifierHash');
-
-  function setMode(m) {
-    mode = m;
-    modeDevice.classList.toggle('active', m === 'device');
-    modeServer.classList.toggle('active', m === 'server');
-    modeDevice.setAttribute('aria-selected', m === 'device' ? 'true' : 'false');
-    modeServer.setAttribute('aria-selected', m === 'server' ? 'true' : 'false');
-    if (m === 'device') {
-      modeHint.innerHTML = 'Selected: <strong>Private check</strong> — website is online; <strong>your .epi is not uploaded</strong>. Checked only in this tab.';
-      if (dropTitle) dropTitle.textContent = 'Drop .epi file here';
-      if (dropSub) dropSub.textContent = 'or click to browse · file will not be uploaded';
-      engineStatus.style.display = '';
-      markEngine();
-    } else {
-      modeHint.innerHTML = 'Selected: <strong>Full report</strong> — dropping a file will <strong>upload it to EPI</strong> for a deeper report. Sign in so it counts on your plan. <a href="/account" style="color:var(--accent)">Account</a>';
-      if (dropTitle) dropTitle.textContent = 'Drop .epi to upload';
-      if (dropSub) dropSub.textContent = 'or click to browse · file will be sent to EPI servers';
-      engineStatus.textContent = 'Upload mode ready — the next file you drop is sent to EPI.';
-      engineStatus.className = 'engine-status ok';
-    }
-    try {
-      var u = new URL(location.href);
-      if (m === 'server') u.searchParams.set('mode', 'server');
-      else u.searchParams.delete('mode');
-      history.replaceState(null, '', u.pathname + u.search + u.hash);
-    } catch (e) {}
-  }
-
-  modeDevice.addEventListener('click', function(){ setMode('device'); });
-  modeServer.addEventListener('click', function(){ setMode('server'); });
-  setMode(mode);
-
-  function markEngine(){
-    if (mode !== 'device') return true;
-    if (typeof window.verifyEPI === 'function' && typeof JSZip !== 'undefined') {
-      engineStatus.textContent = 'Private checker ready (file stays in browser).';
-      engineStatus.className = 'engine-status ok';
-      return true;
-    }
-    engineStatus.textContent = 'Private checker still loading... hard-refresh (Ctrl+Shift+R) if this stays.';
-    engineStatus.className = 'engine-status bad';
-    return false;
-  }
-  markEngine();
-  window.addEventListener('load', function(){ setTimeout(markEngine, 0); setTimeout(markEngine, 250); });
-
-  dropZone.addEventListener('click', function(){ fileInput.click(); });
-  dropZone.addEventListener('keydown', function(e){
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
-  });
-  dropZone.addEventListener('dragover', function(e){ e.preventDefault(); dropZone.classList.add('drag-over'); });
-  dropZone.addEventListener('dragleave', function(){ dropZone.classList.remove('drag-over'); });
-  dropZone.addEventListener('drop', function(e){
-    e.preventDefault(); dropZone.classList.remove('drag-over');
-    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
-  });
-  fileInput.addEventListener('change', function(){ if (fileInput.files[0]) handleFile(fileInput.files[0]); });
-
-  function apiBase(){
-    var h = (location && location.hostname) || '';
-    if (h === 'epilabs.org' || h === 'www.epilabs.org' || h.endsWith('.pages.dev')) return '';
-    if (h === 'localhost' || h === '127.0.0.1') return '';
-    return 'https://epi-verify-portal.onrender.com';
-  }
-  function authHeaders(){
-    var h = {};
-    try {
-      var t = localStorage.getItem('epi_token') || '';
-      if (t) h['Authorization'] = 'Bearer ' + t;
-    } catch (e) {}
-    return h;
-  }
-
-  function addCheck(label, status, note){
-    var row = document.createElement('div');
-    row.className = 'check-row';
-    var statusText = String(status || '').toUpperCase();
-    var noteHtml = note ? ' <span style="font-weight:400;color:var(--ink-muted)">— ' + note + '</span>' : '';
-    row.innerHTML = '<span class="label">' + label + noteHtml + '</span><span class="status ' + status + '">' + statusText + '</span>';
-    checksEl.appendChild(row);
-  }
-
-  function resetResult(){
-    checksEl.innerHTML = '';
-    resultBox.classList.add('visible');
-    decisionBox.className = 'decision-box';
-    decisionBox.textContent = 'Checking...';
-    verifierHash.textContent = '';
-  }
-
-  async function handleDevice(file){
-    if (!markEngine()) {
-      addCheck('Engine', 'fail');
-      decisionBox.textContent = 'ERROR: Checker not loaded. Hard-refresh (Ctrl+Shift+R).';
-      decisionBox.className = 'decision-box fail';
-      return;
-    }
-    try {
-      var result = await window.verifyEPI(file);
-      addCheck('Container / structure', result.structure ? 'pass' : 'fail');
-      addCheck('Manifest present', result.manifest ? 'pass' : 'fail');
-      addCheck('File integrity (not tampered)', result.integrity ? 'pass' : 'fail');
-      addCheck('Signature valid', result.signature === true ? 'pass' : (result.signature === false ? 'fail' : 'pending'));
-      addCheck('Company identity on this page', 'pending', 'not pinned in private browser — use CLI trust + --policy strict for claims');
-
-      var sealOk = !!(result.structure && result.integrity && result.signature === true);
-      var sealBroken = !result.structure || !result.integrity || result.signature === false;
-      if (sealBroken) {
-        decisionBox.textContent = 'SEAL FAIL — do not trust this copy';
-        decisionBox.className = 'decision-box fail';
-      } else if (sealOk) {
-        // Valid seal alone is not claim-ready — identity not checked in private mode
-        decisionBox.textContent = 'UNVERIFIED IDENTITY — seal valid · signer not pinned (private check)';
-        decisionBox.className = 'decision-box warn';
-      } else {
-        decisionBox.textContent = 'PARTIAL — incomplete or unsigned';
-        decisionBox.className = 'decision-box warn';
-      }
-      if (result.hash) verifierHash.textContent = 'File SHA-256: ' + result.hash;
-      var help = document.createElement('div');
-      help.style.cssText = 'margin-top:14px;font-size:.85rem;color:var(--ink-muted);line-height:1.55';
-      help.innerHTML = sealOk
-        ? 'Seal proves consistency under <em>some</em> key — not who. For claim acceptance: <code>epi keys trust</code> then <code>epi verify --policy strict</code>. Or use Full report (upload).'
-        : 'Try another browser, or offline: <code>epi verify "' + (file.name || 'file.epi') + '" --policy strict</code>';
-      checksEl.appendChild(help);
-    } catch (e) {
-      addCheck('Verification', 'fail');
-      decisionBox.textContent = 'ERROR: ' + (e && e.message ? e.message : e);
-      decisionBox.className = 'decision-box fail';
-    }
-  }
-
-  async function handleServer(file){
-    if (!file.name || !file.name.endsWith('.epi')) {
-      decisionBox.textContent = 'Please choose a .epi file';
-      decisionBox.className = 'decision-box fail';
-      return;
-    }
-    if (file.size > 50 * 1024 * 1024) {
-      decisionBox.textContent = 'File too large (max 50 MB)';
-      decisionBox.className = 'decision-box fail';
-      return;
-    }
-    loading.classList.add('active');
-    var fd = new FormData();
-    fd.append('file', file);
-    fd.append('aiuc1', 'true');
-    try {
-      var res = await fetch(apiBase() + '/api/verify', {
-        method: 'POST',
-        body: fd,
-        credentials: 'include',
-        headers: authHeaders()
-      });
-      var data = await res.json().catch(function(){ return {}; });
-      if (!res.ok) {
-        var msg = (data && data.detail) || ('Server error ' + res.status);
-        if (res.status === 429) msg = (data && data.detail) || 'Limit reached. Sign in for a higher plan, or use Private check (no upload) / epi verify offline.';
-        addCheck('Upload / server', 'fail', msg);
-        decisionBox.textContent = msg;
-        decisionBox.className = 'decision-box fail';
-        return;
-      }
-      var facts = data.facts || {};
-      var idn = data.identity || {};
-      addCheck('File integrity', facts.integrity_ok ? 'pass' : 'fail');
-      addCheck('Signature', facts.signature_valid === true ? 'pass' : (facts.signature_valid === false ? 'fail' : 'pending'));
-      addCheck('Sequence / chain', (facts.sequence_ok && facts.chain_ok) ? 'pass' : 'fail');
-      addCheck('Identity status', idn.status === 'KNOWN' ? 'pass' : 'pending', idn.status || 'UNKNOWN');
-      addCheck('File was uploaded', 'pass', 'yes — checked on EPI servers');
-
-      var sealValid = facts.integrity_ok && facts.signature_valid === true;
-      var idKnown = idn.status === 'KNOWN';
-      var decision = data.decision || {};
-      if (!sealValid) {
-        decisionBox.textContent = 'CHECK FAILED — see details above';
-        decisionBox.className = 'decision-box fail';
-      } else if (idKnown) {
-        decisionBox.textContent = 'SEAL · IDENTITY PINNED — full report (uploaded)';
-        decisionBox.className = 'decision-box pass';
-      } else {
-        var idLabel = idn.status === 'LOCAL' ? 'LOCAL SEALER · NOT ORG-PINNED' : 'UNVERIFIED IDENTITY';
-        decisionBox.textContent = idLabel + ' — seal valid · signer not claim-ready' +
-          (decision.status ? ' · decision: ' + decision.status : '');
-        decisionBox.className = 'decision-box warn';
-      }
-      var tl = data.trust_level || data.decision && data.decision.status;
-      if (tl) verifierHash.textContent = 'Trust / decision: ' + tl;
-    } catch (e) {
-      addCheck('Network', 'fail');
-      decisionBox.textContent = 'Could not reach EPI. Wait and try again, or switch to Private check (no upload).';
-      decisionBox.className = 'decision-box fail';
-    } finally {
-      loading.classList.remove('active');
-    }
-  }
-
-  async function handleFile(file){
-    resetResult();
-    if (mode === 'server') await handleServer(file);
-    else await handleDevice(file);
-  }
-
-})();
-</script>
-<script src="/js/theme.js"></script>
-<script src="/js/nav.js?v=3"></script>
-<script src="/js/instrument-nav.js"></script>
-<script src="/js/auth-ui.js"></script>
-
-<footer class="site-footer">
-  <div class="container">
-    <div class="footer-inner">
-      <div class="footer-left">
-        <img src="../assets/logo.png" alt="EPI Labs" class="footer-logo">
-        <span class="footer-copy">&copy; 2026 EPI LABS. MIT License. Built in India. Engineered for the world.</span>
-      </div>
-      <ul class="footer-links">
-        <li><a href="/verify/">Verify</a></li>
-        <li><a href="/pricing">Pricing</a></li>
-        <li><a href="/enterprise">Enterprise</a></li>
-        <li><a href="/account">Account</a></li>
-        <li><a href="/how-it-works">Docs</a></li>
-        <li><a href="/trust">Trust</a></li>
-        <li><a href="/integrations">Integrations</a></li>
-        <li><a href="/use-cases">Use cases</a></li>
-        <li><a href="/status">Status</a></li>
-        <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
-        <li><a href="/terms">Terms</a></li>
-        <li><a href="/privacy">Privacy</a></li>
-        <li><a href="/refund">Refunds</a></li>
-        <li><a href="mailto:mohdibrahim@epilabs.org">Contact</a></li>
-      </ul>
-    </div>
+<footer style="border-top:1px solid var(--line);padding:44px 0;background:var(--bg)">
+  <div class="wrap fbot" style="border:0;padding-top:0">
+    <span>&copy; 2026 EPI LABS · MIT License · v4.4.0</span>
+    <span><a href="/" style="color:var(--acc)">epilabs.org</a> · <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener" style="color:var(--mut)">GitHub</a></span>
   </div>
 </footer>
 
-<script src="/js/wow.js?v=2"></script>
+<script src="/js/jszip.min.js?v=32"></script>
+<script src="/js/epi-verify-core.js?v=34"></script>
+<script src="/js/home-verify.js?v=36"></script>
+<script src="/js/theme.js"></script>
+<script>
+(function(){
+  var nav=document.getElementById('nav');
+  var onS=function(){nav.classList.toggle('scrolled',scrollY>10)};
+  addEventListener('scroll',onS,{passive:true});onS();
+  var b=document.getElementById('burger'),m=document.getElementById('mmenu');
+  if(b&&m)b.addEventListener('click',function(){var o=m.classList.toggle('open');b.classList.toggle('x',o);b.setAttribute('aria-expanded',o);document.body.style.overflow=o?'hidden':''});
+})();
+</script>
+<script src="/js/aos.js"></script>
+<script>AOS.init({duration:700,easing:"ease-out-cubic",once:true,offset:80});</script>
 </body>
 </html>

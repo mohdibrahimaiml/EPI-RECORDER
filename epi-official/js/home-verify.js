@@ -208,7 +208,21 @@ function tokenizeJSON(str){
       i++;var s='';
       while(i<str.length){
         var ch=str[i];
-        if(ch==='\\'){i++;s+=str[i];i++;}
+        if(ch==='\\'){
+          i++;
+          var e=str[i];
+          if(e==='n')s+='\n';
+          else if(e==='t')s+='\t';
+          else if(e==='r')s+='\r';
+          else if(e==='b')s+='\b';
+          else if(e==='f')s+='\f';
+          else if(e==='u'){
+            s+=String.fromCharCode(parseInt(str.substring(i+1,i+5),16));
+            i+=4;
+          }
+          else s+=e; // \" \\ \/
+          i++;
+        }
         else if(ch==='"'){i++;break;}
         else{s+=ch;i++;}
       }
