@@ -1,0 +1,47 @@
+/* ═══ Contact / booking form ═══════════════════════════════════════
+   Static-site friendly: POSTs JSON to a configurable endpoint.
+   Set CONTACT_ENDPOINT in this file to your Formspree/ Basin/ own API URL.
+   Until set, the form shows an honest "direct email" fallback — no fake success. */
+
+:root{--form-acc:var(--acc)}
+
+.cform{background:var(--bg-3);border:1.5px solid var(--ink);padding:clamp(24px,4vw,40px);max-width:640px}
+.cform h3{font-size:1.3rem;margin-bottom:6px}
+.cform .cf-sub{font-size:.9rem;color:var(--mut);margin-bottom:22px;line-height:1.6}
+.cform .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:560px){.cform .row{grid-template-columns:1fr}}
+.cform label{display:block;font-family:var(--mono);font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+.cform label .req{color:var(--bad)}
+.cform input,.cform select,.cform textarea{
+  width:100%;padding:12px 14px;font-family:var(--sans);font-size:.92rem;color:var(--ink);
+  background:var(--bg);border:1px solid var(--edge-2);border-radius:0;outline:none;
+  transition:border-color .2s var(--ease),background .2s var(--ease)}
+.cform input:focus,.cform select:focus,.cform textarea:focus{border-color:var(--acc);background:var(--bg-3)}
+.cform textarea{min-height:96px;resize:vertical}
+.cform .cf-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:22px}
+.cform .cf-note{font-size:.74rem;color:var(--dim);line-height:1.5;flex:1;min-width:200px}
+.cform .cf-status{margin-top:14px;padding:12px 14px;font-family:var(--mono);font-size:.78rem;line-height:1.6;display:none;border:1px solid var(--edge)}
+.cform .cf-status.err{display:block;color:var(--bad);border-color:var(--bad);background:var(--bad-bg)}
+.cform .cf-status.ok{display:block;color:var(--ok);border-color:var(--ok);background:var(--ok-bg)}
+.cform .cf-status.warn{display:block;color:var(--warn);border-color:var(--warn);background:var(--warn-bg)}
+.cform button[disabled]{opacity:.55;cursor:progress}
+/* Inline validation state */
+.cform input.invalid,.cform select.invalid,.cform textarea.invalid{border-color:var(--bad)}
+
+/* ── Waitlist (closing band, dark surface) ─────────────────────── */
+.wl-form{display:flex;gap:10px}
+@media(max-width:480px){.wl-form{flex-direction:column}}
+.wl-form input{flex:1;padding:13px 16px;font-family:var(--sans);font-size:.9rem;
+  background:rgba(255,255,255,.08);color:inherit;border:1px solid rgba(255,255,255,.35);border-radius:0;outline:none;
+  transition:border-color .2s var(--ease),background .2s var(--ease)}
+.wl-form input::placeholder{color:inherit;opacity:.55}
+.wl-form input:focus{border-color:#fff;background:rgba(255,255,255,.14)}
+.wl-form input.invalid{border-color:var(--warn)}
+.wl-form button{padding:13px 22px;font-family:var(--mono);font-size:.8rem;font-weight:700;
+  background:var(--acc);color:#fff;border:1px solid var(--acc);cursor:pointer;
+  transition:background .25s var(--ease),transform .3s cubic-bezier(.22,1,.36,1)}
+.wl-form button:hover{background:var(--acc-hi);transform:translateY(-1px)}
+.wl-form button[disabled]{opacity:.55;cursor:progress}
+.wl-status{display:none;margin-top:10px;font-family:var(--mono);font-size:.74rem;line-height:1.6}
+.wl-status.show{display:block}
+.close-band .wl-status{color:var(--acc-hi)}
