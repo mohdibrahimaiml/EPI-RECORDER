@@ -1,150 +1,109 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>How it works — EPI Labs</title>
 <meta name="description" content="How EPI seals AI agent runs into portable .epi files. Seal, identity, and policy are three different questions. Offline verify.">
-<link rel="icon" type="image/x-icon" href="favicon.ico">
-<link rel="stylesheet" href="css/epi.css?v=30">
-<link rel="stylesheet" href="css/epi-v2.css?v=10">
-<link rel="stylesheet" href="css/polish.css?v=4">
-<link rel="stylesheet" href="css/wow.css?v=5">
-<link rel="stylesheet" href="css/mobile.css?v=2">
+<link rel="canonical" href="https://epilabs.org/how-it-works">
+<meta property="og:title" content="How it works — EPI Labs">
+<meta property="og:description" content="How EPI seals AI agent runs into portable .epi files. Seal, identity, and policy are three different questions. Offline verify.">
+<meta name="theme-color" content="#F7F5F0">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
+<link rel="stylesheet" href="/css/aos.css">
+<link rel="stylesheet" href="/css/site.css?v=15">
 <script>
-(function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();
+(function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){{t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}}document.documentElement.setAttribute('data-theme',t)}}catch(e){{}}
 </script>
 </head>
-<body class="epi-instrument">
-<nav id="nav">
-  <div class="nav-inner">
-    <a href="/" class="nav-logo"><img src="assets/logo.png" alt="EPI Labs"></a>
-    <ul class="nav-links" id="navLinks">
+<body class="canvas">
+<a class="skip" href="#main">Skip to content</a>
+<nav class="nav" id="nav">
+  <div class="nav-in">
+    <a href="/" class="logo"><img src="/assets/logo.png" alt="EPI Labs"></a>
+    <ul class="nlinks">
       <li><a href="/verify/">Verify</a></li>
-      <li><a href="/how-it-works">Docs</a></li>
-      <li><a href="/pricing">Pricing</a></li>
+      <li><a href="/how-it-works">How it works</a></li>
+      <li><a href="/trust">Trust model</a></li>
+      <li><a href="/use-cases">Use cases</a></li>
       <li><a href="/enterprise">Enterprise</a></li>
+      <li><a href="/pricing">Pricing</a></li>
       <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
-      <li id="nav-auth-slot"></li>
-      <li><button type="button" class="theme-toggle-nav" id="themeToggleNav" data-theme-toggle aria-label="Toggle color theme" title="Toggle theme">&#9788;</button></li>
-
+      <li><button type="button" class="tgl" data-theme-toggle aria-label="Toggle color theme">&#9788;</button></li>
     </ul>
-    <button type="button" class="nav-mob" id="mobBtn" aria-label="Menu"><span></span><span></span><span></span></button>
+    <button class="burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
   </div>
 </nav>
-<div class="mob-menu" id="mobMenu" hidden>
-  <a href="/verify/">Verify</a>
-  <a href="/how-it-works">Docs</a>
-  <a href="/pricing">Pricing</a>
+<div class="mmenu" id="mmenu">
+  <a href="/verify/">Verify a file</a>
+  <a href="/how-it-works">How it works</a>
+  <a href="/trust">Trust model</a>
+  <a href="/use-cases">Use cases</a>
   <a href="/enterprise">Enterprise</a>
+  <a href="/pricing">Pricing</a>
   <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
-  </div>
+  <button type="button" class="tgl" data-theme-toggle style="margin-top:14px;width:100%">Toggle theme</button>
+</div>
+<main id="main">
+<div class="page in" data-aos="fade-up">
+<span class="tag">Documentation</span>
+<h1>A sealed file for every agent run</h1>
+<p class="lede">EPI turns an AI agent run into a portable <code class='k'>.epi</code> evidence file: steps, hashes, Ed25519 seal, optional policy analysis, optional SCITT / timestamp. You verify offline — no dashboard required to trust the seal.</p>
 
-<main class="page-main">
-  <div class="section-label">How it works</div>
-  <h1>A sealed file for every agent run</h1>
-  <p>EPI turns an AI agent run into a portable <code>.epi</code> evidence file: steps, hashes, Ed25519 seal, optional policy analysis, optional SCITT / timestamp. You verify offline — no dashboard required to trust the seal.</p>
+<h2>The loop</h2>
+<ol>
+<li><strong>Record</strong> — <code class="k">record()</code> or wrap OpenAI / LangChain / LiteLLM while the agent runs.</li>
+<li><strong>Seal</strong> — SHA-256 of members + Ed25519 over the canonical manifest &rarr; one <code class="k">.epi</code>.</li>
+<li><strong>Verify</strong> — <code class="k">epi verify</code> or browser private check (file not uploaded).</li>
+<li><strong>View</strong> — <code class="k">epi view</code> opens a forensic timeline in any browser.</li>
+</ol>
 
-  <h2>The loop</h2>
-  <ol>
-    <li><strong>Record</strong> — <code>record()</code> or wrap OpenAI / LangChain / LiteLLM while the agent runs.</li>
-    <li><strong>Seal</strong> — SHA-256 of members + Ed25519 over the canonical manifest → one <code>.epi</code>.</li>
-    <li><strong>Verify</strong> — <code>epi verify</code> or browser private check (file not uploaded).</li>
-    <li><strong>View</strong> — <code>epi view</code> opens a forensic timeline in any browser.</li>
-  </ol>
+<h2>Three different questions</h2>
+<div class="rows" style="margin:20px 0 30px">
+<div class="rowq"><span class="ix" style="color:var(--ok)">01 / SEAL</span><div><h3>Tampered?</h3></div><div class="an">Integrity + signature of <em>this file</em>. Valid seal &ne; known who.</div></div>
+<div class="rowq"><span class="ix" style="color:var(--warn)">02 / IDENTITY</span><div><h3>Who sealed?</h3></div><div class="an">KNOWN (org pin) / LOCAL / NOT_PINNED. Unpinned &rarr; WARN, not claim-ready. <code class="k">epi keys trust · --policy strict</code></div></div>
+<div class="rowq"><span class="ix">03 / POLICY</span><div><h3>Rules broken?</h3></div><div class="an">Optional <code class="k">epi_policy.json</code> + deterministic analyzer. Separate from seal. <code class="k">epi analyze</code></div></div>
+</div>
 
-  <h2>Three different questions</h2>
-  <div class="truth-trio" style="margin:24px 0 32px">
-    <div class="truth-card truth-card--seal">
-      <div class="truth-kicker">Seal</div>
-      <h3>Tampered?</h3>
-      <p>Integrity + signature of <em>this file</em>.</p>
-      <div class="truth-ex">Valid seal ≠ known who</div>
-    </div>
-    <div class="truth-card truth-card--identity">
-      <div class="truth-kicker">Identity</div>
-      <h3>Who sealed?</h3>
-      <p>KNOWN (org pin) / LOCAL / NOT_PINNED. Unpinned → WARN, not claim-ready.</p>
-      <div class="truth-ex">epi keys trust · --policy strict</div>
-    </div>
-    <div class="truth-card truth-card--policy">
-      <div class="truth-kicker">Policy</div>
-      <h3>Rules broken?</h3>
-      <p>Optional <code>epi_policy.json</code> + deterministic analyzer. Separate from seal.</p>
-      <div class="truth-ex">epi analyze</div>
-    </div>
-  </div>
+<h2>What a .epi is</h2>
+<p>Envelope-v2 polyglot: valid HTML + ZIP payload. Contains <code class="k">manifest.json</code>, hash-chained <code class="k">steps.jsonl</code>, environment, optional analysis, embedded viewer. Change one byte and the signature fails.</p>
 
-  <h2>What a .epi is</h2>
-  <p>Envelope-v2 polyglot: valid HTML + ZIP payload. Contains <code>manifest.json</code>, hash-chained <code>steps.jsonl</code>, environment, optional analysis, embedded viewer. Change one byte and the signature fails.</p>
+<h2>Verify modes</h2>
+<ul>
+<li><strong>Claims / insurers</strong> — <code class="k">epi verify file.epi --policy strict</code> (org-pinned sealer required).</li>
+<li><strong>Offline CLI (dev)</strong> — <code class="k">epi verify file.epi</code> · unpinned identity is WARN · UNVERIFIED IDENTITY.</li>
+<li><strong>Private browser</strong> — file stays in the tab · <a href="/verify/" style="color:var(--acc)">/verify/</a></li>
+<li><strong>Share</strong> — <code class="k">epi share</code> publishes a hosted link to the sealed file; hosted deep-dive reports are part of the control plane (design partners).</li>
+</ul>
 
-  <h2>Verify modes</h2>
-  <ul>
-    <li><strong>Claims / insurers</strong> — <code>epi verify file.epi --policy strict</code> (org-pinned sealer required).</li>
-    <li><strong>Offline CLI (dev)</strong> — <code>epi verify file.epi</code> · unpinned identity is WARN · UNVERIFIED IDENTITY.</li>
-    <li><strong>Private browser</strong> — file stays in the tab · <a href="/verify/" style="color:var(--accent)">/verify/</a></li>
-    <li><strong>Full report</strong> — upload to EPI servers · plan quota · deeper hosted report.</li>
-  </ul>
-
-  <h2>See also on this site</h2>
-  <ul>
-    <li><a href="/trust" style="color:var(--signal)">Trust model</a> — seal · identity · policy · SCITT notes</li>
-    <li><a href="/integrations" style="color:var(--signal)">Integrations</a> — OpenAI, LangChain, pytest, …</li>
-    <li><a href="/use-cases" style="color:var(--signal)">Use cases</a> — where agent decisions need a file</li>
-  </ul>
-
-  <h2>Depth (GitHub)</h2>
-  <ul>
-    <li><a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/COMPLETE-PRODUCT-GUIDE.md" style="color:var(--signal)">Complete product guide</a></li>
-    <li><a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/POLICY-AND-FAULT-ANALYZER.md" style="color:var(--signal)">Policy &amp; fault analyzer</a></li>
-    <li><a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/KNOWN_LIMITATIONS.md" style="color:var(--signal)">Known limitations</a></li>
-    <li><a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/PILOT.md" style="color:var(--signal)">Pilot guide</a></li>
-  </ul>
-
-  <p style="margin-top:40px">
-    <a class="btn btn-primary" href="/#proof" style="display:inline-block;padding:12px 20px;border-radius:10px;background:var(--accent);color:#04120C;font-weight:600;text-decoration:none">Try on home</a>
-    <a href="/verify/" style="margin-left:12px;color:var(--accent);font-weight:600">Open verify tool →</a>
-  </p>
+<h2>Depth (GitHub)</h2>
+<ul>
+<li><a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/COMPLETE-PRODUCT-GUIDE.md" style="color:var(--acc)" target="_blank" rel="noopener">Complete product guide</a></li>
+<li><a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/POLICY-AND-FAULT-ANALYZER.md" style="color:var(--acc)" target="_blank" rel="noopener">Policy &amp; fault analyzer</a></li>
+<li><a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/KNOWN_LIMITATIONS.md" style="color:var(--acc)" target="_blank" rel="noopener">Known limitations</a></li>
+<li><a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/PILOT.md" style="color:var(--acc)" target="_blank" rel="noopener">Pilot guide</a></li>
+</ul>
+<p style="margin-top:36px"><a class="btn btn-pri" href="/">Try on home</a> &nbsp; <a class="btn btn-sec" href="/verify/">Open verify tool &rarr;</a></p>
+</div>
 </main>
-
-<script src="js/auth-ui.js"></script>
-<script>
-(function(){
-  
-})();
-</script>
-
-<script src="js/theme.js"></script>
-<script src="js/instrument-nav.js"></script>
-<script src="js/auth-ui.js"></script>
-
-<footer class="site-footer">
-  <div class="container">
-    <div class="footer-inner">
-      <div class="footer-left">
-        <img src="assets/logo.png" alt="EPI Labs" class="footer-logo">
-        <span class="footer-copy">&copy; 2026 EPI LABS. MIT License. Built in India. Engineered for the world.</span>
-      </div>
-      <ul class="footer-links">
-        <li><a href="/verify/">Verify</a></li>
-        <li><a href="/pricing">Pricing</a></li>
-        <li><a href="/enterprise">Enterprise</a></li>
-        <li><a href="/account">Account</a></li>
-        <li><a href="/how-it-works">Docs</a></li>
-        <li><a href="/trust">Trust</a></li>
-        <li><a href="/integrations">Integrations</a></li>
-        <li><a href="/use-cases">Use cases</a></li>
-        <li><a href="/status">Status</a></li>
-        <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
-        <li><a href="/terms">Terms</a></li>
-        <li><a href="/privacy">Privacy</a></li>
-        <li><a href="/refund">Refunds</a></li>
-        <li><a href="mailto:mohdibrahim@epilabs.org">Contact</a></li>
-      </ul>
-    </div>
+<footer style="border-top:1px solid var(--line);padding:44px 0;background:var(--bg)">
+  <div class="wrap fbot" style="border:0;padding-top:0">
+    <span>&copy; 2026 EPI LABS · MIT License · v4.4.0</span>
+    <span><a href="/" style="color:var(--acc)">epilabs.org</a> · <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener" style="color:var(--mut)">GitHub</a></span>
   </div>
 </footer>
-
-<script src="js/wow.js?v=2"></script>
+<script src="/js/theme.js"></script>
+<script>
+(function(){
+  var nav=document.getElementById('nav');
+  var onS=function(){nav.classList.toggle('scrolled',scrollY>10)};
+  addEventListener('scroll',onS,{passive:true});onS();
+  var b=document.getElementById('burger'),m=document.getElementById('mmenu');
+  if(b&&m)b.addEventListener('click',function(){var o=m.classList.toggle('open');b.classList.toggle('x',o);b.setAttribute('aria-expanded',o);document.body.style.overflow=o?'hidden':''});
+})();
+</script>
+<script src="/js/aos.js"></script>
+<script>AOS.init({duration:700,easing:"ease-out-cubic",once:true,offset:80});</script>
 </body>
 </html>

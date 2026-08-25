@@ -23,5 +23,9 @@
 /pricing/ /pricing 301
 /pricing/index.html /pricing 301
 #
+# Enterprise: canonical is flat enterprise.html; directory form redirects.
+/enterprise/ /enterprise 301
+/enterprise/index.html /enterprise 301
+#
 # Optional: force apex (uncomment if needed and not handled in CF dashboard)
 # https://www.epilabs.org/* https://epilabs.org/:splat 301

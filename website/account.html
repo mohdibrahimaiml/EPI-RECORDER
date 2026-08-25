@@ -3,15 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <link rel="canonical" href="https://epilabs.org/account">
 <title>EPI Labs — Account</title>
 <meta name="description" content="Your EPI Labs account. Manage your subscription, API keys, and settings.">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon.ico">
-<link rel="stylesheet" href="css/epi.css?v=30">
-<link rel="stylesheet" href="css/epi-v2.css?v=10">
-<link rel="stylesheet" href="css/polish.css?v=4">
-<link rel="stylesheet" href="css/wow.css?v=5">
-<link rel="stylesheet" href="css/mobile.css?v=2">
 <style>
 .acct-main{max-width:700px;margin:0 auto;padding:120px 24px 80px}
 .acct-main h1{font-size:1.8rem;color:var(--ink);margin:0 0 4px}
@@ -44,8 +40,37 @@
 .error-msg{background:var(--tamper-bg);border:1px solid rgba(181,38,38,0.3);border-radius:8px;padding:14px 20px;margin-top:20px;color:var(--tamper);font-size:.88rem;display:none}
 </style>
 <script>
+/* OAuth fragment hygiene: scrub #token=...&user=... from the URL FIRST,
+   before any render work — minimizes exposure to history/extensions. */
+(function(){
+  try{
+    var h=location.hash||'';
+    if(h.indexOf('token=')>=0){
+      var q=new URLSearchParams(h.replace(/^#/,''));
+      if(q.get('token')){
+        localStorage.setItem('epi_token',q.get('token'));
+        var u=q.get('user');
+        if(u){
+          try{
+            var s=String(u).replace(/-/g,'+').replace(/_/g,'/');
+            while(s.length%4)s+='=';
+            var json=atob(s);
+            if(json)localStorage.setItem('epi_user',json);
+          }catch(e){}
+        }
+      }
+      history.replaceState(null,'','/account');
+    } else if(h && h.indexOf('error')<0 && h.length>0 && /^#(token|user)=/.test(h)){
+      history.replaceState(null,'','/account');
+    }
+  }catch(e){try{history.replaceState(null,'','/account')}catch(_e){}}
+})();
+</script>
+<script>
 (function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){document.documentElement.setAttribute('data-theme','dark')}})();
 </script>
+  <link rel="stylesheet" href="css/meridian.css?v=2">
+  <meta name="theme-color" content="#0A0B0D">
 </head>
 <body class="epi-instrument">
 <nav id="nav">
@@ -637,31 +662,44 @@ loadAccount();
 
 <footer class="site-footer">
   <div class="container">
-    <div class="footer-inner">
-      <div class="footer-left">
-        <img src="assets/logo.png" alt="EPI Labs" class="footer-logo">
-        <span class="footer-copy">&copy; 2026 EPI LABS. MIT License. Built in India. Engineered for the world.</span>
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="assets/logo.png" alt="EPI Labs">
+        <p>The evidence layer that makes AI agents insurable and auditable. Sealed .epi files — verify offline, forever.</p>
       </div>
-      <ul class="footer-links">
-        <li><a href="/verify/">Verify</a></li>
-        <li><a href="/pricing">Pricing</a></li>
-        <li><a href="/enterprise">Enterprise</a></li>
-        <li><a href="/account">Account</a></li>
-        <li><a href="/how-it-works">Docs</a></li>
-        <li><a href="/trust">Trust</a></li>
-        <li><a href="/integrations">Integrations</a></li>
-        <li><a href="/use-cases">Use cases</a></li>
-        <li><a href="/status">Status</a></li>
-        <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
-        <li><a href="/terms">Terms</a></li>
-        <li><a href="/privacy">Privacy</a></li>
-        <li><a href="/refund">Refunds</a></li>
-        <li><a href="mailto:mohdibrahim@epilabs.org">Contact</a></li>
-      </ul>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="/verify/">Verify a file</a></li>
+          <li><a href="/how-it-works">How it works</a></li>
+          <li><a href="/integrations">Integrations</a></li>
+          <li><a href="/pricing">Pricing</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Evidence</h4>
+        <ul>
+          <li><a href="/trust">Trust model</a></li>
+          <li><a href="/use-cases">Use cases</a></li>
+          <li><a href="/enterprise">Enterprise</a></li>
+          <li><a href="/status">Status</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="/account">Account</a></li>
+          <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="/terms">Terms</a></li>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="mailto:mohdibrahim@epilabs.org">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 EPI LABS · MIT License</span>
     </div>
   </div>
-</footer>
-
-<script src="js/wow.js?v=2"></script>
+</footer><script src="js/wow.js?v=2"></script>
 </body>
 </html>

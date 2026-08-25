@@ -1,0 +1,9 @@
+{
+  "name": "EPI Labs Trust Registry",
+  "version": 1,
+  "description": "Public trust anchors for EPI Labs. Maps Ed25519 public keys to verified signer identities. Keys listed here are org-pinned; a valid seal from an unlisted key is NOT claim-ready.",
+  "updated_at": "2026-08-22T00:00:00Z",
+  "registry_url": "https://epilabs.org/.well-known/epi-trust-registry.json",
+  "trusted_keys": {},
+  "note": "Populate trusted_keys with {\"<ed25519 public key hex>\": \"<signer display name>\"} entries when production keys are pinned. Until then, browser verification correctly reports UNVERIFIED IDENTITY for valid-but-unpinned seals."
+}

@@ -1,59 +1,70 @@
-const CACHE_NAME = 'epi-verifier-v7';
+// EPI Verifier service worker — enables fully offline .epi verification at /verify/.
+// All precached dependencies are locally vendored; no third-party CDN required.
+const CACHE_NAME = 'epi-verifier-v9';
 const ASSETS = [
+    './',
     './verify/',
-    './verify.html',
+    './verify/index.html',
     './cases/',
     './manifest.json',
-    './js/epi-verify-core.js',
-    './assets/logo.svg',
-    'https://esm.sh/@noble/ed25519@2.0.0'
+    './js/epi-verify-core.js?v=34',
+    './js/jszip.min.js?v=32',
+    './css/meridian.css?v=2',
+    './assets/logo.svg'
 ];
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            // We try to cache local assets. External CDNs might be opaque/cors issues but we try.
-            // For a robust offline app, we should bundle dependencies locally. 
-            // For this MVP, we cache the main HTML which is most important.
-            return cache.addAll(['./verify/', './verify.html', './cases/', './manifest.json', './js/epi-verify-core.js', './assets/logo.svg']);
+            // addAll fails atomically if ANY asset 404s — cache individually
+            // so one stale path can't break the whole install.
+            return Promise.allSettled(
+                ASSETS.map((url) => cache.add(new Request(url, { cache: 'reload' })))
+            );
         })
     );
     self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-    // Clean up old caches if any
     event.waitUntil(
         caches.keys().then((keys) => {
             return Promise.all(
                 keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
             );
-        })
+        }).then(() => self.clients.claim())
     );
-    self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-    // Network-First Strategy for HTML to ensure we always get the latest layout
-    if (event.request.headers.get('accept').includes('text/html')) {
+    if (event.request.method !== 'GET') return;
+    // Never intercept API calls or cross-origin requests.
+    const url = new URL(event.request.url);
+    if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
+
+    const accept = event.request.headers.get('accept') || '';
+    // Network-first for HTML: always fresh layout when online, cached offline fallback.
+    if (accept.includes('text/html')) {
         event.respondWith(
             fetch(event.request)
                 .then((response) => {
-                    const responseClone = response.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, responseClone);
-                    });
+                    const clone = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
                     return response;
                 })
-                .catch(() => {
-                    return caches.match(event.request);
-                })
+                .catch(() => caches.match(event.request))
         );
     } else {
-        // Cache-First for static assets
+        // Cache-first for static assets.
         event.respondWith(
             caches.match(event.request).then((cachedResponse) => {
-                return cachedResponse || fetch(event.request);
+                return cachedResponse || fetch(event.request).then((response) => {
+                    if (response.ok && url.origin === self.location.origin) {
+                        const clone = response.clone();
+                        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+                    }
+                    return response;
+                });
             })
         );
     }
