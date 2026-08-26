@@ -8,7 +8,7 @@
 window.EPI_PADDLE_CONFIG = {
   /* Paddle > Developer tools > Authentication > Client-side tokens.
      LIVE tokens are prefixed `live_`. */
-  clientToken: "",
+  clientToken: "live_5ce743d200af5fd36c81c5fe8e2",
 
   /* "production" for live. NEVER leave this empty — the site fails loudly
      rather than guessing which Paddle account to talk to. */
@@ -35,7 +35,7 @@ window.EPI_PADDLE_CONFIG = {
         "Community support",
       ],
       featured: false,
-      priceId: { month: "", year: "" }
+      priceId: { month: "pri_01m0y54ba4vpjaczkkn56hpc9m", year: "pri_01m0y54bn0pqwrvvyqhf1qq1ge" }
     },
     {
       name: "Pro",
@@ -48,7 +48,7 @@ window.EPI_PADDLE_CONFIG = {
         "Priority support",
       ],
       featured: true,
-      priceId: { month: "", year: "" }
+      priceId: { month: "pri_01m0y54canxd7z63ykf928qs04", year: "pri_01m0y54ckbm8vj32dsms9xfeev" }
     },
     {
       name: "Advanced",
@@ -61,7 +61,7 @@ window.EPI_PADDLE_CONFIG = {
         "SLA + procurement support",
       ],
       featured: false,
-      priceId: { month: "", year: "" }
+      priceId: { month: "pri_01m0y54d6t0q3ehgqmmepg45vj", year: "pri_01m0y54df4smpc7qq4p21j4v9s" }
     }
   ]
 };
