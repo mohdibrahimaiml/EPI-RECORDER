@@ -194,8 +194,14 @@
     if(country) params.address = { countryCode: country };
     document.getElementById('pStatus').textContent = 'Loading local prices…';
     window.Paddle.PricePreview(params).then(function(res){
-      (res.data.details.lineItems || []).forEach(function(li){
-        prices[li.price.id] = li.formattedTotals.total;   // already-formatted string
+      // paddle.js CDN build returns the raw API shape (snake_case); the npm
+      // SDK camelCases it. Read both so either build works.
+      var items = (res.data && res.data.details && (res.data.details.lineItems || res.data.details.line_items)) || [];
+      items.forEach(function(li){
+        var id = li.price && (li.price.id || li.price_id);
+        var ft = li.formattedTotals || li.formatted_totals;
+        var total = ft && ft.total;
+        if (id && total) prices[id] = total;   // already-formatted string
       });
       updateAmounts();
     }).catch(function(err){
