@@ -17,6 +17,9 @@ window.EPI_PADDLE_CONFIG = {
   /* Success redirect after completed checkout. */
   successUrl: "/welcome/",
 
+  /* One-time $1,500 Agent Evidence Sprint (not a subscription). */
+  sprintPriceId: "pri_01m0y5tp4geerk93exrs4fkpgp",
+
   /* If your users sign in somewhere, stash their email in
      localStorage under this key and checkout will pre-fill it. */
   emailStorageKey: "epi-user-email",

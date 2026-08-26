@@ -255,8 +255,27 @@
         console.error('Paddle checkout error:', ev.data);
       }
     }
-  }).then(function(p){ paddle = p; refreshPrices(); })
+  }).then(function(p){ paddle = p; refreshPrices(); maybeOpenSprint(); })
     .catch(function(err){ fail('Paddle.Initialize failed: ' + err); });
+
+  // ?sprint=1 (from Book-a-sprint buttons) → open the $1,500 sprint checkout
+  function maybeOpenSprint(){
+    if(new URLSearchParams(location.search).get('sprint') !== '1') return;
+    if(!CFG.sprintPriceId){ fail('sprintPriceId missing from paddle-config.js'); return; }
+    var opts = {
+      items: [{ priceId: CFG.sprintPriceId, quantity: 1 }],
+      settings: {
+        displayMode: 'overlay', variant: 'one-page',
+        theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light',
+        successUrl: location.origin + CFG.successUrl
+      }
+    };
+    try{
+      var email = localStorage.getItem(CFG.emailStorageKey);
+      if(email) opts.customer = { email: email };
+    }catch(e){}
+    paddle.Checkout.open(opts);
+  }
 })();
 </script>
 <script>
