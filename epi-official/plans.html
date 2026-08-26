@@ -242,21 +242,37 @@
     updateAmounts();
   }
 
-  // Paddle.js init (CDN build exposes window.Paddle after Initialize)
-  window.Paddle && window.Paddle.Initialize({
-    token: CFG.clientToken,
-    environment: CFG.environment,   // "production" | "sandbox"
-    eventCallback: function(ev){
-      if(ev.name === 'checkout.completed'){
-        // successUrl handles the redirect; this is a safety net.
-        setTimeout(function(){ location.href = location.origin + CFG.successUrl; }, 800);
-      }
-      if(ev.name === 'checkout.error'){
-        console.error('Paddle checkout error:', ev.data);
-      }
+  // Paddle.js loader — waits for the CDN script, fails loudly if blocked.
+  (function loadPaddle(attempt){
+    attempt = attempt || 0;
+    if(window.Paddle && window.Paddle.Initialize){
+      window.Paddle.Initialize({
+        token: CFG.clientToken,
+        environment: CFG.environment,   // "production" | "sandbox"
+        eventCallback: function(ev){
+          if(ev.name === 'checkout.completed'){
+            setTimeout(function(){ location.href = location.origin + CFG.successUrl; }, 800);
+          }
+          if(ev.name === 'checkout.error'){
+            console.error('Paddle checkout error:', ev.data);
+          }
+        }
+      }).then(function(p){ paddle = p; refreshPrices(); maybeOpenSprint(); })
+        .catch(function(err){ fail('Paddle.Initialize failed: ' + err); });
+      return;
     }
-  }).then(function(p){ paddle = p; refreshPrices(); maybeOpenSprint(); })
-    .catch(function(err){ fail('Paddle.Initialize failed: ' + err); });
+    if(attempt === 0 && !document.querySelector('script[src*="cdn.paddle.com"]')){
+      document.getElementById('pStatus').innerHTML =
+        '<span style="color:var(--bad)">Paddle.js did not load. If you use Brave, click the lion icon → Shields down for this site, then refresh. Ad blockers block payment scripts.</span>';
+      return;
+    }
+    if(attempt > 40){
+      document.getElementById('pStatus').innerHTML =
+        '<span style="color:var(--bad)">Paddle.js failed to load (network or ad-blocker). Disable shields/ad-block for epilabs.org and refresh.</span>';
+      return;
+    }
+    setTimeout(function(){ loadPaddle(attempt + 1); }, 250);
+  })();
 
   // ?sprint=1 (from Book-a-sprint buttons) → open the $1,500 sprint checkout
   function maybeOpenSprint(){
