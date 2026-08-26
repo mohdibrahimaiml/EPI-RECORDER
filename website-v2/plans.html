@@ -252,19 +252,26 @@
   (function loadPaddle(attempt){
     attempt = attempt || 0;
     if(window.Paddle && window.Paddle.Initialize){
-      window.Paddle.Initialize({
-        token: CFG.clientToken,
-        environment: CFG.environment,   // "production" | "sandbox"
-        eventCallback: function(ev){
-          if(ev.name === 'checkout.completed'){
-            setTimeout(function(){ location.href = location.origin + CFG.successUrl; }, 800);
+      // CDN paddle.js: Initialize() is SYNCHRONOUS (returns undefined) —
+      // do NOT chain .then() on it. Set up, then call PricePreview directly.
+      try {
+        window.Paddle.Initialize({
+          token: CFG.clientToken,
+          eventCallback: function(ev){
+            if(ev.name === 'checkout.completed'){
+              setTimeout(function(){ location.href = location.origin + CFG.successUrl; }, 800);
+            }
+            if(ev.name === 'checkout.error'){
+              console.error('Paddle checkout error:', ev.data);
+            }
           }
-          if(ev.name === 'checkout.error'){
-            console.error('Paddle checkout error:', ev.data);
-          }
-        }
-      }).then(function(p){ paddle = p; refreshPrices(); maybeOpenSprint(); })
-        .catch(function(err){ fail('Paddle.Initialize failed: ' + err); });
+        });
+        paddle = window.Paddle;
+        refreshPrices();
+        maybeOpenSprint();
+      } catch (err) {
+        fail('Paddle.Initialize failed: ' + err.message);
+      }
       return;
     }
     if(attempt === 0 && !document.querySelector('script[src*="cdn.paddle.com"]')){

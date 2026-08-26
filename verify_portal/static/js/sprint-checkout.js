@@ -47,26 +47,30 @@
       setTimeout(boot, 250);
       return;
     }
-    window.Paddle.Initialize({
-      token: CFG.clientToken,
-      environment: CFG.environment,
-      eventCallback: function (ev) {
-        if (ev.name === "checkout.completed") {
-          setTimeout(function () { location.href = location.origin + (CFG.successUrl || "/welcome/"); }, 800);
+    // CDN paddle.js: Initialize() is synchronous (returns undefined) — no .then()
+    try {
+      window.Paddle.Initialize({
+        token: CFG.clientToken,
+        eventCallback: function (ev) {
+          if (ev.name === "checkout.completed") {
+            setTimeout(function () { location.href = location.origin + (CFG.successUrl || "/welcome/"); }, 800);
+          }
         }
-      }
-    }).then(function (p) {
-      paddle = p;
-      // Convert buttons into checkout triggers
-      document.querySelectorAll("[data-sprint-checkout]").forEach(function (el) {
-        if (el.dataset.sprintBound) return;
-        el.dataset.sprintBound = "1";
-        el.addEventListener("click", function (e) {
-          e.preventDefault();
-          openSprint();
-        });
       });
-    }).catch(function (err) { console.error("Paddle init failed:", err); });
+    } catch (err) {
+      console.error("Paddle init failed:", err.message);
+      return;
+    }
+    paddle = window.Paddle;
+    // Convert buttons into checkout triggers
+    document.querySelectorAll("[data-sprint-checkout]").forEach(function (el) {
+      if (el.dataset.sprintBound) return;
+      el.dataset.sprintBound = "1";
+      el.addEventListener("click", function (e) {
+        e.preventDefault();
+        openSprint();
+      });
+    });
   }
 
   if (document.readyState !== "loading") boot();
