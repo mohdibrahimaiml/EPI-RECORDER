@@ -26,7 +26,27 @@
   }
 
   function boot() {
-    if (!window.Paddle) return;
+    // window.Paddle may not exist yet (CDN script async / Rocket Loader).
+    // Poll briefly; if it never appears, fall back to the contact form.
+    if (!window.Paddle || !window.Paddle.Initialize) {
+      if (boot.attempts === undefined) boot.attempts = 0;
+      boot.attempts++;
+      if (boot.attempts > 40) {
+        console.error('[sprint] Paddle.js never loaded - check ad-blocker/shields');
+        document.querySelectorAll("[data-sprint-checkout]").forEach(function(el){
+          el.disabled = false;
+          el.title = "Payment script blocked - using contact form instead";
+          el.addEventListener("click", function(e){
+            e.preventDefault();
+            var c = document.getElementById("contact");
+            if (c) c.scrollIntoView({ behavior: "smooth" });
+          });
+        });
+        return;
+      }
+      setTimeout(boot, 250);
+      return;
+    }
     window.Paddle.Initialize({
       token: CFG.clientToken,
       environment: CFG.environment,
