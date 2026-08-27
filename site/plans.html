@@ -227,6 +227,14 @@
       var email = localStorage.getItem(CFG.emailStorageKey);
       if(email) opts.customer = { email: email };
     }catch(e){}
+    // Pass user identity as Paddle customData so the webhook in billing.py
+    // can match the subscription to the correct GitHub account by user_id.
+    // CFG._customData is set by paddle-config.js from the epi_user in localStorage.
+    try{
+      if(CFG._customData && CFG._customData.user_id){
+        opts.customData = CFG._customData;
+      }
+    }catch(e){}
     paddle.Checkout.open(opts);
   }
 

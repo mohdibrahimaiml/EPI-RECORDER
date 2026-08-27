@@ -43,17 +43,17 @@ PADDLE_ENV = os.getenv("PADDLE_ENV", "sandbox").lower()
 if PADDLE_ENV not in ("sandbox", "live", "production"):
     raise RuntimeError(f"PADDLE_ENV must be sandbox or live, got: {PADDLE_ENV}")
 
-PADDLE_HOSTED_PRICE_ID_MONTHLY = os.getenv("PADDLE_HOSTED_PRICE_ID_MONTHLY", "")
-PADDLE_HOSTED_PRICE_ID_YEARLY = os.getenv("PADDLE_HOSTED_PRICE_ID_YEARLY", "")
-PADDLE_STARTER_PRICE_ID_MONTHLY = os.getenv("PADDLE_STARTER_PRICE_ID_MONTHLY", "")
-PADDLE_STARTER_PRICE_ID_YEARLY = os.getenv("PADDLE_STARTER_PRICE_ID_YEARLY", "")
-PADDLE_PRO_PRICE_ID = os.getenv("PADDLE_PRO_PRICE_ID", "")
-PADDLE_PRO_PRICE_ID_YEARLY = os.getenv("PADDLE_PRO_PRICE_ID_YEARLY", "")
-PADDLE_ADVANCED_PRICE_ID = os.getenv("PADDLE_ADVANCED_PRICE_ID", "")
-PADDLE_ADVANCED_PRICE_ID_YEARLY = os.getenv("PADDLE_ADVANCED_PRICE_ID_YEARLY", "")
-PADDLE_TEAM_PRICE_ID = os.getenv("PADDLE_TEAM_PRICE_ID", "") or os.getenv("PADDLE_ADVANCED_PRICE_ID", "")
+PADDLE_HOSTED_PRICE_ID_MONTHLY = os.getenv("PADDLE_HOSTED_PRICE_ID_MONTHLY", "pri_01m0y54ba4vpjaczkkn56hpc9m")
+PADDLE_HOSTED_PRICE_ID_YEARLY = os.getenv("PADDLE_HOSTED_PRICE_ID_YEARLY", "pri_01m0y54bn0pqwrvvyqhf1qq1ge")
+PADDLE_STARTER_PRICE_ID_MONTHLY = os.getenv("PADDLE_STARTER_PRICE_ID_MONTHLY", "pri_01m0y54ba4vpjaczkkn56hpc9m")
+PADDLE_STARTER_PRICE_ID_YEARLY = os.getenv("PADDLE_STARTER_PRICE_ID_YEARLY", "pri_01m0y54bn0pqwrvvyqhf1qq1ge")
+PADDLE_PRO_PRICE_ID = os.getenv("PADDLE_PRO_PRICE_ID", "pri_01m0y54canxd7z63ykf928qs04")
+PADDLE_PRO_PRICE_ID_YEARLY = os.getenv("PADDLE_PRO_PRICE_ID_YEARLY", "pri_01m0y54ckbm8vj32dsms9xfeev")
+PADDLE_ADVANCED_PRICE_ID = os.getenv("PADDLE_ADVANCED_PRICE_ID", "pri_01m0y54d6t0q3ehgqmmepg45vj")
+PADDLE_ADVANCED_PRICE_ID_YEARLY = os.getenv("PADDLE_ADVANCED_PRICE_ID_YEARLY", "pri_01m0y54df4smpc7qq4p21j4v9s")
+PADDLE_TEAM_PRICE_ID = os.getenv("PADDLE_TEAM_PRICE_ID", "") or PADDLE_ADVANCED_PRICE_ID
 PADDLE_ENTERPRISE_PRICE_ID = os.getenv("PADDLE_ENTERPRISE_PRICE_ID", "")
-PADDLE_SPRINT_PRICE_ID = os.getenv("PADDLE_SPRINT_PRICE_ID", "")
+PADDLE_SPRINT_PRICE_ID = os.getenv("PADDLE_SPRINT_PRICE_ID", "pri_01m0y5tp4geerk93exrs4fkpgp")
 
 PADDLE_API_BASE = "https://sandbox-api.paddle.com" if PADDLE_SANDBOX else "https://api.paddle.com"
 
@@ -198,11 +198,28 @@ async def get_paddle_config(request: Request):
         "environment": "sandbox" if PADDLE_SANDBOX else "production",
         "country": country,
         "tiers": {
+            "starter": {
+                "month": PADDLE_STARTER_PRICE_ID_MONTHLY,
+                "year": PADDLE_STARTER_PRICE_ID_YEARLY,
+            },
             "hosted": {
                 "month": PADDLE_HOSTED_PRICE_ID_MONTHLY,
                 "year": PADDLE_HOSTED_PRICE_ID_YEARLY,
             },
+            "pro": {
+                "month": PADDLE_PRO_PRICE_ID,
+                "year": PADDLE_PRO_PRICE_ID_YEARLY,
+            },
+            "advanced": {
+                "month": PADDLE_ADVANCED_PRICE_ID,
+                "year": PADDLE_ADVANCED_PRICE_ID_YEARLY,
+            },
+            "team": {
+                "month": PADDLE_TEAM_PRICE_ID,
+                "year": PADDLE_ADVANCED_PRICE_ID_YEARLY,
+            },
         },
+        "sprint_price_id": PADDLE_SPRINT_PRICE_ID,
         "enterprise_price_id": PADDLE_ENTERPRISE_PRICE_ID,
         "require_sign_in": True,
     }

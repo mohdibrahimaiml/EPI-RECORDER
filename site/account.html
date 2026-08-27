@@ -323,14 +323,22 @@ function renderAccount(user) {
   document.getElementById('acct-name').textContent = 'Hi, ' + (userData.login || 'there');
   document.getElementById('acct-email').textContent = userData.email || '';
   document.getElementById('acct-org').textContent = userData.org ? ('Organization: ' + userData.org) : '';
+  
   var banner = document.getElementById('checkout-banner');
   if (banner && window.__epi_checkout_success) {
     var pl = planLabel(userData.plan);
     banner.style.display = 'block';
     if (userData.plan === 'free') {
-      banner.textContent = 'Checkout finished. If you just subscribed, wait a few seconds and refresh — webhooks attach Hosted to this GitHub account.';
+      banner.style.background = 'var(--accent-glow)';
+      banner.style.border = '1px solid var(--accent-line)';
+      banner.innerHTML = '⏳ <strong>Payment received — activating your plan…</strong><br><span style="font-size:.85rem;color:var(--ink-soft)">Webhooks from Paddle arrive in a few seconds. This page updates automatically without refreshing.</span>';
+      pollPlanActivation();
     } else {
-      banner.textContent = 'Subscription active — plan: ' + pl + '. Thank you.';
+      banner.style.background = 'var(--verified-bg)';
+      banner.style.border = '1px solid var(--accent-line)';
+      banner.innerHTML = '✅ <strong>' + pl + ' plan active — welcome!</strong><br><span style="font-size:.85rem;color:var(--ink-soft)">Your subscription is live. A confirmation email from Paddle is on its way.</span>';
+      history.replaceState(null, '', '/account');
+      window.__epi_checkout_success = false;
     }
   }
   // After OAuth from pricing checkout
@@ -344,6 +352,42 @@ function renderAccount(user) {
       }
     }
   } catch (e) {}
+}
+
+var _planPollCount = 0;
+function pollPlanActivation() {
+  _planPollCount++;
+  if (_planPollCount > 12) return;
+  setTimeout(async function () {
+    try {
+      var r = await fetch(API_BASE + '/api/auth/me', {
+        credentials: 'include',
+        headers: authHeaders(),
+        cache: 'no-store'
+      });
+      if (!r.ok) { pollPlanActivation(); return; }
+      var user = await r.json();
+      var plan = normalizePlan(user && user.plan);
+      if (plan !== 'free') {
+        userData.plan = plan;
+        localStorage.setItem(USER_KEY, JSON.stringify(userData));
+        await loadPlan();
+        var banner = document.getElementById('checkout-banner');
+        if (banner) {
+          var pl = planLabel(plan);
+          banner.style.background = 'var(--verified-bg)';
+          banner.style.border = '1px solid var(--accent-line)';
+          banner.innerHTML = '✅ <strong>' + pl + ' plan active — welcome!</strong><br><span style="font-size:.85rem;color:var(--ink-soft)">Your subscription is live. A confirmation email from Paddle is on its way.</span>';
+        }
+        history.replaceState(null, '', '/account');
+        window.__epi_checkout_success = false;
+      } else {
+        pollPlanActivation();
+      }
+    } catch (_) {
+      pollPlanActivation();
+    }
+  }, 3000);
 }
 
 async function loadAccount() {
