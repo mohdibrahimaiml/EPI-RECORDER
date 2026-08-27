@@ -499,16 +499,22 @@ code.k{
 .close-band .btn-sec:hover{background:var(--bg);color:var(--ink)}
 
 /* ── Footer ────────────────────────────────────────────────────── */
-footer{border-top:1.5px solid var(--ink);padding:56px 0 40px;background:var(--bg-3)}
-.fgrid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;margin-bottom:46px}
-@media(max-width:860px){.fgrid{grid-template-columns:1fr 1fr}}
-@media(max-width:520px){.fgrid{grid-template-columns:1fr}}
-.fbrand p{font-size:.83rem;color:var(--dim);max-width:300px;line-height:1.68;margin-top:14px;font-family:var(--mono)}
-.fcol h4{font-family:var(--mono);font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin-bottom:16px;font-weight:700}
-.fcol ul{list-style:none}
-.fcol a{display:block;padding:4px 0;font-size:.85rem;color:var(--mut);transition:.12s}
-.fcol a:hover{color:var(--acc-hi);text-decoration:underline}
-.fbot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-top:22px;border-top:1px solid var(--edge);font-family:var(--mono);font-size:.68rem;color:var(--dim)}
+footer{border-top:1px solid var(--edge);padding:56px 0 36px;background:var(--bg)}
+.fgrid{display:grid;grid-template-columns:2.2fr 1fr 1fr 1fr;gap:40px;margin-bottom:36px;align-items:start}
+@media(max-width:860px){.fgrid{grid-template-columns:1fr 1fr;gap:32px 20px}}
+@media(max-width:520px){.fgrid{grid-template-columns:1fr;gap:24px}}
+
+.fbrand{display:flex;flex-direction:column;align-items:flex-start;gap:12px}
+.fbrand .logo, footer .logo{display:inline-block;height:auto !important;line-height:1}
+.fbrand .logo img, footer .logo img{height:36px !important;max-height:36px !important;width:auto;display:block}
+.fbrand p{font-size:.85rem;color:var(--mut);max-width:320px;line-height:1.6;margin:0;font-family:var(--sans)}
+
+.fcol h4{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);margin-bottom:14px;font-weight:700}
+.fcol ul{list-style:none;display:flex;flex-direction:column;gap:8px;padding:0;margin:0}
+.fcol a{display:inline-block;padding:2px 0;font-size:.84rem;color:var(--mut);transition:color .15s var(--ease)}
+.fcol a:hover{color:var(--acc);text-decoration:none}
+
+.fbot{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding-top:20px;border-top:1px solid var(--edge);font-family:var(--mono);font-size:.74rem;color:var(--dim)}
 
 /* ── Inner pages ───────────────────────────────────────────────── */
 .page{max-width:860px;margin:0 auto;padding:calc(var(--navh) + 70px) 24px 96px}
