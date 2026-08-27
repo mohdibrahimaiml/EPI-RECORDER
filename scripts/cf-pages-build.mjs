@@ -58,15 +58,15 @@ for (const DEST of DESTINATIONS) {
       return 0;
     }
   })();
-  const pricingHead = (() => {
+  const plansContent = (() => {
     try {
-      return readFileSync(join(DEST, "pricing.html"), "utf8").slice(0, 200);
+      return readFileSync(join(DEST, "plans.html"), "utf8");
     } catch {
       return "";
     }
   })();
-  if (pricingHead && !pricingHead.includes("Agent Evidence Sprint") && !pricingHead.includes("$1,500") && !pricingHead.includes("$1500")) {
-    console.warn(`WARNING: ${DEST}/pricing.html may not be the honest sprint page`);
+  if (plansContent && (!plansContent.includes("Pick your evidence plan") || !plansContent.includes("Agent Evidence Sprint"))) {
+    console.warn(`WARNING: ${DEST}/plans.html may not be the unified plans page`);
   }
   console.log(`Cloudflare Pages build OK: copied ${SRC}/ → ${DEST}/ (index.html ${count} bytes)`);
 }
