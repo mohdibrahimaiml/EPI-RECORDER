@@ -378,10 +378,33 @@
     });
   }
 
+  function isUserLoggedIn(){
+    try {
+      var token = localStorage.getItem('epi_token');
+      var user = localStorage.getItem('epi_user');
+      return !!(token && user);
+    } catch (e) {
+      return false;
+    }
+  }
+
   /* ── Checkout ──────────────────────────────────────────────── */
   function subscribe(name){
     var tier = CFG.tiers.find(function(t){ return t.name === name; });
-    if(!tier || !paddle) return;
+    if(!tier) return;
+
+    // If not logged in, redirect to GitHub sign-in first with return intent
+    if (!isUserLoggedIn()) {
+      try {
+        sessionStorage.setItem('epi_checkout_tier', name);
+        sessionStorage.setItem('epi_checkout_freq', freq);
+      } catch (e) {}
+      var nextUrl = '/plans?checkout_tier=' + encodeURIComponent(name) + '&freq=' + encodeURIComponent(freq);
+      window.location.href = '/account?next=' + encodeURIComponent(nextUrl) + '&reason=checkout&tier=' + encodeURIComponent(name);
+      return;
+    }
+
+    if(!paddle) return;
     var opts = {
       items: [{ priceId: tier.priceId[freq], quantity: 1 }],
       settings: {
@@ -398,9 +421,50 @@
     try{
       if(CFG._customData && CFG._customData.user_id){
         opts.customData = CFG._customData;
+      } else {
+        var rawU = localStorage.getItem('epi_user');
+        if (rawU) {
+          var u = JSON.parse(rawU);
+          if (u && u.id) {
+            opts.customData = {
+              user_id: String(u.id),
+              epi_user_id: String(u.id),
+              email: String(u.email || ''),
+              login: String(u.login || '')
+            };
+          }
+        }
       }
     }catch(e){}
     paddle.Checkout.open(opts);
+  }
+
+  function checkAutoOpenCheckout(){
+    var params = new URLSearchParams(window.location.search);
+    var autoTier = params.get('checkout_tier') || (function(){
+      try { return sessionStorage.getItem('epi_checkout_tier'); } catch(e){ return null; }
+    })();
+    var autoFreq = params.get('freq') || (function(){
+      try { return sessionStorage.getItem('epi_checkout_freq'); } catch(e){ return null; }
+    })();
+
+    if(autoTier && isUserLoggedIn()){
+      try {
+        sessionStorage.removeItem('epi_checkout_tier');
+        sessionStorage.removeItem('epi_checkout_freq');
+        history.replaceState(null, '', '/plans');
+      } catch (e) {}
+      if(autoFreq === 'year' || autoFreq === 'month'){
+        setFreq(autoFreq);
+      }
+      var pollPaddle = setInterval(function(){
+        if(paddle && window.Paddle){
+          clearInterval(pollPaddle);
+          subscribe(autoTier);
+        }
+      }, 200);
+      setTimeout(function(){ clearInterval(pollPaddle); }, 6000);
+    }
   }
 
   /* ── Init ──────────────────────────────────────────────────── */
@@ -442,6 +506,7 @@
         });
         paddle = window.Paddle;
         refreshPrices();
+        checkAutoOpenCheckout();
       } catch (err) {
         console.error('Paddle.Initialize error:', err);
       }
