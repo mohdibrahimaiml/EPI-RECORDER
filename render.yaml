@@ -40,13 +40,34 @@ services:
         sync: false
       - key: PADDLE_WEBHOOK_SECRET
         sync: false
+      # Paddle environment — set these to match your live dashboard
+      - key: PADDLE_SANDBOX
+        value: false
+      - key: PADDLE_ENV
+        value: live
+      # Starter tier (maps → hosted plan internally)
+      - key: PADDLE_STARTER_PRICE_ID_MONTHLY
+        sync: false
+      - key: PADDLE_STARTER_PRICE_ID_YEARLY
+        sync: false
+      # Pro tier (maps → hosted plan internally)
       - key: PADDLE_PRO_PRICE_ID
         sync: false
-      - key: PADDLE_TEAM_PRICE_ID
+      - key: PADDLE_PRO_PRICE_ID_YEARLY
         sync: false
+      # Advanced tier (maps → team plan internally)
       - key: PADDLE_ADVANCED_PRICE_ID
         sync: false
+      - key: PADDLE_ADVANCED_PRICE_ID_YEARLY
+        sync: false
+      # Team alias (legacy — mirrors ADVANCED_PRICE_ID if unset)
+      - key: PADDLE_TEAM_PRICE_ID
+        sync: false
+      # Enterprise
       - key: PADDLE_ENTERPRISE_PRICE_ID
+        sync: false
+      # One-time Agent Evidence Sprint ($1,500)
+      - key: PADDLE_SPRINT_PRICE_ID
         sync: false
     domains:
       - verify.epilabs.org

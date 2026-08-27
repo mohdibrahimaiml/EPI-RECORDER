@@ -45,12 +45,15 @@ if PADDLE_ENV not in ("sandbox", "live", "production"):
 
 PADDLE_HOSTED_PRICE_ID_MONTHLY = os.getenv("PADDLE_HOSTED_PRICE_ID_MONTHLY", "")
 PADDLE_HOSTED_PRICE_ID_YEARLY = os.getenv("PADDLE_HOSTED_PRICE_ID_YEARLY", "")
+PADDLE_STARTER_PRICE_ID_MONTHLY = os.getenv("PADDLE_STARTER_PRICE_ID_MONTHLY", "")
+PADDLE_STARTER_PRICE_ID_YEARLY = os.getenv("PADDLE_STARTER_PRICE_ID_YEARLY", "")
 PADDLE_PRO_PRICE_ID = os.getenv("PADDLE_PRO_PRICE_ID", "")
 PADDLE_PRO_PRICE_ID_YEARLY = os.getenv("PADDLE_PRO_PRICE_ID_YEARLY", "")
 PADDLE_ADVANCED_PRICE_ID = os.getenv("PADDLE_ADVANCED_PRICE_ID", "")
 PADDLE_ADVANCED_PRICE_ID_YEARLY = os.getenv("PADDLE_ADVANCED_PRICE_ID_YEARLY", "")
 PADDLE_TEAM_PRICE_ID = os.getenv("PADDLE_TEAM_PRICE_ID", "") or os.getenv("PADDLE_ADVANCED_PRICE_ID", "")
 PADDLE_ENTERPRISE_PRICE_ID = os.getenv("PADDLE_ENTERPRISE_PRICE_ID", "")
+PADDLE_SPRINT_PRICE_ID = os.getenv("PADDLE_SPRINT_PRICE_ID", "")
 
 PADDLE_API_BASE = "https://sandbox-api.paddle.com" if PADDLE_SANDBOX else "https://api.paddle.com"
 
@@ -73,22 +76,60 @@ def set_user_plan_by_customer_id(storage_dir, cid, *, plan):
 
 
 def _plan_from_price_id(price_id: str) -> str:
+    """Map a Paddle price ID to an internal plan name.
+
+    Internal plan hierarchy (see auth.PLAN_ALIASES + auth.VALID_PLANS):
+        free < hosted (= starter, pro) < team (= advanced) < enterprise
+
+    Checked in order from most-specific to least-specific so that every
+    price ID served by the live /plans page maps to the right tier.
+    """
     if not price_id:
         return "hosted"
+
+    # ── Enterprise ───────────────────────────────────────────────────────────
     if PADDLE_ENTERPRISE_PRICE_ID and price_id == PADDLE_ENTERPRISE_PRICE_ID:
         return "enterprise"
-    if PADDLE_ADVANCED_PRICE_ID and price_id in (PADDLE_ADVANCED_PRICE_ID, PADDLE_ADVANCED_PRICE_ID_YEARLY):
+
+    # ── Advanced / Team (monthly + yearly) ───────────────────────────────────
+    _advanced_ids = {
+        id_ for id_ in (
+            PADDLE_ADVANCED_PRICE_ID,
+            PADDLE_ADVANCED_PRICE_ID_YEARLY,
+            PADDLE_TEAM_PRICE_ID,
+        ) if id_
+    }
+    if _advanced_ids and price_id in _advanced_ids:
         return "team"
-    if PADDLE_PRO_PRICE_ID and price_id in (PADDLE_PRO_PRICE_ID, PADDLE_PRO_PRICE_ID_YEARLY):
-        return "hosted"  # public SKU alias; normalize_plan also maps pro→hosted
-    # Fallback: name heuristics
+
+    # ── Pro (monthly + yearly) → hosted ──────────────────────────────────────
+    _pro_ids = {id_ for id_ in (PADDLE_PRO_PRICE_ID, PADDLE_PRO_PRICE_ID_YEARLY) if id_}
+    if _pro_ids and price_id in _pro_ids:
+        return "hosted"  # normalize_plan maps pro → hosted
+
+    # ── Starter (monthly + yearly) → hosted ──────────────────────────────────
+    _starter_ids = {
+        id_ for id_ in (
+            PADDLE_STARTER_PRICE_ID_MONTHLY,
+            PADDLE_STARTER_PRICE_ID_YEARLY,
+            PADDLE_HOSTED_PRICE_ID_MONTHLY,
+            PADDLE_HOSTED_PRICE_ID_YEARLY,
+        ) if id_
+    }
+    if _starter_ids and price_id in _starter_ids:
+        return "hosted"
+
+    # ── Sprint is a one-time charge — subscription webhooks won't fire for it,
+    #    but guard it just in case. ────────────────────────────────────────────
+    if PADDLE_SPRINT_PRICE_ID and price_id == PADDLE_SPRINT_PRICE_ID:
+        return "hosted"
+
+    # ── Fallback: heuristics on price-ID string ───────────────────────────────
     low = price_id.lower()
     if "enterprise" in low:
         return "enterprise"
     if "team" in low or "advanced" in low:
         return "team"
-    if "hosted" in low or "pro" in low or "starter" in low:
-        return "hosted"
     return "hosted"
 
 
