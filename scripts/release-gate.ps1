@@ -117,6 +117,8 @@ Write-Host ""
 
 Write-Host "Cleaning environment..."
 & $PythonCmd -m pip uninstall -y epi-recorder | Out-Null
+& $PythonCmd -m pip install "python-multipart>=0.0.20" --quiet | Out-Null
+& $PythonCmd -m pip install "rfc8785>=0.1.4" --quiet | Out-Null
 Write-Host ""
 $env:PYTHONPATH = $repoRoot
 & $PythonCmd -m epi_cli.main version
