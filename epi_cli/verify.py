@@ -91,33 +91,16 @@ def _verify_step_chain(steps: list[dict], spec_version: str | None = None) -> tu
     """
     Verify the prev_hash cryptographic chain in a list of steps.
 
-    Dispatch by manifest spec_version: <4.4.1 → legacy json sort_keys,
-    >=4.4.1 → JCS (RFC 8785). CBOR for v1.x. No trial — one path per artifact.
+    Dispatch by manifest spec_version: legacy json sort_keys vs JCS (RFC 8785).
+    CBOR for v1.x. No trial — one path per artifact. Cutoff is JCS introduction version.
     Emits a visible warning when legacy path is used.
     """
     if len(steps) < 2:
         return True, []
 
-    # Determine canonicalization dispatch
-    def _is_legacy_spec(sv: str | None) -> bool:
-        if not sv:
-            return True
-        try:
-            parts = str(sv).lstrip("v").split(".")
-            major = int(parts[0]) if parts[0] else 0
-            minor = int(parts[1]) if len(parts) > 1 and parts[1] else 0
-            patch = int(parts[2]) if len(parts) > 2 and parts[2].split("-")[0].isdigit() else 0
-            if major < 4:
-                return major == 1  # CBOR handled separately; v2-4.3 is legacy json
-            if major == 4 and minor < 4:
-                return True
-            if major == 4 and minor == 4 and patch < 1:
-                return True
-            return False
-        except Exception:
-            return False
+    # Determine canonicalization dispatch — use JCS cutoff from _version
+    from epi_core._version import JCS_INTRODUCED_TUPLE, JCS_INTRODUCED_VERSION
 
-    # Actually: CBOR only for major==1, else legacy json vs JCS
     def _is_cbor_spec(sv: str | None) -> bool:
         if not sv:
             return False
@@ -127,8 +110,29 @@ def _verify_step_chain(steps: list[dict], spec_version: str | None = None) -> tu
         except Exception:
             return False
 
+    def _is_legacy_spec(sv: str | None) -> bool:
+        if not sv:
+            return True
+        if _is_cbor_spec(sv):
+            return False
+        try:
+            parts = str(sv).lstrip("v").split(".")
+            major = int(parts[0]) if parts[0] else 0
+            minor = int(parts[1]) if len(parts) > 1 and parts[1] else 0
+            patch = int(parts[2]) if len(parts) > 2 and parts[2].split("-")[0].isdigit() else 0
+            cutoff_major, cutoff_minor, cutoff_patch = JCS_INTRODUCED_TUPLE
+            if major < cutoff_major:
+                return True
+            if major == cutoff_major and minor < cutoff_minor:
+                return True
+            if major == cutoff_major and minor == cutoff_minor and patch < cutoff_patch:
+                return True
+            return False
+        except Exception:
+            return False
+
     is_cbor = _is_cbor_spec(spec_version)
-    is_legacy = _is_legacy_spec(spec_version) and not is_cbor
+    is_legacy = _is_legacy_spec(spec_version)
 
     try:
         from epi_core.schemas import StepModel
@@ -144,7 +148,7 @@ def _verify_step_chain(steps: list[dict], spec_version: str | None = None) -> tu
             if is_cbor:
                 expected = get_canonical_hash(step_models[i - 1], format="cbor")
             elif is_legacy:
-                # Legacy json sort_keys (pre-4.4.1) — explicit, no JCS trial
+                # Legacy json sort_keys — explicit, no JCS trial (pre-cutoff)
                 from epi_core.serialize import _get_legacy_json_hash
                 from datetime import datetime, timezone
                 from uuid import UUID
@@ -177,7 +181,7 @@ def _verify_step_chain(steps: list[dict], spec_version: str | None = None) -> tu
             import warnings
 
             warnings.warn(
-                f"Verified via legacy canonicalization (spec_version={spec_version} <4.4.1)",
+                f"Verified via legacy canonicalization (spec_version={spec_version} <{JCS_INTRODUCED_VERSION})",
                 UserWarning,
             )
         return len(chain_breaks) == 0, chain_breaks

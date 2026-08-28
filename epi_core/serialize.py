@@ -153,8 +153,10 @@ def _get_json_canonical_hash(data: Any) -> str:
     try:
         import rfc8785  # type: ignore
     except ImportError as exc:
+        from epi_core._version import JCS_INTRODUCED_VERSION
+
         raise RuntimeError(
-            "rfc8785 is required for canonical JSON hashing (EPI 4.4.1+). "
+            f"rfc8785 is required for canonical JSON hashing (EPI {JCS_INTRODUCED_VERSION}+). "
             "Reinstall with `pip install rfc8785>=0.1.4` or `pip install -e .`."
         ) from exc
 
@@ -163,7 +165,7 @@ def _get_json_canonical_hash(data: Any) -> str:
 
 
 def _get_legacy_json_hash(data: Any) -> str:
-    """Legacy (pre-4.4.1) hash: json sort_keys. Used ONLY for verifying old artifacts.
+    """Legacy hash: json sort_keys. Used ONLY for verifying old artifacts.
 
     Selected by artifact spec_version, never by import success. New artifacts
     MUST use _get_json_canonical_hash (JCS).

@@ -12,6 +12,10 @@ import tomllib
 
 PACKAGE_NAME = "epi-recorder"
 
+# Canonical JSON (JCS) was introduced in this version; earlier artifacts use legacy json sort_keys
+JCS_INTRODUCED_VERSION = "4.4.1"
+JCS_INTRODUCED_TUPLE = (4, 4, 1)
+
 
 @lru_cache(maxsize=1)
 def get_version() -> str:

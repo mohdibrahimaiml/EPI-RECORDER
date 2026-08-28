@@ -1026,8 +1026,10 @@ class EPIContainer:
                     try:
                         import rfc8785 as _rfc8785  # type: ignore
                     except ImportError as exc:
+                        from epi_core._version import JCS_INTRODUCED_VERSION
+
                         raise RuntimeError(
-                            "rfc8785 required for notarization payload (EPI 4.4.1+)"
+                            f"rfc8785 required for notarization payload (EPI {JCS_INTRODUCED_VERSION}+)"
                         ) from exc
                     _notarize_payload = _rfc8785.dumps(unsigned_manifest).decode("utf-8")
                     notarization_result = notarize_manifest(

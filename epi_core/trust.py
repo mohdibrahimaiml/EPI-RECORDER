@@ -135,8 +135,10 @@ def verify_signature(manifest: ManifestModel, public_key_bytes: bytes) -> tuple[
             except Exception:
                 return (False, "Invalid signature encoding (not hex or base64)")
 
-        # Dispatch by spec_version: <4.4.1 → legacy, >=4.4.1 → JCS (no trial)
+        # Dispatch by spec_version: legacy vs JCS (no trial)
         # Parse spec_version like "4.4.0" or "v4.4.0" or "2.0"
+        from epi_core._version import JCS_INTRODUCED_TUPLE, JCS_INTRODUCED_VERSION
+
         def _is_legacy():
             sv = getattr(manifest, "spec_version", "") or ""
             try:
@@ -144,12 +146,13 @@ def verify_signature(manifest: ManifestModel, public_key_bytes: bytes) -> tuple[
                 major = int(parts[0]) if parts[0] else 0
                 minor = int(parts[1]) if len(parts) > 1 and parts[1] else 0
                 patch = int(parts[2]) if len(parts) > 2 and parts[2].split("-")[0].isdigit() else 0
-                # Legacy if < 4.4.1
-                if major < 4:
+                # Legacy if < cutoff
+                cutoff_major, cutoff_minor, cutoff_patch = JCS_INTRODUCED_TUPLE
+                if major < cutoff_major:
                     return True
-                if major == 4 and minor < 4:
+                if major == cutoff_major and minor < cutoff_minor:
                     return True
-                if major == 4 and minor == 4 and patch < 1:
+                if major == cutoff_major and minor == cutoff_minor and patch < cutoff_patch:
                     return True
                 return False
             except Exception:
@@ -187,16 +190,16 @@ def verify_signature(manifest: ManifestModel, public_key_bytes: bytes) -> tuple[
                 import warnings
 
                 warnings.warn(
-                    f"Verified via legacy canonicalization (spec_version={getattr(manifest,'spec_version','unknown')} <4.4.1)",
+                    f"Verified via legacy canonicalization (spec_version={getattr(manifest,'spec_version','unknown')} <{JCS_INTRODUCED_VERSION})",
                     UserWarning,
                 )
-                return (True, f"Signature valid (legacy pre-4.4.1, key: {key_name})")
+                return (True, f"Signature valid (legacy pre-{JCS_INTRODUCED_VERSION}, key: {key_name})")
             except InvalidSignature:
                 return (False, "Invalid signature - data may have been tampered (legacy)")
             except Exception as exc:
                 return (False, f"Verification error (legacy): {exc}")
         else:
-            # JCS path only — 4.4.1+
+            # JCS path only — current
             manifest_hash = get_canonical_hash(manifest, exclude_fields={"signature"})
             hash_bytes = bytes.fromhex(manifest_hash)
             public_key = Ed25519PublicKey.from_public_bytes(public_key_bytes)

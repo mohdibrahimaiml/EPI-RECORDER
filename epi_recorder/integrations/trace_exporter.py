@@ -14,6 +14,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from epi_core._version import get_version
 from epi_core.container import EPIContainer
 
 
@@ -65,7 +66,7 @@ def epi_to_trace_record(
     workflow_id = str(getattr(manifest, "workflow_id", ""))
     # model_id fallback to workflow_name or file stem
     if model_id is None:
-        model_id = getattr(manifest, "workflow_name", None) or epi_path.stem or "4.4.1"
+        model_id = getattr(manifest, "workflow_name", None) or epi_path.stem or get_version()
     if subject is None:
         # SPIFFE or DID URI required — use spiffe with artifact UUID
         subject = f"spiffe://epilabs.org/epi-recorder/{workflow_id}" if workflow_id else "spiffe://epilabs.org/epi-recorder/unknown"
@@ -136,7 +137,7 @@ def epi_to_trace_record(
         },
         "origin": {
             "kind": "log-import",
-            "producer": f"epi-recorder/{manifest.spec_version if hasattr(manifest, 'spec_version') else '4.4.1'}",
+            "producer": f"epi-recorder/{manifest.spec_version if hasattr(manifest, 'spec_version') else get_version()}",
             "source_event_id": workflow_id or epi_path.name,
             "ingested_at": now,
         },

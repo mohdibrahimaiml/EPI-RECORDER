@@ -34,6 +34,7 @@ echo "Cleaning environment..."
 # FastAPI UploadFile requires python-multipart; ensure it's present even if
 # the outer CI workflow misses it (e.g. cached runner image).
 "${PYTHON}" -m pip install "python-multipart>=0.0.20" --quiet || true
+"${PYTHON}" -m pip install "rfc8785>=0.1.4" --quiet || true
 echo ""
 export PYTHONPATH="${REPO_ROOT}"
 "${PYTHON}" -m epi_cli.main version
