@@ -135,18 +135,27 @@ def verify_signature(manifest: ManifestModel, public_key_bytes: bytes) -> tuple[
             except Exception:
                 return (False, "Invalid signature encoding (not hex or base64)")
 
-        # Dispatch by spec_version: legacy vs JCS (no trial)
-        # Parse spec_version like "4.4.0" or "v4.4.0" or "2.0"
+        # Dispatch by spec_version: CBOR (1.x) vs legacy json vs JCS (no trial)
         from epi_core._version import JCS_INTRODUCED_TUPLE, JCS_INTRODUCED_VERSION
 
+        def _is_cbor():
+            sv = getattr(manifest, "spec_version", "") or ""
+            try:
+                major = int(str(sv).lstrip("v").split(".")[0])
+                return major == 1
+            except Exception:
+                return False
+
         def _is_legacy():
+            if _is_cbor():
+                return False
             sv = getattr(manifest, "spec_version", "") or ""
             try:
                 parts = str(sv).lstrip("v").split(".")
                 major = int(parts[0]) if parts[0] else 0
                 minor = int(parts[1]) if len(parts) > 1 and parts[1] else 0
                 patch = int(parts[2]) if len(parts) > 2 and parts[2].split("-")[0].isdigit() else 0
-                # Legacy if < cutoff
+                # Legacy if < cutoff and not CBOR
                 cutoff_major, cutoff_minor, cutoff_patch = JCS_INTRODUCED_TUPLE
                 if major < cutoff_major:
                     return True
@@ -158,8 +167,22 @@ def verify_signature(manifest: ManifestModel, public_key_bytes: bytes) -> tuple[
             except Exception:
                 return True  # unknown version → assume legacy for safety
 
+        is_cbor = _is_cbor()
         is_legacy = _is_legacy()
-        if is_legacy:
+        if is_cbor:
+            # CBOR path — 1.x artifacts (guardrails)
+            try:
+                from epi_core.serialize import get_canonical_hash
+
+                cbor_hash = get_canonical_hash(manifest, exclude_fields={"signature"}, format="cbor")
+                public_key = Ed25519PublicKey.from_public_bytes(public_key_bytes)
+                public_key.verify(signature_bytes, bytes.fromhex(cbor_hash))
+                return (True, f"Signature valid (CBOR legacy, key: {key_name})")
+            except InvalidSignature:
+                return (False, "Invalid signature - data may have been tampered (CBOR)")
+            except Exception as exc:
+                return (False, f"Verification error (CBOR): {exc}")
+        elif is_legacy:
             # Legacy path only — old json sort_keys
             try:
                 from epi_core.serialize import _get_legacy_json_hash
