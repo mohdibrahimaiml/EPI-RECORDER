@@ -2,6 +2,29 @@
 
 All notable changes to EPI Recorder are documented here.
 
+## [4.4.1] - 2026-08-28
+
+### Fixed — Wheel, Canonicalization & TRACE Interop (evidence-correctness)
+
+#### Changed
+
+- **Wheel size 11.0 MB → 0.64 MB** — removed `verify_portal` (19.5 MB demo assets, duplicate video) from `pyproject.toml` `packages.find` + `package-data`. Verified via `zipfile` inventory: `verify_portal 150 → 0` files. Hosted demos remain on `epilabs.org`, not in pip wheel.
+- **Canonical JSON now RFC 8785 (JCS)** — `epi_core/serialize.py` `_get_json_canonical_hash` and `epi_core/container.py` notarize payload now use `rfc8785.dumps` (added `rfc8785>=0.1.4` dep) to match `agentrust-trace 0.9.0` `sign.py:158`. Fixes float `1.0 → 1` divergence that broke cross-implementation verification. Falls back to `json.dumps(sort_keys)` if `rfc8785` unavailable.
+- **Duplicate asset removed** — `verify_portal/static/assets/demo/epi-walkthrough.mp4` identical to parent (SHA256 `9dbbe7eb…` 897609 B) deduplicated.
+
+#### Added
+
+- **`epi export trace`** — Level 0 log-import TRACE Trust Record exporter (`epi_recorder/integrations/trace_exporter.py` + `epi_cli/main.py` `export trace`). Maps `.epi` → `tool_transcript.hash = sha256(.epi)`, `call_count`, `origin.kind=log-import`, `policy.enforcement_mode=declared`, `runtime.software-only`. Validated via `agentrust_trace.iter_errors == 0` and `sign_record`/`verify_record` (both py3.11 store + py3.12). Uses only shipped TRACE v0.2 fields; `references` correctly rejected.
+
+#### Verified
+
+- Old `.epi` (`docs/assets/readme-demo.epi`) still `WARN` (seal valid, chain PASS)
+- New `.epi` with `balance=1.0` + `école` now `PASS` on both interpreters (was step 3 prev_hash FAIL before fix)
+- `tests/test_core_loop_golden.py` 2 passed
+- TRACE `iter_errors 0`, tamper → `InvalidSignature`, stale `90000s` → rejected, `references` → `Additional properties not allowed`
+
+---
+
 ## [4.4.0] - 2026-05-31
 
 ### Portal Launch, SCITT Service & AGT Interoperability

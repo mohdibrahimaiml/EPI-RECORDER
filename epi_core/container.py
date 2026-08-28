@@ -1022,8 +1022,16 @@ class EPIContainer:
                     manifest, exclude_fields=["signature"],
                 )
                 if canonical_hash:
+                    # Hard dep: fail loudly if JCS unavailable — do not silently diverge
+                    try:
+                        import rfc8785 as _rfc8785  # type: ignore
+                    except ImportError as exc:
+                        raise RuntimeError(
+                            "rfc8785 required for notarization payload (EPI 4.4.1+)"
+                        ) from exc
+                    _notarize_payload = _rfc8785.dumps(unsigned_manifest).decode("utf-8")
                     notarization_result = notarize_manifest(
-                        json.dumps(unsigned_manifest, sort_keys=True),
+                        _notarize_payload,
                         canonical_hash,
                     )
                     embed_notarization(source_dir, notarization_result)

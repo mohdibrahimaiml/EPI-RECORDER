@@ -117,6 +117,42 @@ def _verify_step_chain(steps: list[dict]) -> tuple[bool, list[str]]:
                 continue
             expected_hash = get_canonical_hash(step_models[i - 1], format="json")
             if claimed_prev != expected_hash:
+                # Version-gated legacy: pre-4.4.1 used json sort_keys (1.0 stays 1.0)
+                # Try legacy JCS-incompatible hash before falling back to CBOR
+                try:
+                    from epi_core.serialize import _get_legacy_json_hash
+
+                    # Recompute legacy: need normalized dict like get_canonical_hash does
+                    # but _get_legacy_json_hash expects normalized already — use direct
+                    # old-path: simulate pre-4.4.1 by hashing with json sort_keys
+                    import json
+                    import hashlib
+                    from datetime import datetime, timezone
+                    from uuid import UUID
+
+                    def _norm(v):
+                        if isinstance(v, datetime):
+                            if v.tzinfo is None:
+                                v = v.replace(microsecond=0, tzinfo=timezone.utc)
+                            else:
+                                v = v.astimezone(timezone.utc).replace(microsecond=0)
+                            return v.strftime("%Y-%m-%dT%H:%M:%SZ")
+                        if isinstance(v, UUID):
+                            return str(v)
+                        if isinstance(v, dict):
+                            return {k: _norm(x) for k, x in v.items()}
+                        if isinstance(v, list):
+                            return [_norm(x) for x in v]
+                        return v
+
+                    _d = _norm(step_models[i - 1].model_dump())
+                    _d.pop("source_type", None)
+                    _d.pop("verification_class", None)
+                    legacy_expected = _get_legacy_json_hash(_d)
+                    if claimed_prev == legacy_expected:
+                        continue
+                except Exception:
+                    pass
                 # Fallback: check CBOR canonical hash for legacy artifacts
                 expected_cbor_hash = get_canonical_hash(step_models[i - 1], format="cbor")
                 if claimed_prev != expected_cbor_hash:

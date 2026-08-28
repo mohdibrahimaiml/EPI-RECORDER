@@ -376,6 +376,91 @@ def export_agt(
     console.print(f"Wrote AGT-style export to [cyan]{out_path}[/cyan]")
 
 
+@export_app.command(name="trace")
+def export_trace(
+    epi_file: Path = typer.Argument(..., help="Path to .epi file to export as TRACE Trust Record"),
+    out: Path | None = typer.Option(None, "--out", "-o", help="Output TRACE JSON file path"),
+    transcript_uri: str | None = typer.Option(None, "--transcript-uri", help="URI where the .epi transcript is hosted (required for production; placeholder used if omitted)"),
+    sign: bool = typer.Option(True, "--sign/--no-sign", help="Sign the record (default: sign with sealing identity key)"),
+    ephemeral: bool = typer.Option(False, "--ephemeral", help="Force ephemeral key (demo only — not verifiable as sealer)"),
+    key_name: str | None = typer.Option(None, "--key", help="Local key name that sealed the .epi (default: auto-match sealing key)"),
+):
+    """Export a sealed .epi artifact as a TRACE v0.2 Trust Record (log-import).
+
+    The .epi file is the transcript; the TRACE record commits to it via
+    tool_transcript.hash. Uses software-only / declared — honest for EPI.
+
+    Signing uses the SAME Ed25519 identity that sealed the .epi (continuity).
+    Use --ephemeral only for demos.
+
+    Example: `epi export trace my_case.epi --out my_case.trace.json --transcript-uri https://host/my_case.epi`
+    """
+    import json
+
+    from epi_recorder.integrations.trace_exporter import epi_to_trace_record, _find_sealing_private_key
+    from epi_core.container import EPIContainer
+
+    out_path = Path(out) if out is not None else epi_file.with_suffix(".trace.json")
+    rec = epi_to_trace_record(epi_file, transcript_uri=transcript_uri)
+
+    # Surface placeholder warnings
+    for w in rec.pop("_epi_warnings", []):
+        console.print(f"[yellow][!] {w}[/yellow]")
+
+    # Validate before signing — strip internal _epi_warnings already
+    try:
+        from agentrust_trace import iter_errors
+
+        errs = iter_errors(rec)
+        if errs:
+            console.print(f"[red][X] TRACE record invalid:[/red] {errs[0].message} at {list(errs[0].path)}")
+            raise typer.Exit(1)
+    except ImportError:
+        console.print("[yellow][!] agentrust-trace not installed — skipping schema validation[/yellow]")
+
+    if sign:
+        try:
+            from agentrust_trace import sign_record, generate_key
+            from epi_core.keys import KeyManager
+
+            # Try sealing identity key first (continuity with .epi)
+            manifest = EPIContainer.read_manifest(epi_file)
+            sealing = None
+            if not ephemeral:
+                if key_name:
+                    try:
+                        km = KeyManager()
+                        priv = km.load_private_key(key_name)
+                        sealing = (priv, key_name)
+                    except Exception as exc:
+                        console.print(f"[yellow][!] --key {key_name} not found: {exc} — falling back to sealing key match[/yellow]")
+                if sealing is None:
+                    sealing = _find_sealing_private_key(manifest)
+
+            if sealing is not None:
+                priv, name = sealing
+                rec = sign_record(rec, priv)
+                console.print(f"[green][OK][/green] Signed with sealing identity key [cyan]{name}[/cyan] (continuity with .epi)")
+            else:
+                if not ephemeral:
+                    console.print("[yellow][!] No sealing key found locally — using ephemeral key. For production, pass --key <name> or run on sealer machine.[/yellow]")
+                key = generate_key()
+                rec = sign_record(rec, key)
+                console.print("[dim]Signed with ephemeral Ed25519 key (demo only — not bound to sealer).[/dim]")
+                console.print("[dim]For continuity: epi export trace --key <sealing-key-name>[/dim]")
+        except ImportError:
+            console.print("[red][X] agentrust-trace not installed — cannot sign. Use --no-sign[/red]")
+            raise typer.Exit(1)
+
+    out_path.write_text(json.dumps(rec, indent=2), encoding="utf-8")
+    console.print(f"Wrote TRACE Trust Record to [cyan]{out_path}[/cyan]")
+    console.print(f"[dim]tool_transcript.hash={rec.get('tool_transcript',{}).get('hash','')[:24]}… call_count={rec.get('tool_transcript',{}).get('call_count')}[/dim]")
+    if rec.get("policy", {}).get("bundle_hash", "").startswith("sha256:00"):
+        console.print("[dim]policy.bundle_hash is all-zero (no policy bound) — honest for heuristic artifacts[/dim]")
+    else:
+        console.print(f"[dim]policy.bundle_hash={rec['policy']['bundle_hash'][:24]}…[/dim]")
+
+
 # Identity management (epi identity ...)
 identity_app = typer.Typer(help="Identity map commands (register/export/import)")
 app.add_typer(identity_app, name="identity", rich_help_panel="Advanced")

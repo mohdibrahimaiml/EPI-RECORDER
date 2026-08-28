@@ -135,20 +135,55 @@ def verify_signature(manifest: ManifestModel, public_key_bytes: bytes) -> tuple[
             except Exception:
                 return (False, "Invalid signature encoding (not hex or base64)")
 
-        # Compute canonical hash (excluding signature field)
+        # Compute canonical hash (excluding signature field) — JCS (4.4.1+)
         manifest_hash = get_canonical_hash(manifest, exclude_fields={"signature"})
         hash_bytes = bytes.fromhex(manifest_hash)
 
         # Load public key
         public_key = Ed25519PublicKey.from_public_bytes(public_key_bytes)
 
-        # Verify signature
-        public_key.verify(signature_bytes, hash_bytes)
+        # Verify signature — try JCS first, then legacy json for pre-4.4.1 artifacts
+        try:
+            public_key.verify(signature_bytes, hash_bytes)
+            return (True, f"Signature valid (key: {key_name})")
+        except InvalidSignature:
+            # Legacy fallback: old json sort_keys (not JCS). Try once; if it verifies,
+            # the artifact is valid under its era. Do NOT silently sign with legacy.
+            try:
+                from epi_core.serialize import _get_legacy_json_hash
 
-        return (True, f"Signature valid (key: {key_name})")
+                # Manual legacy: model_dump + normalize like serialize does, but use legacy hash
+                from datetime import datetime, timezone
+                from uuid import UUID
 
+                def _norm(v):
+                    if isinstance(v, datetime):
+                        if v.tzinfo is None:
+                            v = v.replace(microsecond=0, tzinfo=timezone.utc)
+                        else:
+                            v = v.astimezone(timezone.utc).replace(microsecond=0)
+                        return v.strftime("%Y-%m-%dT%H:%M:%SZ")
+                    if isinstance(v, UUID):
+                        return str(v)
+                    if isinstance(v, dict):
+                        return {k: _norm(x) for k, x in v.items()}
+                    if isinstance(v, list):
+                        return [_norm(x) for x in v]
+                    return v
+
+                d = _norm(manifest.model_dump())
+                d.pop("signature", None)
+                legacy_hash = _get_legacy_json_hash(d)
+                public_key.verify(signature_bytes, bytes.fromhex(legacy_hash))
+                return (True, f"Signature valid (legacy, key: {key_name})")
+            except InvalidSignature:
+                return (False, "Invalid signature - data may have been tampered")
+            except Exception:
+                return (False, "Invalid signature - data may have been tampered")
     except InvalidSignature:
         return (False, "Invalid signature - data may have been tampered")
+    except Exception as exc:
+        return (False, f"Verification error: {exc}")
 
 
 def decode_embedded_public_key(public_key_value: str) -> bytes:

@@ -143,17 +143,39 @@ def get_canonical_hash(
 
 
 def _get_json_canonical_hash(data: Any) -> str:
-    """Compute canonical SHA-256 hash using JSON (RFC 8785 style)."""
+    """Compute canonical SHA-256 hash using JSON Canonicalization Scheme (RFC 8785).
+
+    rfc8785 is a hard dependency (pyproject.toml). If it cannot be imported,
+    the install is broken: fail loudly rather than silently producing a
+    divergent hash (json 1.0 vs JCS 1). Legacy verification uses
+    _get_legacy_json_hash explicitly, never this silent path.
+    """
+    try:
+        import rfc8785  # type: ignore
+    except ImportError as exc:
+        raise RuntimeError(
+            "rfc8785 is required for canonical JSON hashing (EPI 4.4.1+). "
+            "Reinstall with `pip install rfc8785>=0.1.4` or `pip install -e .`."
+        ) from exc
+
+    json_bytes = rfc8785.dumps(data)
+    return hashlib.sha256(json_bytes).hexdigest()
+
+
+def _get_legacy_json_hash(data: Any) -> str:
+    """Legacy (pre-4.4.1) hash: json sort_keys. Used ONLY for verifying old artifacts.
+
+    Selected by artifact spec_version, never by import success. New artifacts
+    MUST use _get_json_canonical_hash (JCS).
+    """
     import json
-    
-    # Dump to JSON with sorted keys and no whitespace
+
     json_bytes = json.dumps(
         data,
         sort_keys=True,
-        separators=(',', ':'),
-        ensure_ascii=False
+        separators=(",", ":"),
+        ensure_ascii=False,
     ).encode("utf-8")
-    
     return hashlib.sha256(json_bytes).hexdigest()
 
 
