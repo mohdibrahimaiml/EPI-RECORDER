@@ -172,8 +172,6 @@ def verify_signature(manifest: ManifestModel, public_key_bytes: bytes) -> tuple[
         if is_cbor:
             # CBOR path — 1.x artifacts (guardrails)
             try:
-                from epi_core.serialize import get_canonical_hash
-
                 cbor_hash = get_canonical_hash(manifest, exclude_fields={"signature"}, format="cbor")
                 public_key = Ed25519PublicKey.from_public_bytes(public_key_bytes)
                 public_key.verify(signature_bytes, bytes.fromhex(cbor_hash))
