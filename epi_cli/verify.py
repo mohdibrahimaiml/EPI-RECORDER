@@ -87,23 +87,48 @@ def _fetch_scitt_service_key(service_url: str | None) -> bytes | None:
         return None
 
 
-def _verify_step_chain(steps: list[dict]) -> tuple[bool, list[str]]:
+def _verify_step_chain(steps: list[dict], spec_version: str | None = None) -> tuple[bool, list[str]]:
     """
     Verify the prev_hash cryptographic chain in a list of steps.
 
-    Each step's ``prev_hash`` must equal the JSON canonical hash of the
-    previous step.  Steps with ``prev_hash == "CHAIN_START"`` or ``None``
-    are skipped (genesis steps).
-
-    Returns:
-        tuple: (chain_ok: bool, chain_breaks: list of human-readable messages)
-
-    Old artifacts that used CBOR-style hashing may fail schema validation;
-    those specific errors are handled gracefully.  Unexpected runtime errors
-    are reported as a chain break rather than silently passing.
+    Dispatch by manifest spec_version: <4.4.1 → legacy json sort_keys,
+    >=4.4.1 → JCS (RFC 8785). CBOR for v1.x. No trial — one path per artifact.
+    Emits a visible warning when legacy path is used.
     """
     if len(steps) < 2:
         return True, []
+
+    # Determine canonicalization dispatch
+    def _is_legacy_spec(sv: str | None) -> bool:
+        if not sv:
+            return True
+        try:
+            parts = str(sv).lstrip("v").split(".")
+            major = int(parts[0]) if parts[0] else 0
+            minor = int(parts[1]) if len(parts) > 1 and parts[1] else 0
+            patch = int(parts[2]) if len(parts) > 2 and parts[2].split("-")[0].isdigit() else 0
+            if major < 4:
+                return major == 1  # CBOR handled separately; v2-4.3 is legacy json
+            if major == 4 and minor < 4:
+                return True
+            if major == 4 and minor == 4 and patch < 1:
+                return True
+            return False
+        except Exception:
+            return False
+
+    # Actually: CBOR only for major==1, else legacy json vs JCS
+    def _is_cbor_spec(sv: str | None) -> bool:
+        if not sv:
+            return False
+        try:
+            major = int(str(sv).lstrip("v").split(".")[0])
+            return major == 1
+        except Exception:
+            return False
+
+    is_cbor = _is_cbor_spec(spec_version)
+    is_legacy = _is_legacy_spec(spec_version) and not is_cbor
 
     try:
         from epi_core.schemas import StepModel
@@ -111,52 +136,50 @@ def _verify_step_chain(steps: list[dict]) -> tuple[bool, list[str]]:
 
         chain_breaks: list[str] = []
         step_models = [StepModel(**s) for s in steps]
+        legacy_used = False
         for i in range(1, len(step_models)):
             claimed_prev = step_models[i].prev_hash
             if claimed_prev is None or claimed_prev == "CHAIN_START":
                 continue
-            expected_hash = get_canonical_hash(step_models[i - 1], format="json")
-            if claimed_prev != expected_hash:
-                # Version-gated legacy: pre-4.4.1 used json sort_keys (1.0 stays 1.0)
-                # Try legacy JCS-incompatible hash before falling back to CBOR
-                try:
-                    from epi_core.serialize import _get_legacy_json_hash
+            if is_cbor:
+                expected = get_canonical_hash(step_models[i - 1], format="cbor")
+            elif is_legacy:
+                # Legacy json sort_keys (pre-4.4.1) — explicit, no JCS trial
+                from epi_core.serialize import _get_legacy_json_hash
+                from datetime import datetime, timezone
+                from uuid import UUID
 
-                    # Recompute legacy: need normalized dict like get_canonical_hash does
-                    # but _get_legacy_json_hash expects normalized already — use direct
-                    # old-path: simulate pre-4.4.1 by hashing with json sort_keys
-                    import json
-                    import hashlib
-                    from datetime import datetime, timezone
-                    from uuid import UUID
+                def _norm(v):
+                    if isinstance(v, datetime):
+                        if v.tzinfo is None:
+                            v = v.replace(microsecond=0, tzinfo=timezone.utc)
+                        else:
+                            v = v.astimezone(timezone.utc).replace(microsecond=0)
+                        return v.strftime("%Y-%m-%dT%H:%M:%SZ")
+                    if isinstance(v, UUID):
+                        return str(v)
+                    if isinstance(v, dict):
+                        return {k: _norm(x) for k, x in v.items()}
+                    if isinstance(v, list):
+                        return [_norm(x) for x in v]
+                    return v
 
-                    def _norm(v):
-                        if isinstance(v, datetime):
-                            if v.tzinfo is None:
-                                v = v.replace(microsecond=0, tzinfo=timezone.utc)
-                            else:
-                                v = v.astimezone(timezone.utc).replace(microsecond=0)
-                            return v.strftime("%Y-%m-%dT%H:%M:%SZ")
-                        if isinstance(v, UUID):
-                            return str(v)
-                        if isinstance(v, dict):
-                            return {k: _norm(x) for k, x in v.items()}
-                        if isinstance(v, list):
-                            return [_norm(x) for x in v]
-                        return v
+                _d = _norm(step_models[i - 1].model_dump())
+                _d.pop("source_type", None)
+                _d.pop("verification_class", None)
+                expected = _get_legacy_json_hash(_d)
+                legacy_used = True
+            else:
+                expected = get_canonical_hash(step_models[i - 1], format="json")
+            if claimed_prev != expected:
+                chain_breaks.append(f"step {i}: prev_hash mismatch")
+        if legacy_used and not chain_breaks:
+            import warnings
 
-                    _d = _norm(step_models[i - 1].model_dump())
-                    _d.pop("source_type", None)
-                    _d.pop("verification_class", None)
-                    legacy_expected = _get_legacy_json_hash(_d)
-                    if claimed_prev == legacy_expected:
-                        continue
-                except Exception:
-                    pass
-                # Fallback: check CBOR canonical hash for legacy artifacts
-                expected_cbor_hash = get_canonical_hash(step_models[i - 1], format="cbor")
-                if claimed_prev != expected_cbor_hash:
-                    chain_breaks.append(f"step {i}: prev_hash mismatch")
+            warnings.warn(
+                f"Verified via legacy canonicalization (spec_version={spec_version} <4.4.1)",
+                UserWarning,
+            )
         return len(chain_breaks) == 0, chain_breaks
     except (ValueError, TypeError):
         # Old artifacts (CBOR-hashed chains) or steps with unexpected field
@@ -630,8 +653,9 @@ def verify_command(
                         actual_hash = _hashlib.sha256(EPIContainer.read_member_bytes(epi_file, "steps.jsonl")).hexdigest()
                         steps_hash_ok = actual_hash == claimed_hash
 
-                    # 5. prev_hash Chain Verification
-                    chain_ok, chain_breaks = _verify_step_chain(steps)
+                    # 5. prev_hash Chain Verification — dispatch by manifest version
+                    spec_ver = getattr(manifest, "spec_version", None) if manifest else None
+                    chain_ok, chain_breaks = _verify_step_chain(steps, spec_version=spec_ver)
 
                                         # 5.5 AUD-CO-05: Verification Class Classification
                     # Classify steps as recomputable (deterministic, verifiable by re-execution)

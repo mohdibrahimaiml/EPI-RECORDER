@@ -135,24 +135,31 @@ def verify_signature(manifest: ManifestModel, public_key_bytes: bytes) -> tuple[
             except Exception:
                 return (False, "Invalid signature encoding (not hex or base64)")
 
-        # Compute canonical hash (excluding signature field) — JCS (4.4.1+)
-        manifest_hash = get_canonical_hash(manifest, exclude_fields={"signature"})
-        hash_bytes = bytes.fromhex(manifest_hash)
+        # Dispatch by spec_version: <4.4.1 → legacy, >=4.4.1 → JCS (no trial)
+        # Parse spec_version like "4.4.0" or "v4.4.0" or "2.0"
+        def _is_legacy():
+            sv = getattr(manifest, "spec_version", "") or ""
+            try:
+                parts = str(sv).lstrip("v").split(".")
+                major = int(parts[0]) if parts[0] else 0
+                minor = int(parts[1]) if len(parts) > 1 and parts[1] else 0
+                patch = int(parts[2]) if len(parts) > 2 and parts[2].split("-")[0].isdigit() else 0
+                # Legacy if < 4.4.1
+                if major < 4:
+                    return True
+                if major == 4 and minor < 4:
+                    return True
+                if major == 4 and minor == 4 and patch < 1:
+                    return True
+                return False
+            except Exception:
+                return True  # unknown version → assume legacy for safety
 
-        # Load public key
-        public_key = Ed25519PublicKey.from_public_bytes(public_key_bytes)
-
-        # Verify signature — try JCS first, then legacy json for pre-4.4.1 artifacts
-        try:
-            public_key.verify(signature_bytes, hash_bytes)
-            return (True, f"Signature valid (key: {key_name})")
-        except InvalidSignature:
-            # Legacy fallback: old json sort_keys (not JCS). Try once; if it verifies,
-            # the artifact is valid under its era. Do NOT silently sign with legacy.
+        is_legacy = _is_legacy()
+        if is_legacy:
+            # Legacy path only — old json sort_keys
             try:
                 from epi_core.serialize import _get_legacy_json_hash
-
-                # Manual legacy: model_dump + normalize like serialize does, but use legacy hash
                 from datetime import datetime, timezone
                 from uuid import UUID
 
@@ -174,11 +181,29 @@ def verify_signature(manifest: ManifestModel, public_key_bytes: bytes) -> tuple[
                 d = _norm(manifest.model_dump())
                 d.pop("signature", None)
                 legacy_hash = _get_legacy_json_hash(d)
+                public_key = Ed25519PublicKey.from_public_bytes(public_key_bytes)
                 public_key.verify(signature_bytes, bytes.fromhex(legacy_hash))
-                return (True, f"Signature valid (legacy, key: {key_name})")
+                # Visible legacy warning — reviewer can see which path ran
+                import warnings
+
+                warnings.warn(
+                    f"Verified via legacy canonicalization (spec_version={getattr(manifest,'spec_version','unknown')} <4.4.1)",
+                    UserWarning,
+                )
+                return (True, f"Signature valid (legacy pre-4.4.1, key: {key_name})")
             except InvalidSignature:
-                return (False, "Invalid signature - data may have been tampered")
-            except Exception:
+                return (False, "Invalid signature - data may have been tampered (legacy)")
+            except Exception as exc:
+                return (False, f"Verification error (legacy): {exc}")
+        else:
+            # JCS path only — 4.4.1+
+            manifest_hash = get_canonical_hash(manifest, exclude_fields={"signature"})
+            hash_bytes = bytes.fromhex(manifest_hash)
+            public_key = Ed25519PublicKey.from_public_bytes(public_key_bytes)
+            try:
+                public_key.verify(signature_bytes, hash_bytes)
+                return (True, f"Signature valid (key: {key_name})")
+            except InvalidSignature:
                 return (False, "Invalid signature - data may have been tampered")
     except InvalidSignature:
         return (False, "Invalid signature - data may have been tampered")
