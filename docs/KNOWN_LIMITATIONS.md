@@ -129,7 +129,17 @@ regression green) are closed. Source version may lead PyPI; pin from git for pil
 
 ---
 
+## Canonicalization migration (4.4.1)
+
+**Pre-4.4.1 artifacts used `json.dumps(sort_keys=True)`; 4.4.1+ uses RFC 8785 (JCS).** JCS differs on number formatting (`1.0` → `1`) and ensures cross-implementation agreement with TRACE (`agentrust-trace` `rfc8785`). Old artifacts would fail if re-hashed with JCS.
+
+**Verifier dispatches by `manifest.spec_version`:** `<4.4.1` → legacy json sort_keys, `>=4.4.1` → JCS, `1.x` → CBOR. No trial — one path per artifact. Legacy path emits `Verified via legacy canonicalization (spec_version=X <4.4.1)` warning. New artifacts must be sealed with `rfc8785>=0.1.4` (hard dep — broken install raises, never silently diverges). Notarization payload (RFC 3161) also uses JCS for new artifacts; old timestamps remain over old bytes.
+
+---
+
 ## Last updated
+
+2026-08-28 — 4.4.1 wheel 0.64MB, JCS dispatch, TRACE log-import with sealer continuity
 
 2026-08-01 — residual fix-before-PyPI: hosted plan key, dual-mode verify,
 browser Ed25519 honesty, contact route de-dup, product-first home, release hold.
