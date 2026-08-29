@@ -7,7 +7,7 @@ const ASSETS = [
     './verify/index.html',
     './cases/',
     './manifest.json',
-    './js/epi-verify-core.js?v=34',
+    './js/epi-verify-core.js?v=37',
     './js/jszip.min.js?v=32',
     './css/meridian.css?v=2',
     './assets/logo.svg'

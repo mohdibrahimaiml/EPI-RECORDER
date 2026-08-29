@@ -1,188 +1,36 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Custom &amp; Enterprise — EPI Labs</title>
-<meta name="description" content="Founder-led Agent Evidence Sprints, custom pilots, and procurement support. For standard plans, see our self-serve Starter/Pro/Advanced tiers.">
-<link rel="canonical" href="https://epilabs.org/pricing">
-<meta property="og:title" content="Custom &amp; Enterprise — EPI Labs">
-<meta property="og:description" content="Founder-led sprints, custom pilots, and procurement support. Standard plans available self-serve.">
-<meta name="theme-color" content="#F7F5F0">
-<link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
-<link rel="stylesheet" href="/css/aos.css">
-<link rel="stylesheet" href="/css/contact.css">
-<link rel="stylesheet" href="/css/site.css?v=15">
-<script>
-(function(){try{var t=localStorage.getItem('epi-theme');if(t!=='light'&&t!=='dark'){{t=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}}document.documentElement.setAttribute('data-theme',t)}}catch(e){{}}
-</script>
-</head>
-<body class="canvas">
-<a class="skip" href="#main">Skip to content</a>
-<nav class="nav" id="nav">
-  <div class="nav-in">
-    <a href="/" class="logo"><img src="/assets/logo.png" alt="EPI Labs"></a>
-    <ul class="nlinks">
-      <li><a href="/verify/">Verify</a></li>
-      <li><a href="/how-it-works">How it works</a></li>
-      <li><a href="/trust">Trust model</a></li>
-      <li><a href="/use-cases">Use cases</a></li>
-      <li><a href="/enterprise">Enterprise</a></li>
-      <li><a href="/plans">Pricing</a></li>
-      <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
-      <li><button type="button" class="tgl" data-theme-toggle aria-label="Toggle color theme">&#9788;</button></li>
-    </ul>
-    <button class="burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
-  </div>
-</nav>
-<div class="mmenu" id="mmenu">
-  <a href="/verify/">Verify a file</a>
-  <a href="/plans">Pricing</a>
-  <a href="/how-it-works">How it works</a>
-  <a href="/trust">Trust model</a>
-  <a href="/use-cases">Use cases</a>
-  <a href="/enterprise">Enterprise</a>
-  <a href="/pricing">Pricing</a>
-  <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
-  <button type="button" class="tgl" data-theme-toggle style="margin-top:14px;width:100%">Toggle theme</button>
-</div>
-<main id="main">
-<div class="page in" data-aos="fade-up">
-<span class="tag">Custom &amp; enterprise · founder-led</span>
-<h1>Custom scopes, founder-led.<br>Standard plans are self-serve.</h1>
-<p class="lede">The crypto is open source and verification is free forever. If you need a standard plan, <a href="/plans" style="color:var(--acc);font-weight:600">get it self-serve in two minutes →</a>. This page is for everything custom: sprints, pilots, and procurement.</p>
-
-<div style="background:var(--bg-3);border:1.5px solid var(--acc);padding:18px 22px;margin:26px 0 40px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
-  <div style="flex:1;min-width:240px"><strong style="color:var(--ink)">Looking for standard Starter / Pro / Advanced plans?</strong><br><span style="font-size:.86rem;color:var(--mut)">Self-serve checkout, country-localized pricing, monthly or yearly.</span></div>
-  <a class="btn btn-pri" href="/plans">See plans &amp; pricing</a>
-</div>
-
-<h2 id="vendors" style="margin-top:8px">For AI agent vendors: unblock the deal</h2>
-<p style="font-size:.95rem;color:var(--mut);line-height:1.75;max-width:700px">If you sell agents into finance, insurance, healthcare, or government, you already know the pattern: the demo lands, the champion loves it — then procurement asks <em>"prove what your agent actually did."</em> Logs don't survive that question. A sealed <code class="k">.epi</code> does: every run your agent executes ships with an Ed25519-signed, hash-chained evidence file your customer's auditor verifies offline, with open tools, without trusting your dashboard — or ours. <strong style="color:var(--body)">The evidence outlives your contract with them. That's the point.</strong></p>
-<div style="display:flex;gap:12px;flex-wrap:wrap;margin:20px 0 8px">
-  <a class="btn btn-pri" href="#contact">Unblock my deal</a>
-  <a class="btn btn-sec" href="/verify/">See the verifier</a>
-</div>
-<p style="margin:14px 0 44px;font-size:.84rem;color:var(--dim)">Typical path: free CLI this week → sealed evidence in your demo next week → your deal stops stalling.</p>
-
-<div class="plans stagger" style="margin-bottom:48px">
-  <div class="plan in" data-aos="fade-up"><h3>Open Source</h3><div class="pr">$0</div><div class="pn">Free forever · MIT</div>
-    <p>Verification will never cost money. That's the point.</p>
-    <ul style="font-size:.88rem;color:var(--mut);line-height:2;margin:0 0 22px;padding-left:18px">
-    <li>Recorder, verifier, viewer, <code class="k">.epi</code> format</li>
-    <li>Ed25519 seal + offline <code class="k">epi verify</code></li>
-    <li>CLI &amp; Python SDK</li>
-    <li>Annex, notarization, GitHub Action</li></ul>
-    <a class="btn btn-sec" href="https://pypi.org/project/epi-recorder/" target="_blank" rel="noopener">pip install epi-recorder</a></div>
-  <div class="plan feat in" data-aos="fade-up"><span class="flag">Available now · 3 slots / mo</span><h3>Agent Evidence Sprint</h3><div class="pr">$1,500</div><div class="pn">Five days · one workflow</div>
-    <p>Your enterprise deals stall on &ldquo;prove what your agent did.&rdquo; This is the answer, in a week.</p>
-    <ul style="font-size:.88rem;color:var(--mut);line-height:2;margin:0 0 22px;padding-left:18px">
-    <li>One production-shaped agent path instrumented</li>
-    <li>Sealed, signed <code class="k">.epi</code> evidence you keep</li>
-    <li>Offline verify walkthrough for your team</li>
-    <li>Written findings + recommendations</li>
-    <li>Founder-led — not a ticket queue</li></ul>
-    <button type="button" class="btn btn-pri" data-sprint-checkout>Book a sprint — $1,500</button> <span style="font-size:.74rem;color:var(--dim)">or <a href="mailto:mohdibrahim@epilabs.org?subject=Agent%20Evidence%20Sprint%20(%241%2C500)" style="color:var(--acc)">email directly</a></span></div>
-  <div class="plan in" data-aos="fade-up"><h3>Custom scope &amp; pilots</h3><div class="pr" style="font-size:1.35rem;padding-top:12px">From $5K</div><div class="pn">Scoped with you</div>
-    <p>Org keys, hosted receipts, retention, remote SCITT — scoped to what your auditors actually ask for. Standard tiers live on the plans page; this is for everything beyond them.</p>
-    <ul style="font-size:.88rem;color:var(--mut);line-height:2;margin:0 0 22px;padding-left:18px">
-    <li>Org key management</li>
-    <li>Hosted receipts &amp; retention</li>
-    <li>Founding pricing + roadmap influence</li></ul>
-    <a class="btn btn-sec" href="#contact">Partner inquiry</a> <span style="font-size:.74rem;color:var(--dim)">or <a href="mailto:mohdibrahim@epilabs.org?subject=Design%20partner%20inquiry" style="color:var(--acc)">email directly</a></span></div>
-</div>
-<p style="margin:-10px 0 40px;font-size:.84rem;color:var(--dim)">Before you buy anything: read <a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/KNOWN_LIMITATIONS.md" target="_blank" rel="noopener" style="color:var(--warn);font-weight:600">KNOWN_LIMITATIONS.md</a> — the seal proves integrity after sealing, not completeness of capture.</p>
-
-<h2>Straight answers</h2>
-<div class="rows">
-<div class="rowq" style="grid-template-columns:1fr"><div><h3>Why is verification free forever?</h3></div><div class="an">Cryptographic evidence only works if it's trustless. If you had to pay EPI Labs to verify your own files, it wouldn't be trustless. The CLI is MIT-licensed. That's the spine of the company.</div></div>
-<div class="rowq" style="grid-template-columns:1fr"><div><h3>What do I get in a $1,500 sprint?</h3></div><div class="an">Five focused days with the founder: one agent workflow instrumented end-to-end, sealed artifacts your team can re-verify offline, and a short findings report. Priced against unblocking enterprise deals — not billable hours.</div></div>
-<div class="rowq" style="grid-template-columns:1fr"><div><h3>Where are the standard monthly plans?</h3></div><div class="an">On the <a href="/plans" style="color:var(--acc)">plans page</a> — Starter, Pro, and Advanced with self-serve checkout, monthly or yearly. This page is for custom scopes beyond those tiers.</div></div>
-<div class="rowq" style="grid-template-columns:1fr"><div><h3>What is a design partner?</h3></div><div class="an">Someone whose needs go beyond the standard tiers — org keys, hosted receipts, retention, remote SCITT, or procurement requirements. Founding pricing, direct roadmap input, engagements from $5K.</div></div>
-</div>
-
-<h2 id="contact" style="margin-top:56px">Start the conversation</h2>
-<p style="font-size:.92rem;color:var(--mut);margin-bottom:20px;line-height:1.7">Tell us what you're deploying and what you need to prove. Founder reads every message — reply within one business day. No sales sequence, no CRM drip.</p>
-
-<form class="cform" novalidate>
-  <div class="row">
-    <div>
-      <label for="cf-name">Name <span class="req">*</span></label>
-      <input id="cf-name" name="name" type="text" required autocomplete="name">
-    </div>
-    <div>
-      <label for="cf-email">Work email <span class="req">*</span></label>
-      <input id="cf-email" name="email" type="email" required autocomplete="email">
-    </div>
-  </div>
-  <div class="row">
-    <div>
-      <label for="cf-company">Company</label>
-      <input id="cf-company" name="company" type="text" autocomplete="organization">
-    </div>
-    <div>
-      <label for="cf-role">Role</label>
-      <select id="cf-role" name="role">
-        <option value="">Select…</option>
-        <option>CISO / Security</option>
-        <option>Risk / Compliance</option>
-        <option>Underwriting / Insurance</option>
-        <option>Engineering / Platform</option>
-        <option>Founder / Exec</option>
-        <option>Other</option>
-      </select>
-    </div>
-  </div>
-  <label for="cf-interest">Interested in</label>
-  <select id="cf-interest" name="interest">
-    <option>Agent Evidence Sprint ($1,500)</option>
-    <option>Control Plane design partnership</option>
-    <option>Enterprise pilot</option>
-    <option>Underwriting / insurer evaluation</option>
-    <option>Something else</option>
-  </select>
-  <label for="cf-message">What are you trying to prove? <span class="req">*</span></label>
-  <textarea id="cf-message" name="message" required placeholder="e.g. Our claims agent approves refunds; we need evidence our auditor can verify offline…"></textarea>
-  <div class="cf-actions">
-    <button class="btn btn-pri" type="submit">Send message</button>
-    <span class="cf-note">Your details are used only to reply. No newsletter, no drip campaign — see <a href="/privacy" style="color:var(--acc)">privacy</a>.</span>
-  </div>
-  <div class="cf-status" role="status" aria-live="polite"></div>
-</form>
-
-<h2>How working together works</h2>
-<div class="rows">
-  <div class="rowq" style="grid-template-columns:70px 1fr"><div><h3 style="font-size:1rem">01 · Talk</h3></div><div class="an">A 30-minute call — or just email. You describe the agent workflow and who needs to be convinced (auditor, insurer, regulator). We say honestly whether EPI fits. <strong style="color:var(--body)">If it doesn't, we'll tell you.</strong></div></div>
-  <div class="rowq" style="grid-template-columns:70px 1fr"><div><h3 style="font-size:1rem">02 · Pilot or sprint</h3></div><div class="an">Either a $1,500 sprint (one workflow instrumented in five days, sealed evidence you keep) or a $5K design-partner pilot (org keys, hosted receipts, direct roadmap input). Fixed scope, fixed price, no procurement maze.</div></div>
-  <div class="rowq" style="grid-template-columns:70px 1fr"><div><h3 style="font-size:1rem">03 · Prove it internally</h3></div><div class="an">Your team verifies everything offline with open tools — no dashboard login, no vendor trust required. If your auditor can't reproduce it, we haven't finished the job.</div></div>
-  <div class="rowq" style="grid-template-columns:70px 1fr"><div><h3 style="font-size:1rem">04 · Scale</h3></div><div class="an">Design partners move to the Control Plane with founding pricing locked. You shaped it; you keep the terms.</div></div>
-</div>
-
-<p style="margin-top:32px;font-size:.9rem;color:var(--dim)">Prefer the long enterprise path? <a href="/enterprise" style="color:var(--acc)">Enterprise page</a></p>
-</div>
-</main>
-<footer style="border-top:1px solid var(--line);padding:44px 0;background:var(--bg)">
-  <div class="wrap fbot" style="border:0;padding-top:0">
-    <span>&copy; 2026 EPI LABS · MIT License · v4.4.0</span>
-    <span><a href="/" style="color:var(--acc)">epilabs.org</a> · <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener" style="color:var(--mut)">GitHub</a></span>
-  </div>
-</footer>
-<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
-<script src="/js/paddle-config.js"></script>
-<script src="/js/theme.js"></script>
-<script src="/js/sprint-checkout.js"></script>
+<meta http-equiv="refresh" content="0;url=/plans">
+<link rel="canonical" href="https://epilabs.org/plans">
+<title>Redirecting to Plans &amp; Pricing — EPI Labs</title>
 <script>
 (function(){
-  var nav=document.getElementById('nav');
-  var onS=function(){nav.classList.toggle('scrolled',scrollY>10)};
-  addEventListener('scroll',onS,{passive:true});onS();
-  var b=document.getElementById('burger'),m=document.getElementById('mmenu');
-  if(b&&m)b.addEventListener('click',function(){var o=m.classList.toggle('open');b.classList.toggle('x',o);b.setAttribute('aria-expanded',o);document.body.style.overflow=o?'hidden':''});
+  var hash = window.location.hash || '';
+  var search = window.location.search || '';
+  var target = '/plans' + search + hash;
+  if (history && history.replaceState) {
+    history.replaceState(null, '', target);
+    window.location.replace(target);
+  } else {
+    window.location.href = target;
+  }
 })();
 </script>
-<script src="/js/contact.js"></script>
-<script src="/js/aos.js"></script>
-<script>AOS.init({duration:700,easing:"ease-out-cubic",once:true,offset:80});</script>
+<style>
+  body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:system-ui,-apple-system,sans-serif;background:#0d1117;color:#c9d1d9}
+  .msg{text-align:center;padding:24px}
+  .msg h1{font-size:1.3rem;margin:0 0 8px;color:#f0f6fc}
+  .msg p{font-size:.9rem;color:#8b949e}
+  .msg a{color:#58a6ff;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="msg">
+  <h1>Redirecting to Plans &amp; Pricing…</h1>
+  <p><a href="/plans">Click here if you are not redirected automatically.</a></p>
+</div>
+<script src="/js/auth-ui.js"></script>
 </body>
 </html>

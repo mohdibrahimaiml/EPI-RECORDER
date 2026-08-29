@@ -28,11 +28,12 @@
       <li><a href="/trust">Trust model</a></li>
       <li><a href="/use-cases">Use cases</a></li>
       <li><a href="/enterprise">Enterprise</a></li>
-      <li><a href="/pricing">Pricing</a></li>
-      <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
-      <li><button type="button" class="tgl" data-theme-toggle aria-label="Toggle color theme">&#9788;</button></li>
+      <li><a href="/plans">Pricing</a></li>
+      <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener" aria-label="GitHub">GitHub</a></li>
+      <li id="nav-auth-slot"><a href="/account" class="nav-cta" id="nav-auth" data-auth-link="1">Sign In</a></li>
+      <li><button type="button" class="tgl" data-theme-toggle aria-label="Toggle color theme" title="Toggle theme">&#9788;</button></li>
     </ul>
-    <button class="burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+    <button class="burger" id="burger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mmenu"><span></span><span></span><span></span></button>
   </div>
 </nav>
 <div class="mmenu" id="mmenu">
@@ -41,9 +42,10 @@
   <a href="/trust">Trust model</a>
   <a href="/use-cases">Use cases</a>
   <a href="/enterprise">Enterprise</a>
-  <a href="/pricing">Pricing</a>
+  <a href="/plans">Pricing</a>
+  <a href="/account" class="nav-cta" id="mob-nav-auth" data-auth-link="1">Sign In</a>
   <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
-  <button type="button" class="tgl" data-theme-toggle style="margin-top:14px;width:100%">Toggle theme</button>
+  <button type="button" class="tgl" data-theme-toggle style="margin-top:14px;width:100%" aria-label="Toggle theme">Toggle theme</button>
 </div>
 <main id="main">
 <div class="page in" data-aos="fade-up">
@@ -69,7 +71,7 @@ with record("agent.epi", goal="demo"):
 </main>
 <footer style="border-top:1px solid var(--line);padding:44px 0;background:var(--bg)">
   <div class="wrap fbot" style="border:0;padding-top:0">
-    <span>&copy; 2026 EPI LABS · MIT License · v4.4.0</span>
+    <span>&copy; 2026 EPI LABS · MIT License · v4.4.3</span>
     <span><a href="/" style="color:var(--acc)">epilabs.org</a> · <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener" style="color:var(--mut)">GitHub</a></span>
   </div>
 </footer>
@@ -85,5 +87,6 @@ with record("agent.epi", goal="demo"):
 </script>
 <script src="/js/aos.js"></script>
 <script>AOS.init({duration:700,easing:"ease-out-cubic",once:true,offset:80});</script>
+<script src="/js/auth-ui.js"></script>
 </body>
 </html>

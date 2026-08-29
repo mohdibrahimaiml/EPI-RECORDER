@@ -13,7 +13,7 @@ Every check prints PASS / FAIL / SKIP with the evidence it used.
 Exit code 1 if any FAIL.
 """
 from __future__ import annotations
-import argparse, base64, hashlib, importlib, json, os, subprocess, sys, tempfile
+import argparse, base64, hashlib, importlib, json, os, shutil, subprocess, sys, tempfile
 from pathlib import Path
 
 FAILS: list[str] = []
@@ -83,6 +83,96 @@ def check_legacy_signature_preimage() -> None:
         sig is True,
         "pre-4.4.1 signature_valid is True",
         f"signature_valid={sig} decision={rep.get('decision')}",
+    )
+
+
+def check_live_sample_epi() -> None:
+    """Production must serve a downloadable sample that the CLI accepts."""
+    head("4b. LIVE SAMPLE.EPI (https://epilabs.org/assets/sample.epi)")
+    try:
+        import requests
+    except ImportError:
+        return skip("live sample.epi", "pip install requests")
+    url = "https://epilabs.org/assets/sample.epi"
+    try:
+        r = requests.get(url, timeout=30)
+    except Exception as e:
+        result(False, "GET live sample.epi", str(e))
+        return
+    result(r.status_code == 200, "GET /assets/sample.epi is HTTP 200", f"HTTP {r.status_code}")
+    if r.status_code != 200:
+        return
+    tmp = Path(tempfile.gettempdir()) / "epilabs-org-sample.epi"
+    tmp.write_bytes(r.content)
+    env = dict(os.environ, PYTHONIOENCODING="utf-8")
+    env["PYTHONPATH"] = ""
+    cwd = "C:\\" if os.name == "nt" else "/"
+    try:
+        vr = subprocess.run(
+            [sys.executable, "-m", "epi_cli", "verify", str(tmp), "--json"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=env,
+            cwd=cwd,
+            timeout=180,
+        )
+    except Exception as e:
+        result(False, "verify downloaded sample.epi", str(e))
+        return
+    text = (vr.stdout or "") + (vr.stderr or "")
+    i, j = text.find("{"), text.rfind("}")
+    if i < 0:
+        result(False, "verify downloaded sample.epi --json", text[-400:] or f"rc={vr.returncode}")
+        return
+    rep = json.loads(text[i : j + 1])
+    facts = rep.get("facts") or rep
+    sig = facts.get("signature_valid")
+    integ = facts.get("integrity_ok")
+    result(
+        integ is True and sig is True,
+        "served sample.epi verifies (integrity + signature)",
+        f"integrity_ok={integ} signature_valid={sig} decision={rep.get('decision')}",
+    )
+
+
+def check_browser_verifier_js() -> None:
+    """Known-good golden must verify under the website JS (Node)."""
+    head("4c. BROWSER VERIFIER JS (Node, known-good golden)")
+    node = shutil.which("node")
+    script = _repo_root() / "scripts" / "browser_verify_signature.mjs"
+    golden = _repo_root() / "tests" / "goldens" / "spec-4.4.3.epi"
+    if not node:
+        return skip("browser verifier JS", "node not on PATH")
+    if not script.is_file() or not golden.is_file():
+        result(False, "browser verifier script + 4.4.3 golden present", f"{script} / {golden}")
+        return
+    try:
+        r = subprocess.run(
+            [node, str(script), str(golden)],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            cwd=str(_repo_root()),
+            timeout=60,
+        )
+    except Exception as e:
+        result(False, "node browser_verify_signature.mjs", str(e))
+        return
+    if r.returncode != 0:
+        result(False, "node browser verifier exit 0", (r.stdout or "") + (r.stderr or ""))
+        return
+    try:
+        js = json.loads((r.stdout or "").strip().splitlines()[-1])
+    except Exception as e:
+        result(False, "browser verifier JSON", f"{e}: {(r.stdout or '')[:300]}")
+        return
+    result(
+        js.get("signature_valid") is True and js.get("integrity_ok") is True,
+        "browser JS signature_valid and integrity_ok on 4.4.3 golden",
+        json.dumps(js),
     )
 
 
@@ -460,6 +550,8 @@ def main():
     check_install()
     check_canonicalization()
     check_legacy_signature_preimage()
+    check_live_sample_epi()
+    check_browser_verifier_js()
     check_artifacts(a.epi)
     check_trace(a.epi[0] if a.epi else None)
 

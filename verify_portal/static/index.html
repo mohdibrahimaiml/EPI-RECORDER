@@ -242,6 +242,7 @@ no EPI Labs required.</pre>
       <h2 class="d2x">Drop a .epi — watch the seal resolve</h2>
       <p>Runs entirely in this tab. <strong style="color:var(--ink)">Your file is not uploaded.</strong>
       &nbsp;<a href="/assets/sample.epi" download style="color:var(--acc);font-weight:600">Download sample.epi</a> · <a href="/verify/" style="color:var(--acc);font-weight:600">Full verify tool</a></p>
+      <p class="lede" style="margin:12px auto 0;max-width:46rem;font-size:.9rem">Amber <strong>SEAL VALID · IDENTITY NOT PINNED</strong> is the expected result for an unpinned sealer — the hashes and Ed25519 signature passed; the page does not know who the signer is. That is not a broken seal. Green identity requires a pinned org key (<code style="font-size:.82em">epi keys trust</code> / CLI strict policy).</p>
     </div>
     <div class="inst" data-aos="fade-up">
       <div class="inst-top">
@@ -521,8 +522,9 @@ no EPI Labs required.</pre>
 </footer>
 
 <script src="/js/jszip.min.js"></script>
-<script src="/js/epi-verify-core.js?v=34"></script>
-<script src="/js/home-verify.js?v=36"></script>
+<script src="/js/epi-manifest-preimage.js?v=38"></script>
+<script src="/js/epi-verify-core.js?v=38"></script>
+<script src="/js/home-verify.js?v=38"></script>
 <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 <script src="/js/paddle-config.js"></script>
 <script src="/js/theme.js"></script>

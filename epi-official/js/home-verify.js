@@ -30,17 +30,22 @@ function reportDOM(report){
   if(f.structure_ok)chks.push('Structure valid');
   if(f.integrity_ok)chks.push('Hashes match (seal)');
   else chks.push('<span style="color:var(--tamper)">Hashes mismatch ('+Object.keys(f.mismatches||{}).length+')</span>');
+  if(f.completeness_ok===false)chks.push('<span style="color:var(--warn)">Capture completeness: gaps (not a broken seal)</span>');
+  if(f.chain_ok===false)chks.push('<span style="color:var(--tamper)">Step chain: broken</span>');
   if(f.has_signature){
     if(f.signature_valid===true)chks.push('Signature: VALID (Ed25519) — proves consistency, not who');
     else if(f.signature_valid===false)chks.push('<span style="color:var(--tamper)">Signature: INVALID</span>');
     else chks.push('Signature: UNVERIFIED (browser Ed25519 limited — use epi verify)');
   }else{chks.push('Unsigned')}
   chks.push('Chain: '+(f.chain_ok!==false?'intact':'<span style="color:var(--tamper)">broken</span>'));
+  if(f.content_truncated===true)chks.push('<span style="color:var(--tamper)">Payload: truncated before seal</span>');
+  else if(f.content_truncated===false)chks.push('Payload: full strings sealed');
+  else if(m.spec_version)chks.push('Payload: content_truncated not set (pre-4.4.2 seal)');
 
   var levelLabel=report.trust_level||'';
   var title=levelLabel;
   if(levelLabel==='HIGH')title='SEAL · IDENTITY PINNED';
-  else if(levelLabel==='UNVERIFIED_IDENTITY')title='UNVERIFIED IDENTITY';
+  else if(levelLabel==='UNVERIFIED_IDENTITY')title='SEAL VALID · IDENTITY NOT PINNED';
   else if(levelLabel.indexOf('SEAL')===0||levelLabel==='UNSIGNED'||levelLabel==='INCOMPLETE')title=levelLabel;
   else if(levelLabel)title=levelLabel+' TRUST';
   return '<div style="font-size:0.82rem;margin-bottom:0.6rem"><strong style="font-size:1.05rem;color:'+trustColor+'">'+trustIcon+' '+title+'</strong> <span style="color:var(--ink-muted);font-size:0.72rem">v'+m.spec_version+steps+'</span></div>'
@@ -74,21 +79,10 @@ async function deriveKeyName(pubKeyHex){
 }
 
 async function verifyEd25519(sigStr,pubKeyHex,hashHex){
-  try{
-    var parts=sigStr.split(':');
-    if(parts.length!==3||parts[0]!=='ed25519')return{valid:false,msg:'Unsupported signature: '+sigStr.substring(0,20)+'...'};
-    var rawSigHex=parts[2];
-    var sigBytes=new Uint8Array(rawSigHex.match(/.{1,2}/g).map(function(b){return parseInt(b,16)}));
-    var pubBytes=new Uint8Array(pubKeyHex.match(/.{1,2}/g).map(function(b){return parseInt(b,16)}));
-    if(pubBytes.length!==32)return{valid:false,msg:'Invalid public key length: '+pubBytes.length};
-    // Cryptographically bind the key name to the public key (matches Python)
-    var expectedKeyName=await deriveKeyName(pubKeyHex);
-    if(parts[1]!==expectedKeyName)return{valid:false,msg:'Key name does not match public key'};
-    var hashBytes=new Uint8Array(hashHex.match(/.{1,2}/g).map(function(b){return parseInt(b,16)}));
-    var key=await crypto.subtle.importKey('raw',pubBytes,{name:'Ed25519'},false,['verify']);
-    var ok=await crypto.subtle.verify({name:'Ed25519'},key,sigBytes,hashBytes);
-    return{valid:ok,msg:ok?'Signature valid':'Signature invalid — data may be tampered'};
-  }catch(e){return{valid:null,msg:'Ed25519 error: '+e.message}}
+  if(typeof globalThis.epiVerifyEd25519!=='function'){
+    return{valid:null,msg:'epi-manifest-preimage.js failed to load'};
+  }
+  return globalThis.epiVerifyEd25519(sigStr,pubKeyHex,hashHex);
 }
 
 /*
@@ -308,10 +302,10 @@ function normalizeCreatedAt(manifest){
   return manifest;
 }
 function computeManifestHash(rawManifestText){
-  var manifest=parseJSONPreserveNumbers(rawManifestText);
-  normalizeCreatedAt(manifest);
-  delete manifest.signature;
-  return sha256(new TextEncoder().encode(sortedJSON(manifest)));
+  if(typeof globalThis.epiComputeManifestHash!=='function'){
+    throw new Error('epi-manifest-preimage.js failed to load');
+  }
+  return globalThis.epiComputeManifestHash(rawManifestText);
 }
 
 async function canonicalStepHash(step){
@@ -528,7 +522,11 @@ async function processFile(f){
     report.facts.completeness_ok=forensic.completeness_ok;
     report.facts.chain_ok=forensic.chain_ok;
     report.facts.step_count_ok=forensic.step_count_ok;
-    report.facts.integrity_ok=Object.keys(mismatches).length===0&&forensic.sequence_ok&&forensic.completeness_ok&&forensic.chain_ok&&forensic.step_count_ok;
+    // File-hash integrity only (matches Python). Completeness gaps are not a broken seal.
+    var hashesOk=Object.keys(mismatches).length===0;
+    if(manifest.content_truncated===true)hashesOk=false;
+    report.facts.integrity_ok=hashesOk;
+    report.facts.content_truncated=manifest.content_truncated===undefined?null:manifest.content_truncated;
 
     // Check 6: Signature + key-name binding + trust registry
     var registry=null;
@@ -622,5 +620,9 @@ if(dz&&fi&&dr){
   ['dragleave','drop'].forEach(function(ev){dz.addEventListener(ev,function(){dz.classList.remove('drag-over')})});
   dz.addEventListener('drop',function(e){if(e.dataTransfer.files[0])resetChecks();processFile(e.dataTransfer.files[0])});
   fi.addEventListener('change',function(){if(fi.files[0]){resetChecks();processFile(fi.files[0])}});
+}
+if(typeof window!=='undefined'){
+  window.epiVerifyDroppedFile=processFile;
+  window.epiIsPreJcsSpec=typeof globalThis.epiIsPreJcsSpec==='function'?globalThis.epiIsPreJcsSpec:undefined;
 }
 })();

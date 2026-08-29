@@ -83,6 +83,8 @@ installer/windows/Output/
 # Allow documented sample artifacts in docs/, examples/, and site/assets/demo/
 !docs/assets/*.epi
 !site/assets/demo/*.epi
+!website/assets/sample.epi
+!site/assets/sample.epi
 !examples/*.epi
 
 # Allow HTML files in site, website, and examples

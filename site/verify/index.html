@@ -95,6 +95,8 @@
     <div class="note">
       <strong>Truly offline</strong> (no website at all): install the CLI and run <code>epi verify file.epi</code> on your PC.
       &nbsp;·&nbsp; <a href="/assets/sample.epi" download style="color:var(--acc);font-weight:600">Download sample.epi</a>
+      <br><br>
+      Amber <strong>SEAL VALID · IDENTITY NOT PINNED</strong> means the seal passed (integrity + signature) and the signer is not on a trust list in this tab. That is correct for an unpinned key — not a failed verification. Claim-ready identity is a separate check (CLI: <code>epi keys trust</code> + <code>epi verify --policy strict</code>).
     </div>
   </div>
 </section>
@@ -102,14 +104,15 @@
 
 <footer style="border-top:1px solid var(--line);padding:44px 0;background:var(--bg)">
   <div class="wrap fbot" style="border:0;padding-top:0">
-    <span>&copy; 2026 EPI LABS · MIT License · v4.4.0</span>
+    <span>&copy; 2026 EPI LABS · MIT License · v4.4.3</span>
     <span><a href="/" style="color:var(--acc)">epilabs.org</a> · <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener" style="color:var(--mut)">GitHub</a></span>
   </div>
 </footer>
 
 <script src="/js/jszip.min.js?v=32"></script>
-<script src="/js/epi-verify-core.js?v=34"></script>
-<script src="/js/home-verify.js?v=36"></script>
+<script src="/js/epi-manifest-preimage.js?v=38"></script>
+<script src="/js/epi-verify-core.js?v=38"></script>
+<script src="/js/home-verify.js?v=38"></script>
 <script src="/js/theme.js"></script>
 <script>
 (function(){

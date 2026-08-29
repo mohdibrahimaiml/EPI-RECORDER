@@ -31,24 +31,29 @@
   <div class="nav-in">
     <a href="/" class="logo"><img src="/assets/logo.png" alt="EPI Labs"></a>
     <ul class="nlinks">
+      <li><a href="/verify/">Verify</a></li>
       <li><a href="/how-it-works">How it works</a></li>
       <li><a href="/trust">Trust model</a></li>
       <li><a href="/use-cases">Use cases</a></li>
       <li><a href="/enterprise">Enterprise</a></li>
-      <li><a href="/pricing">Pricing</a></li>
-      <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
-      <li><button type="button" class="tgl" data-theme-toggle aria-label="Toggle color theme">&#9788;</button></li>
+      <li><a href="/plans">Pricing</a></li>
+      <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener" aria-label="GitHub">GitHub</a></li>
+      <li id="nav-auth-slot"><a href="/account" class="nav-cta" id="nav-auth" data-auth-link="1">Sign In</a></li>
+      <li><button type="button" class="tgl" data-theme-toggle aria-label="Toggle color theme" title="Toggle theme">&#9788;</button></li>
     </ul>
-    <button class="burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+    <button class="burger" id="burger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mmenu"><span></span><span></span><span></span></button>
   </div>
 </nav>
 <div class="mmenu" id="mmenu">
-  <a href="/">Home</a>
+  <a href="/verify/">Verify a file</a>
   <a href="/how-it-works">How it works</a>
   <a href="/trust">Trust model</a>
-  <a href="/pricing">Pricing</a>
+  <a href="/use-cases">Use cases</a>
+  <a href="/enterprise">Enterprise</a>
+  <a href="/plans">Pricing</a>
+  <a href="/account" class="nav-cta" id="mob-nav-auth" data-auth-link="1">Sign In</a>
   <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
-  <button type="button" class="tgl" data-theme-toggle style="margin-top:14px;width:100%">Toggle theme</button>
+  <button type="button" class="tgl" data-theme-toggle style="margin-top:14px;width:100%" aria-label="Toggle theme">Toggle theme</button>
 </div>
 
 <main id="main">
@@ -90,6 +95,8 @@
     <div class="note">
       <strong>Truly offline</strong> (no website at all): install the CLI and run <code>epi verify file.epi</code> on your PC.
       &nbsp;·&nbsp; <a href="/assets/sample.epi" download style="color:var(--acc);font-weight:600">Download sample.epi</a>
+      <br><br>
+      Amber <strong>SEAL VALID · IDENTITY NOT PINNED</strong> means the seal passed (integrity + signature) and the signer is not on a trust list in this tab. That is correct for an unpinned key — not a failed verification. Claim-ready identity is a separate check (CLI: <code>epi keys trust</code> + <code>epi verify --policy strict</code>).
     </div>
   </div>
 </section>
@@ -97,14 +104,15 @@
 
 <footer style="border-top:1px solid var(--line);padding:44px 0;background:var(--bg)">
   <div class="wrap fbot" style="border:0;padding-top:0">
-    <span>&copy; 2026 EPI LABS · MIT License · v4.4.0</span>
+    <span>&copy; 2026 EPI LABS · MIT License · v4.4.3</span>
     <span><a href="/" style="color:var(--acc)">epilabs.org</a> · <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener" style="color:var(--mut)">GitHub</a></span>
   </div>
 </footer>
 
 <script src="/js/jszip.min.js?v=32"></script>
-<script src="/js/epi-verify-core.js?v=34"></script>
-<script src="/js/home-verify.js?v=36"></script>
+<script src="/js/epi-manifest-preimage.js?v=38"></script>
+<script src="/js/epi-verify-core.js?v=38"></script>
+<script src="/js/home-verify.js?v=38"></script>
 <script src="/js/theme.js"></script>
 <script>
 (function(){
@@ -117,5 +125,6 @@
 </script>
 <script src="/js/aos.js"></script>
 <script>AOS.init({duration:700,easing:"ease-out-cubic",once:true,offset:80});</script>
+<script src="/js/auth-ui.js"></script>
 </body>
 </html>

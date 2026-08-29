@@ -76,6 +76,28 @@
         });
       }
     } catch (e) {}
+    initNav();
+  }
+
+  function initNav() {
+    var nav = document.getElementById("nav");
+    if (nav) {
+      var onScroll = function () {
+        nav.classList.toggle("scrolled", window.scrollY > 10);
+      };
+      window.addEventListener("scroll", onScroll, { passive: true });
+      onScroll();
+    }
+    var burger = document.getElementById("burger");
+    var mmenu = document.getElementById("mmenu");
+    if (burger && mmenu) {
+      burger.addEventListener("click", function () {
+        var isOpen = mmenu.classList.toggle("open");
+        burger.classList.toggle("x", isOpen);
+        burger.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        document.body.style.overflow = isOpen ? "hidden" : "";
+      });
+    }
   }
 
   window.EPITheme = { init: init, set: set, get: get, toggle: toggle, apply: apply };

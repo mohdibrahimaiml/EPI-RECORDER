@@ -216,6 +216,25 @@
     }).join(',') + '}';
   }
 
+  function isPreJcsSpec(sv) {
+    var s = String(sv || '').replace(/^v/i, '');
+    var a = s.split(/[^\d]+/).map(function (x) { return parseInt(x, 10) || 0; });
+    var maj = a[0] || 0, min = a[1] || 0, pat = a[2] || 0;
+    if (maj <= 1) return false;
+    if (maj !== 4) return maj < 4;
+    if (min !== 4) return min < 4;
+    return pat < 1;
+  }
+
+  function prepareManifestCopy(manifest) {
+    var copy = JSON.parse(JSON.stringify(manifest));
+    delete copy.signature;
+    if (copy.content_truncated === null || copy.content_truncated === undefined) {
+      delete copy.content_truncated;
+    }
+    return copy;
+  }
+
   function hexToBytes(hex) {
     if (typeof hex !== 'string' || hex.length % 2 !== 0) throw new Error('Invalid hex');
     var bytes = new Uint8Array(hex.length / 2);
@@ -276,46 +295,19 @@
     return mismatches;
   }
 
-  async function verifyManifestSignature(manifest) {
+  async function verifyManifestSignature(manifest, rawText) {
     if (!manifest || !manifest.signature) {
       return { valid: null, reason: 'No signature present' };
     }
     if (!manifest.public_key) {
       return { valid: false, reason: 'Missing public_key' };
     }
-    var parts = String(manifest.signature).split(':');
-    if (parts.length !== 3 || parts[0] !== 'ed25519') {
-      return { valid: false, reason: 'Invalid signature format' };
+    if (typeof global.epiComputeManifestHash !== 'function' || typeof global.epiVerifyEd25519 !== 'function') {
+      return { valid: null, reason: 'epi-manifest-preimage.js not loaded' };
     }
-    var sigHex = parts[2];
-    var copy = JSON.parse(JSON.stringify(manifest));
-    delete copy.signature;
-    var msg = new TextEncoder().encode(canonicalJson(copy));
-    var hashBuf = await crypto.subtle.digest('SHA-256', msg);
-    var hashBytes = new Uint8Array(hashBuf);
-    var pubBytes = hexToBytes(manifest.public_key);
-    var sigBytes = decodeSig(sigHex);
-
-    try {
-      if (crypto.subtle && crypto.subtle.importKey) {
-        var key = await crypto.subtle.importKey('raw', pubBytes, { name: 'Ed25519' }, false, ['verify']);
-        var ok = await crypto.subtle.verify({ name: 'Ed25519' }, key, sigBytes, hashBytes);
-        return { valid: ok, reason: ok ? 'Ed25519 valid' : 'Signature mismatch' };
-      }
-    } catch (_webcryptoErr) {
-      /* fall through */
-    }
-
-    if (global.noble && global.noble.verifyAsync) {
-      try {
-        var ok2 = await global.noble.verifyAsync(sigBytes, hashBytes, pubBytes);
-        return { valid: !!ok2, reason: ok2 ? 'Ed25519 valid (noble)' : 'Signature mismatch' };
-      } catch (e) {
-        return { valid: false, reason: e.message || 'Verify failed' };
-      }
-    }
-
-    return { valid: null, reason: 'Browser cannot verify Ed25519 (try Chrome/Edge or: epi verify)' };
+    var hashHex = await global.epiComputeManifestHash(rawText || JSON.stringify(manifest));
+    var r = await global.epiVerifyEd25519(manifest.signature, manifest.public_key, hashHex);
+    return { valid: r.valid, reason: r.msg };
   }
 
   async function verifyEPI(file) {
@@ -353,9 +345,11 @@
       };
     }
 
+    var rawManifest;
     var manifest;
     try {
-      manifest = JSON.parse(await mFile.async('string'));
+      rawManifest = await mFile.async('string');
+      manifest = JSON.parse(rawManifest);
     } catch (_e) {
       return {
         structure: true, manifest: false, integrity: false, hashChain: false,
@@ -366,7 +360,7 @@
 
     var mismatches = await computeIntegrityMismatches(zip, manifest);
     var integrity = mismatches.length === 0;
-    var sigResult = await verifyManifestSignature(manifest);
+    var sigResult = await verifyManifestSignature(manifest, rawManifest);
     var fileHash = await sha256Hex(ab);
 
     var trust_level = 'NONE';
@@ -409,6 +403,7 @@
   global.verifyEPI = verifyEPI;
   global.epiExtractZipBytes = extractZipBytes;
   global.epiDetectContainer = detectContainer;
+  global.epiIsPreJcsSpec = isPreJcsSpec;
   if (typeof window !== 'undefined') {
     window.verifyEPI = verifyEPI;
     window.epiExtractZipBytes = extractZipBytes;
