@@ -183,7 +183,7 @@ def verify_signature(manifest: ManifestModel, public_key_bytes: bytes) -> tuple[
         elif is_legacy:
             # Legacy path only — old json sort_keys
             try:
-                from epi_core.serialize import _get_legacy_json_hash
+                from epi_core.serialize import _get_legacy_json_hash, omit_absent_optional_hash_fields
                 from datetime import datetime, timezone
                 from uuid import UUID
 
@@ -203,6 +203,7 @@ def verify_signature(manifest: ManifestModel, public_key_bytes: bytes) -> tuple[
                     return v
 
                 d = _norm(manifest.model_dump())
+                omit_absent_optional_hash_fields(d, "ManifestModel")
                 d.pop("signature", None)
                 legacy_hash = _get_legacy_json_hash(d)
                 public_key = Ed25519PublicKey.from_public_bytes(public_key_bytes)

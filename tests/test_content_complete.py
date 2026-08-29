@@ -45,6 +45,27 @@ def test_sealed_payload_gate_fails_only_when_true() -> None:
     assert sealed_payload_gate(ManifestModel(cli_command="t"), True) is True
 
 
+def test_pre_field_artifacts_still_verify_signature() -> None:
+    from pathlib import Path
+    from typer.testing import CliRunner
+
+    from epi_cli.main import app
+
+    runner = CliRunner()
+    for rel in (
+        "docs/assets/sample-hello.epi",
+        "docs/assets/demo-banking-aml.epi",
+        "docs/assets/readme-demo.epi",
+    ):
+        path = Path(__file__).resolve().parents[1] / rel
+        result = runner.invoke(app, ["verify", str(path), "--json"])
+        text = result.output or ""
+        start, end = text.find("{"), text.rfind("}")
+        report = json.loads(text[start : end + 1])
+        facts = report.get("facts") or report
+        assert facts.get("signature_valid") is True, (rel, facts.get("signature_valid"), report.get("decision"))
+
+
 def test_absent_content_truncated_does_not_change_unsigned_hash() -> None:
     from datetime import datetime, timezone
     from uuid import UUID

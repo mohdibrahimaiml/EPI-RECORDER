@@ -14,6 +14,17 @@ import cbor2
 from pydantic import BaseModel
 
 
+def omit_absent_optional_hash_fields(model_dict: dict[str, Any], class_name: str) -> None:
+    """Drop fields that did not exist when older artifacts were signed.
+
+    Pydantic fills content_truncated=None on load. Including that null in the
+    signature preimage breaks Ed25519 for every seal that omitted the field
+    (legacy JSON and JCS). Keep false/true so new artifacts still assert it.
+    """
+    if class_name == "ManifestModel" and model_dict.get("content_truncated") is None:
+        model_dict.pop("content_truncated", None)
+
+
 def _cbor_default_encoder(encoder, value: Any) -> None:
     """
     Custom CBOR encoder for datetime and UUID types.
@@ -92,9 +103,7 @@ def get_canonical_hash(
         model_dict.pop("source_type", None)
         model_dict.pop("verification_class", None)
 
-    # Absent on artifacts sealed through 4.4.1. Do not hash a synthetic null into old signatures.
-    if model.__class__.__name__ == "ManifestModel" and model_dict.get("content_truncated") is None:
-        model_dict.pop("content_truncated", None)
+    omit_absent_optional_hash_fields(model_dict, model.__class__.__name__)
 
     # Normalize datetime and UUID fields to strings
     def normalize_value(value: Any) -> Any:

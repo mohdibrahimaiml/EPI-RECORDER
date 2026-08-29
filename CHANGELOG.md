@@ -2,6 +2,14 @@
 
 All notable changes to EPI Recorder are documented here.
 
+## [Unreleased]
+
+### Fixed — Legacy signature preimage
+
+- **`content_truncated` null no longer enters the signed bytes.** Pydantic filled the new field as `None` on load. `get_canonical_hash` already omitted it; the **legacy** Ed25519 path (`trust.verify_signature` for `spec_version` before 4.4.1) hashed `model_dump()` including `"content_truncated": null`, so every pre-4.4.2 seal failed `Invalid signature` while file hashes still matched. `omit_absent_optional_hash_fields` is now shared. Do not upload tagged 4.4.2 to PyPI.
+
+---
+
 ## [4.4.2] - 2026-08-29
 
 ### Fixed — Sealed content completeness
