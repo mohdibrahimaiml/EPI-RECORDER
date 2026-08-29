@@ -18,11 +18,14 @@ from epi_core.time_utils import utc_now
 from epi_core.workspace import ensure_workspace_writable
 
 
-MAX_CONTENT_STRING_LENGTH = 2000
+# Display-only preview length. Sealed step content is stored in full.
+# The embedded viewer truncates summaries; steps.jsonl is the evidence.
+VIEWER_PREVIEW_MAX_LENGTH = 2000
+MAX_CONTENT_STRING_LENGTH = VIEWER_PREVIEW_MAX_LENGTH  # alias for existing tests
 
 
-def _truncate_content(data: Any, max_length: int = MAX_CONTENT_STRING_LENGTH) -> Any:
-    """Recursively truncate long strings in step content to prevent artifact bloat."""
+def _truncate_content(data: Any, max_length: int = VIEWER_PREVIEW_MAX_LENGTH) -> Any:
+    """Recursively shorten strings for *display*. Do not use on sealed steps."""
     if isinstance(data, dict):
         return {k: _truncate_content(v, max_length) for k, v in data.items()}
     elif isinstance(data, list):
@@ -115,9 +118,6 @@ class RecordingContext:
                     self._last_step_hash = get_canonical_hash(redaction_step, format="json")
 
                 content = redacted_content
-
-            # Truncate long strings to prevent artifact bloat
-            content = _truncate_content(content)
 
             # Create step
             step = StepModel(

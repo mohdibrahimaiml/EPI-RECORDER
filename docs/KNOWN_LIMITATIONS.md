@@ -203,7 +203,19 @@ TRACE specifies `policy.bundle_hash` as the SHA-256 of the Cedar policy bundle t
 
 ---
 
+## Capture completeness vs seal integrity
+
+The seal proves that a `.epi` file was not altered **after** it was sealed. It does not prove that every LLM call, tool call, or subprocess was recorded. In-process `record()` is self-attestation. Prefer the gateway proxy (fail-closed) when that distinction matters.
+
+## Historical step-content truncation (through 4.4.1)
+
+Until this change, `RecordingContext.add_step` shortened strings in sealed `steps.jsonl` at **2000 characters** (`[...truncated: N chars total]`). **Every `.epi` sealed with that recorder may be missing the tail of long prompts and responses.** New seals set `manifest.content_truncated` to `false` (full payload). Old artifacts omit the field; `epi verify` warns and does not treat them as complete transcripts. The viewer may still truncate *on screen*.
+
+---
+
 ## Last updated
+
+2026-08-29 — sealed payloads no longer truncated at 2000 chars; `content_truncated` on new manifests; capture-completeness caveat; historical truncation of 4.4.1 and earlier artifacts.
 
 2026-08-29 — unsealed header 0–3/16–39 documented; header vs sealed manifest authority; Level 0 TRACE; offset-658 both 4.4.0/4.4.1 FAIL
 

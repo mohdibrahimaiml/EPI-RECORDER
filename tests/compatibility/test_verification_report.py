@@ -105,6 +105,8 @@ def test_report_nested_facts_keys():
         "transparency_ok",
         "completeness_gaps",
         "forensic_reason",
+        "content_truncated",
+        "content_complete_asserted",
     }
     assert facts_keys == expected_facts, (
         f"facts keys changed: {facts_keys ^ expected_facts}"

@@ -40,6 +40,7 @@ function flattenText(value) {
 }
 
 function truncate(value, maxLength) {
+    // Display only. Sealed steps.jsonl keeps full strings; do not treat this as the record.
     const text = value == null ? "" : String(value);
     return text.length <= maxLength ? text : `${text.slice(0, maxLength - 1)}...`;
 }

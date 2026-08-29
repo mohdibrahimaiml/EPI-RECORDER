@@ -503,6 +503,13 @@ def _match_local_signing_key_name(public_key_hex: str) -> str | None:
     return None
 
 
+def sealed_payload_gate(manifest: ManifestModel, integrity_ok: bool) -> bool:
+    """Fail integrity when the sealer admits it truncated step content."""
+    if manifest.content_truncated is True:
+        return False
+    return integrity_ok
+
+
 def create_verification_report(
     integrity_ok: bool,
     signature_valid: bool | None,
@@ -584,6 +591,8 @@ def create_verification_report(
             "mismatches": mismatches,
             "completeness_gaps": gaps,
             "forensic_reason": forensic_reason,
+            "content_truncated": manifest.content_truncated,
+            "content_complete_asserted": manifest.content_truncated is False,
         },
         "identity": {
             "status": identity_status,

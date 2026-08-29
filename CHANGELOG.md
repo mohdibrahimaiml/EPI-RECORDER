@@ -2,6 +2,19 @@
 
 All notable changes to EPI Recorder are documented here.
 
+## [4.4.2] - 2026-08-29
+
+### Fixed — Sealed content completeness
+
+- **Step payloads are sealed in full.** `RecordingContext.add_step` no longer truncates strings at 2000 characters. The viewer still shortens *display* summaries; `steps.jsonl` is the evidence.
+- **`manifest.content_truncated`** — new seals set `false` at pack time so completeness of sealed payloads is asserted, not implied. `epi verify` **FAIL**s if the flag is `true`. Artifacts without the field (everything shipped through 4.4.1) **WARN**: those seals may have truncated strings. Do not treat pre-this-change `.epi` files as complete transcripts.
+
+### Changed — Homepage honesty
+
+- Hero copy states the seal proves integrity after sealing, not that every call was captured. Builder loop leads with gateway proxy; `record()` is the quickstart.
+
+---
+
 ## [4.4.1] - 2026-08-29
 
 ### Fixed — Wheel, Canonicalization & TRACE Interop (evidence-correctness)

@@ -17,7 +17,7 @@ function esc(v) {
   return d.innerHTML;
 }
 
-/** Truncate a string to maxLen, appending ellipsis if truncated. */
+/** Truncate a string to maxLen, appending ellipsis if truncated. Display only — not the sealed record. */
 function trunc(s, maxLen) {
   if (!s) return '';
   s = String(s);

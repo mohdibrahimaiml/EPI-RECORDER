@@ -102,6 +102,16 @@ class ManifestModel(BaseModel):
         default=None,
         description="Short non-sensitive analysis failure reason when analysis_status is error"
     )
+
+    content_truncated: Optional[bool] = Field(
+        default=None,
+        description=(
+            "Whether step content was truncated before seal. New artifacts must set "
+            "false (full payload sealed; viewer may still preview). Absent on "
+            "artifacts sealed through 4.4.1, which may have truncated strings at 2000 chars. "
+            "true is a verify failure."
+        ),
+    )
     
     # New metadata fields for decision tracking
     goal: Optional[str] = Field(

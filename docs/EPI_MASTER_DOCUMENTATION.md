@@ -1,6 +1,6 @@
 # EPI Master Technical & Enterprise System Reference
 
-**Product:** `epi-recorder` | **Current Release Line:** `v4.4.1` | **Container Spec:** EPI Evidence Format v1.1
+**Product:** `epi-recorder` | **Current Release Line:** `v4.4.2` | **Container Spec:** EPI Evidence Format v1.1
 
 ---
 
@@ -99,7 +99,7 @@ recording.epi (ZIP Archive)
 
 ```json
 {
-  "spec_version": "4.4.1",
+  "spec_version": "4.4.2",
   "container_version": "1.1",
   "created_at": "2026-08-09T19:50:00Z",
   "workflow_id": "demo_banking_aml",

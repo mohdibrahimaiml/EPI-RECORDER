@@ -92,6 +92,10 @@ def get_canonical_hash(
         model_dict.pop("source_type", None)
         model_dict.pop("verification_class", None)
 
+    # Absent on artifacts sealed through 4.4.1. Do not hash a synthetic null into old signatures.
+    if model.__class__.__name__ == "ManifestModel" and model_dict.get("content_truncated") is None:
+        model_dict.pop("content_truncated", None)
+
     # Normalize datetime and UUID fields to strings
     def normalize_value(value: Any) -> Any:
         if isinstance(value, datetime):

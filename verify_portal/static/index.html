@@ -33,35 +33,36 @@
 <a class="skip" href="#verify">Skip to verify</a>
 
 <!-- ANNOUNCEMENT -->
-<div class="annc">Open source under MIT · v4.4.0 on PyPI · <a href="/how-it-works">See how sealing works →</a></div>
+<div class="annc">Open source under MIT · v4.4.2 on PyPI · <a href="/how-it-works">See how sealing works →</a></div>
 
 <!-- NAV -->
 <nav class="nav" id="nav">
   <div class="nav-in">
     <a href="/" class="logo"><img src="/assets/logo.png" alt="EPI Labs"></a>
     <ul class="nlinks">
+      <li><a href="/verify/">Verify</a></li>
       <li><a href="/how-it-works">How it works</a></li>
       <li><a href="/trust">Trust model</a></li>
       <li><a href="/use-cases">Use cases</a></li>
       <li><a href="/enterprise">Enterprise</a></li>
       <li><a href="/plans">Pricing</a></li>
-      <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li>
-      <li><button type="button" class="tgl" data-theme-toggle aria-label="Toggle color theme">&#9788;</button></li>
+      <li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener" aria-label="GitHub">GitHub</a></li>
+      <li id="nav-auth-slot"><a href="/account" class="nav-cta" id="nav-auth" data-auth-link="1">Sign In</a></li>
+      <li><button type="button" class="tgl" data-theme-toggle aria-label="Toggle color theme" title="Toggle theme">&#9788;</button></li>
     </ul>
-    <a href="#verify" class="nav-cta">Verify a file</a>
-    <button class="burger" id="burger" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+    <button class="burger" id="burger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mmenu"><span></span><span></span><span></span></button>
   </div>
 </nav>
 <div class="mmenu" id="mmenu">
   <a href="/verify/">Verify a file</a>
-  <a href="/plans">Pricing</a>
   <a href="/how-it-works">How it works</a>
   <a href="/trust">Trust model</a>
   <a href="/use-cases">Use cases</a>
   <a href="/enterprise">Enterprise</a>
-  <a href="/pricing">Pricing</a>
+  <a href="/plans">Pricing</a>
+  <a href="/account" class="nav-cta" id="mob-nav-auth" data-auth-link="1">Sign In</a>
   <a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a>
-  <button type="button" class="tgl" data-theme-toggle style="margin-top:14px;width:100%">Toggle theme</button>
+  <button type="button" class="tgl" data-theme-toggle style="margin-top:14px;width:100%" aria-label="Toggle theme">Toggle theme</button>
 </div>
 
 <!-- HERO -->
@@ -70,17 +71,17 @@
     <div>
       <span class="tag">Evidence layer for AI agents</span>
       <h1 class="d1x">Your agent's deal is stuck on <em>"prove it."</em> Hand them a file.</h1>
-      <p class="lede">EPI seals every agent run into a portable <strong>.epi</strong> file — Ed25519 signature, SHA-256 hash chain — that your customer's auditor, insurer, or board can verify offline. <strong>Without trusting you, or us.</strong></p>
+      <p class="lede">EPI seals recorded agent runs into a portable <strong>.epi</strong> file — Ed25519 signature, SHA-256 hash chain — that an auditor can verify offline. <strong>The seal proves integrity after sealing, not that every call was captured.</strong></p>
       <div class="hacts">
         <a href="#verify" class="btn btn-pri btn-lg">Verify a sample <span class="btn-ar">&rarr;</span></a>
-        <a href="/pricing#contact" class="btn btn-sec btn-lg">Unblock your deal</a>
+        <a href="/plans#contact" class="btn btn-sec btn-lg">Unblock your deal</a>
       </div>
       <div class="pip"><code>pip install epi-recorder</code><button type="button" id="copyInstall">Copy</button></div>
       <div class="friction"><span>✓ No account required</span><span>✓ Offline from first run</span><span>✓ MIT · free forever</span><span>✓ Python 3.11+</span></div>
       <div class="facts">
         <span><b>MIT</b> open source</span>
         <span><b>Offline</b> verify</span>
-        <span><b>v4.4.0</b> on PyPI</span>
+        <span><b>v4.4.2</b> on PyPI</span>
         <span><b>JCS-style</b> canonical</span>
       </div>
     </div>
@@ -342,7 +343,7 @@ no EPI Labs required.</pre>
     </div>
     <div class="grid g4 rail stagger">
       <div class="card" data-aos="fade-up"><span class="phase">01 / Install</span><h3>One pip install</h3><p>MIT-licensed, offline, no account.</p><div class="term">$ pip install epi-recorder</div></div>
-      <div class="card" data-aos="fade-up"><span class="phase">02 / Record</span><h3>Wrap the run</h3><p>Or wrap_openai / LangChain / LiteLLM.</p><div class="term"><span class="a">with</span> record(<span class="g">"run.epi"</span>): ...</div></div>
+      <div class="card" data-aos="fade-up"><span class="phase">02 / Record</span><h3>Observe the run</h3><p>Production: EPI gateway proxy, fail-closed. Quickstart: <code>record()</code>.</p><div class="term">$ epi gateway serve</div></div>
       <div class="card" data-aos="fade-up"><span class="phase">03 / Verify</span><h3>Prove integrity</h3><p>Integrity + signature offline. Identity separate.</p><div class="term">$ epi verify run.epi</div></div>
       <div class="card" data-aos="fade-up"><span class="phase">04 / View</span><h3>Open the timeline</h3><p>Forensic timeline in any browser. No login.</p><div class="term">$ epi view run.epi</div></div>
     </div>
@@ -463,7 +464,7 @@ no EPI Labs required.</pre>
         <div class="pr" style="font-size:1.35rem;padding-top:14px">From $1,500</div>
         <div class="pn">founder-led</div>
         <p>Evidence Sprint, custom pilots, org keys, procurement support. For scopes beyond the standard tiers.</p>
-        <a class="btn btn-sec" href="/pricing#contact">Book a sprint</a>
+        <a class="btn btn-sec" href="/plans#contact">Book a sprint</a>
       </div>
     </div>
     <p style="text-align:center;margin-top:26px;font-size:.84rem;color:var(--dim)">Compare all tiers on the <a href="/plans" style="color:var(--acc);font-weight:600">plans page →</a></p>
@@ -509,13 +510,13 @@ no EPI Labs required.</pre>
         <p>The evidence layer that makes AI agents insurable and auditable. Sealed .epi files — verify offline, forever.</p>
       </div>
       <div class="fcol"><h4>Product</h4><ul>
-        <li><a href="/verify/">Verify a file</a></li><li><a href="/how-it-works">How it works</a></li><li><a href="/integrations">Integrations</a></li><li><a href="/plans">Pricing</a></li><li><a href="/pricing">Custom &amp; enterprise</a></li></ul></div>
+        <li><a href="/verify/">Verify a file</a></li><li><a href="/how-it-works">How it works</a></li><li><a href="/integrations">Integrations</a></li><li><a href="/plans">Pricing</a></li><li><a href="/plans">Custom &amp; enterprise</a></li></ul></div>
       <div class="fcol"><h4>Evidence</h4><ul>
         <li><a href="/trust">Trust model</a></li><li><a href="/use-cases">Use cases</a></li><li><a href="/enterprise">Enterprise</a></li><li><a href="https://github.com/mohdibrahimaiml/epi-recorder/blob/main/docs/KNOWN_LIMITATIONS.md" target="_blank" rel="noopener">Known limitations</a></li></ul></div>
       <div class="fcol"><h4>Company</h4><ul>
-        <li><a href="/terms">Terms</a></li><li><a href="/privacy">Privacy</a></li><li><a href=".well-known/security.txt">Security.txt</a></li><li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li><li><a href="/terms">Terms</a></li><li><a href="/privacy">Privacy</a></li><li><a href="mailto:mohdibrahim@epilabs.org">Contact</a></li></ul></div>
+        <li><a href="/account">Account</a></li><li><a href="/terms">Terms</a></li><li><a href="/privacy">Privacy</a></li><li><a href="/.well-known/security.txt">Security.txt</a></li><li><a href="https://github.com/mohdibrahimaiml/epi-recorder" target="_blank" rel="noopener">GitHub</a></li><li><a href="mailto:mohdibrahim@epilabs.org">Contact</a></li></ul></div>
     </div>
-    <div class="fbot"><span>&copy; 2026 EPI LABS · MIT License</span><span>v4.4.0 · envelope-v2</span></div>
+    <div class="fbot"><span>&copy; 2026 EPI LABS · MIT License</span><span>v4.4.2 · envelope-v2</span></div>
   </div>
 </footer>
 
@@ -634,5 +635,6 @@ no EPI Labs required.</pre>
 </script>
 <script src="/js/aos.js"></script>
 <script>AOS.init({duration:700,easing:"ease-out-cubic",once:true,offset:80});</script>
+<script src="/js/auth-ui.js"></script>
 </body>
 </html>

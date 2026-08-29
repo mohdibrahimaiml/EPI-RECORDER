@@ -29,6 +29,7 @@ from epi_core.trust import (
     VerificationPolicy,
     apply_policy,
     create_verification_report,
+    sealed_payload_gate,
     verify_embedded_manifest_signature,
 )
 
@@ -855,6 +856,32 @@ def verify_command(
                 console.print(f"  [red][FAIL][/red] Annex IV check error: {exc}")
         if annex_iv_ok and verbose:
             console.print(f"  [green]All Annex IV sections validated.[/green]")
+
+        # Sealed payload completeness (not capture completeness).
+        # true = recorder truncated before seal → fail.
+        # None = artifact sealed through 4.4.1; may have truncated strings at 2000 chars → warn.
+        # false = this seal asserts full step payloads.
+        content_truncated = manifest.content_truncated
+        integrity_ok = sealed_payload_gate(manifest, integrity_ok)
+        if content_truncated is True:
+            if verbose:
+                console.print(
+                    "  [red][FAIL][/red] Manifest content_truncated=true — "
+                    "step payloads were shortened before seal"
+                )
+        elif content_truncated is None:
+            if verbose:
+                console.print(
+                    "  [yellow][WARN][/yellow] Manifest has no content_truncated field — "
+                    "artifacts sealed through 4.4.1 may have truncated step strings at 2000 characters. "
+                    "Do not treat those payloads as complete."
+                )
+        elif verbose:
+            console.print(
+                "  [green][OK][/green] content_truncated=false — sealed step payloads are full "
+                "(viewer previews may still shorten display)"
+            )
+
         # ========== STEP 5: CREATE REPORT & APPLY POLICY ==========
         forensic_reason: str | None = None
         if not completeness_ok and seq_comp_gaps:
@@ -865,6 +892,8 @@ def verify_command(
             forensic_reason = "step sequence invalid"
         elif not completeness_ok:
             forensic_reason = "step sequence incomplete (e.g. tool.call without tool.response)"
+        elif content_truncated is True:
+            forensic_reason = "manifest content_truncated=true (payload shortened before seal)"
 
         report = create_verification_report(
             integrity_ok=integrity_ok,
