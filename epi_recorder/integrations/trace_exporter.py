@@ -141,7 +141,7 @@ def epi_to_trace_record(
         },
         "origin": {
             "kind": "log-import",
-            "producer": f"epi-recorder/{manifest.spec_version if hasattr(manifest, 'spec_version') else get_version()}",
+            "producer": f"epi-recorder/{get_version()}",
             "source_event_id": workflow_id or epi_path.name,
             "ingested_at": now,
         },

@@ -120,12 +120,9 @@ known ops hazard until sync runs.
 
 ---
 
-## PyPI release hold
+## PyPI
 
-Do **not** publish a new PyPI version until residual release-gate issues
-(browser honesty, contact route uniqueness, dual-mode verify on production
-static, tier_gating ↔ pricing alignment, product-first home, mirror sync,
-regression green) are closed. Source version may lead PyPI; pin from git for pilots.
+Current published line: **4.4.3**. **4.4.1** remains on PyPI (not yanked) and still truncates sealed strings at 2000 characters. **4.4.2** never reached PyPI.
 
 ---
 
@@ -209,13 +206,17 @@ The seal proves that a `.epi` file was not altered **after** it was sealed. It d
 
 ## Historical step-content truncation (through 4.4.1)
 
-Until this change, `RecordingContext.add_step` shortened strings in sealed `steps.jsonl` at **2000 characters** (`[...truncated: N chars total]`). **Every `.epi` sealed with that recorder may be missing the tail of long prompts and responses.** New seals set `manifest.content_truncated` to `false` (full payload). Old artifacts omit the field; `epi verify` warns and does not treat them as complete transcripts. The viewer may still truncate *on screen*.
+Through **4.4.1** (last PyPI release before 4.4.3), `RecordingContext.add_step` shortened strings in sealed `steps.jsonl` at **2000 characters** (`[...truncated: N chars total]`). **Every `.epi` sealed with that recorder may be missing the tail of long prompts and responses.** Those files are not complete transcripts.
+
+**4.4.2** sealed full payloads and added `manifest.content_truncated`, then was **withdrawn** (GitHub Release and tag removed) before PyPI: the new field’s JSON `null` broke Ed25519 for artifacts sealed before 4.4.1.
+
+**4.4.3** is the first PyPI release that seals full step payloads, truncates only in the viewer, sets `content_truncated=false` on new seals, **FAIL**s verify if the flag is `true`, and **WARN**s when the field is absent (everything shipped through 4.4.1).
 
 ---
 
 ## Last updated
 
-2026-08-29 — sealed payloads no longer truncated at 2000 chars; `content_truncated` on new manifests; capture-completeness caveat; historical truncation of 4.4.1 and earlier artifacts.
+2026-08-29 — 4.4.3: first PyPI with full sealed step payloads; 4.4.2 withdrawn; truncation documented for 4.4.1 and earlier.
 
 2026-08-29 — unsealed header 0–3/16–39 documented; header vs sealed manifest authority; Level 0 TRACE; offset-658 both 4.4.0/4.4.1 FAIL
 

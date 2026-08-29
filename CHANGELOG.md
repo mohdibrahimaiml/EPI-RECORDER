@@ -2,18 +2,37 @@
 
 All notable changes to EPI Recorder are documented here.
 
-## [Unreleased]
+## [4.4.3] - 2026-08-29
+
+First PyPI release after the withdrawn 4.4.2 GitHub-only build. **Do not yank 4.4.1.**
+
+### Fixed — Sealed content completeness
+
+- **Step payloads are sealed in full.** `RecordingContext.add_step` no longer truncates strings at 2000 characters. The viewer still shortens *display* summaries; `steps.jsonl` is the evidence.
+- **`manifest.content_truncated`** — new seals set `false` at pack time. `epi verify` **FAIL**s if the flag is `true`. Artifacts without the field (everything shipped through 4.4.1) **WARN**.
+
+### Fixed — Legacy signature preimage
+
+- **`content_truncated` null no longer enters the signed bytes.** Shared omit list for JCS and legacy Ed25519. Frozen goldens under `tests/goldens/`; preflight fails if a spec 4.3.0 golden does not verify.
+
+### TRACE
+
+- `origin.producer` is `epi-recorder/` plus **package** `get_version()`, not the artifact `spec_version`.
 
 ### Tests
 
 - Frozen goldens `tests/goldens/legacy-spec-4.3.0.epi` and `legacy-spec-4.4.0.epi` must keep `signature_valid` true. New `ManifestModel` optional fields that are absent from the 4.3.0 golden must be listed in `MANIFEST_OMIT_NONE_FROM_HASH`.
 - `scripts/preflight.py` fails if a pre-4.4.1 artifact does not verify `signature_valid`.
 
+### Changed — Homepage honesty
+
+- Hero copy states the seal proves integrity after sealing, not that every call was captured. Builder loop leads with gateway proxy; `record()` is the quickstart.
+
 ---
 
 ## [4.4.2] - 2026-08-29 — withdrawn before PyPI
 
-**Withdrawn.** The GitHub Release and `v4.4.2` tag were deleted. That build hashed Pydantic's synthetic `content_truncated: null` on the legacy Ed25519 path (`spec_version` before 4.4.1), so every artifact sealed before 4.4.1 failed `Invalid signature` while file hashes still matched. It never reached PyPI. Use **4.4.1**, or a later replacement after it is tagged. Hotfix is on `main` (`af69f9d` and follow-ups).
+**Withdrawn.** The GitHub Release and `v4.4.2` tag were deleted. That build hashed Pydantic's synthetic `content_truncated: null` on the legacy Ed25519 path (`spec_version` before 4.4.1), so every artifact sealed before 4.4.1 failed `Invalid signature` while file hashes still matched. It never reached PyPI. Use **4.4.1** (still on PyPI, truncates step strings) or **4.4.3**. Hotfix landed on `main` before 4.4.3.
 
 ### Fixed — Legacy signature preimage
 
