@@ -74,17 +74,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: installer/windows/Output/epi-setup-*.exe
-          generate_release_notes: true
-          body: |
-            ## Installation
-
-            ### Windows (recommended - double-click works out of the box)
-            Download `epi-setup-*.exe` below and run it. `.epi` files will open automatically.
-
-            ### Any platform (developers)
-            ```
-            pip install epi-recorder
-            ```
-            Then run any `epi` command once to activate file associations.
+          # Attach the exe only. Do not rewrite notes — a human-written body
+          # is already on the Release from the tag/publish step.
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

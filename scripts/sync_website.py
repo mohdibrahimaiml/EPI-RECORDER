@@ -55,7 +55,13 @@ def _copy_tree(src: Path, dest: Path, *, preserve_top: set[str] | None = None) -
         rel = path.relative_to(src)
         out = dest / rel
         out.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(path, out)
+        try:
+            shutil.copy2(path, out)
+        except OSError as exc:
+            # Windows: some hosts raise errno 22 on copy2 metadata (ADS/locks).
+            if getattr(exc, "errno", None) != 22:
+                raise
+            shutil.copyfile(path, out)
         count += 1
     return count
 
