@@ -4,6 +4,8 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
+from tests.helpers.repo_paths import require_repo_file
+
 from epi_cli.main import app
 from epi_core.container import EPIContainer
 from epi_core.keys import KeyManager
@@ -40,14 +42,14 @@ def test_signed_envelope_viewer_includes_self_check_and_verify_txt_trust_hints(
 
 
 def test_crypto_js_exports_verify_manifest_signature():
-    crypto = Path("epi_viewer_static/crypto.js").read_text(encoding="utf-8")
+    crypto = require_repo_file("epi_viewer_static", "crypto.js").read_text(encoding="utf-8")
     assert "globalThis.verifyManifestSignature" in crypto
     assert "async function verifyManifestSignature" in crypto
 
 
 def test_web_viewer_scorecard_and_partial_integrity_copy():
-    js = Path("web_viewer/app.js").read_text(encoding="utf-8")
-    html = Path("web_viewer/index.html").read_text(encoding="utf-8")
+    js = require_repo_file("web_viewer", "app.js").read_text(encoding="utf-8")
+    html = require_repo_file("web_viewer", "index.html").read_text(encoding="utf-8")
     assert "renderIntegrity" in js
     assert "integrity-status" in html
     assert "integrity_scope" in js or "integrity" in js

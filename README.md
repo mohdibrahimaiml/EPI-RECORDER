@@ -151,6 +151,7 @@ Samples: [docs/assets/SAMPLES.md](docs/assets/SAMPLES.md) · try `docs/assets/re
 | LiteLLM | `EPICallback` |
 | pytest | `pytest --epi` |
 | Microsoft AGT | `epi import agt <file>` |
+| TRACE Trust Record | `epi export trace <file.epi>` — log-import Level 0; see caveats below |
 
 ```python
 # LangChain (canonical adapter)
@@ -167,6 +168,16 @@ with record("run.epi") as session:
 # pytest — attach evidence to failing tests
 pytest --epi
 ```
+
+### TRACE export (honest claims)
+
+```bash
+epi export trace run.epi --out run.trace.json --transcript-uri https://host/run.epi
+```
+
+Signing key order: `--key` → private key that sealed the `.epi` → `TRACE_PRIVATE_KEY_PEM` → ephemeral (warning). `allow_embedded_key=True` when verifying only proves **internal consistency** of the record against its own `cnf.jwk`. It does **not** prove the record came from a trusted issuer. What we claim: the JSON is self-consistent and bound to the key that signed it (the sealing key when that key is available).
+
+`policy.bundle_hash` in TRACE is specified as a Cedar policy hash. We hash `policy.json` (the sealed EPI policy document), not a Cedar bundle. `policy.enforcement_mode` is `"declared"` — we did not run a Cedar engine. `appraisal.status` is `"none"`.
 
 More: [docs/FRAMEWORK-INTEGRATIONS-5-MINUTES.md](docs/FRAMEWORK-INTEGRATIONS-5-MINUTES.md)
 
@@ -187,6 +198,7 @@ More: [docs/FRAMEWORK-INTEGRATIONS-5-MINUTES.md](docs/FRAMEWORK-INTEGRATIONS-5-M
 | `epi enterprise setup` / `pack` | Org kit + auditor pack |
 | `epi scitt register <file.epi>` | SCITT transparency anchor (advanced) |
 | `epi import agt <path>` | Import Microsoft AGT evidence |
+| `epi export trace <file.epi>` | TRACE v0.2 log-import record (self-consistency, not issuer attestation) |
 
 Policy + fault analyzer guide: [docs/POLICY-AND-FAULT-ANALYZER.md](docs/POLICY-AND-FAULT-ANALYZER.md)
 

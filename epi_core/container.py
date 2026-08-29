@@ -1575,7 +1575,8 @@ class EPIContainer:
         return None
 
     @staticmethod
-    def read_manifest(epi_path: Path) -> ManifestModel:
+    def read_manifest(epi_path: Path | str) -> ManifestModel:
+        epi_path = Path(epi_path)
         if not epi_path.exists():
             raise FileNotFoundError(f"EPI file not found: {epi_path}")
 

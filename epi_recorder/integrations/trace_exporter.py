@@ -10,6 +10,7 @@ Spec: trace-v0.2.json
 from __future__ import annotations
 
 import hashlib
+import os
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -86,7 +87,10 @@ def epi_to_trace_record(
         transcript_uri = f"https://epilabs.org/artifacts/{epi_path.name}"
         # Placeholder — CLI will warn that this does not resolve until hosted
 
-    # Bundle hash: hash the actual policy block if present, not zeros
+    # TRACE defines policy.bundle_hash as the SHA-256 of the Cedar policy bundle.
+    # We do not evaluate Cedar. We hash sealed policy.json (or policy_evaluation.json)
+    # and set enforcement_mode="declared" so the field is a binding to authored
+    # policy bytes, not a claim that a Cedar engine evaluated them.
     bundle_hash = digest_zero
     try:
         # Prefer policy.json (authored policy) over policy_evaluation.json
@@ -146,6 +150,8 @@ def epi_to_trace_record(
             "digest": digest_zero,
         },
         "appraisal": {
+            # TRACE appraisal.status: none | affirming | contraindicated.
+            # Export is not an independent TRACE verifier judgment — always "none".
             "status": "none",
             "verifier": appraiser,
         },
@@ -166,6 +172,27 @@ def epi_to_trace_record(
             "transparency is placeholder — no SCITT receipt bound; point at your SCITT log entry or TSA receipt"
         )
     return record
+
+
+def _load_trace_private_key_pem() -> object | None:
+    """Load Ed25519 private key from TRACE_PRIVATE_KEY_PEM if set.
+
+    Matches the TRACE quickstart fallback (`load_signing_key` reads this env var).
+    Returns None when unset or unparseable.
+    """
+    pem = os.environ.get("TRACE_PRIVATE_KEY_PEM")
+    if not pem or not str(pem).strip():
+        return None
+    raw = pem.encode("utf-8") if isinstance(pem, str) else pem
+    # Allow \\n-escaped PEM in env files
+    if b"\\n" in raw and b"-----BEGIN" in raw:
+        raw = raw.replace(b"\\n", b"\n")
+    try:
+        from cryptography.hazmat.primitives.serialization import load_pem_private_key
+
+        return load_pem_private_key(raw, password=None)
+    except Exception:
+        return None
 
 
 def _find_sealing_private_key(manifest) -> tuple[object, str] | None:

@@ -95,6 +95,9 @@ class TestEPIContainer:
         
         assert output_path.exists(), ".epi file should be created"
         assert output_path.stat().st_size > 0, ".epi file should not be empty"
+        via_str = EPIContainer.read_manifest(str(output_path))
+        via_path = EPIContainer.read_manifest(output_path)
+        assert via_str.cli_command == via_path.cli_command
         assert EPIContainer.detect_container_format(output_path) == EPI_CONTAINER_FORMAT_ENVELOPE
         from epi_core.container import EPI_ENVELOPE_MAGIC
         assert output_path.read_bytes()[:len(EPI_ENVELOPE_MAGIC)] == EPI_ENVELOPE_MAGIC

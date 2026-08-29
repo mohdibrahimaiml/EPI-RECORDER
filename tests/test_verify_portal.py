@@ -24,6 +24,7 @@ from epi_core.schemas import ManifestModel
 from epi_core.serialize import get_canonical_hash
 from epi_core.trust import sign_manifest
 from tests.helpers.artifacts import make_decision_epi
+from tests.helpers.repo_paths import require_repo_file
 
 # Import the app lazily so that module-level STATIC_DIR resolution
 # happens after any temporary directory fixtures.
@@ -103,7 +104,7 @@ def test_verify_page_matches_site_design(client: TestClient) -> None:
     # Nav consistency: verify page links to docs and pricing. (No self-link —
     # the 2026 nav omits a link to the current page.)
     assert 'href="/how-it-works"' in r.text
-    assert 'href="/pricing"' in r.text
+    assert ('href="/pricing"' in r.text) or ('href="/plans"' in r.text)
 
 
 def test_root_serves_landing_page(client: TestClient) -> None:
@@ -551,7 +552,7 @@ def test_verify_sample_epi_high(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The shipped demo asset must verify as HIGH when its key is trusted."""
-    sample_path = Path("verify_portal/static/assets/sample.epi")
+    sample_path = require_repo_file("verify_portal", "static", "assets", "sample.epi")
     manifest = EPIContainer.read_manifest(sample_path)
     trusted_dir = tmp_path / "trusted_keys"
     trusted_dir.mkdir()

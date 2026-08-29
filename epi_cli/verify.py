@@ -9,6 +9,7 @@ Performs comprehensive verification including:
 
 import json
 import sys
+import warnings
 from datetime import UTC
 from pathlib import Path
 from typing import Annotated
@@ -19,7 +20,7 @@ from rich.console import Console
 from rich.panel import Panel
 
 from epi_cli.view import _resolve_epi_file
-from epi_core._version import get_version
+from epi_core._version import JCS_INTRODUCED_TUPLE, JCS_INTRODUCED_VERSION, get_version
 from epi_core.aiuc1_mapping import aiuc1_summary, map_verification_to_aiuc1
 from epi_core.container import EPIContainer
 from epi_core.review import verify_review_trust
@@ -87,52 +88,63 @@ def _fetch_scitt_service_key(service_url: str | None) -> bytes | None:
         return None
 
 
+def _is_cbor_spec(sv: str | None) -> bool:
+    if not sv:
+        return False
+    try:
+        major = int(str(sv).lstrip("v").split(".")[0])
+        return major == 1
+    except Exception:
+        return False
+
+
+def _is_legacy_spec(sv: str | None) -> bool:
+    if not sv:
+        return True
+    if _is_cbor_spec(sv):
+        return False
+    try:
+        parts = str(sv).lstrip("v").split(".")
+        major = int(parts[0]) if parts[0] else 0
+        minor = int(parts[1]) if len(parts) > 1 and parts[1] else 0
+        patch = int(parts[2]) if len(parts) > 2 and parts[2].split("-")[0].isdigit() else 0
+        cutoff_major, cutoff_minor, cutoff_patch = JCS_INTRODUCED_TUPLE
+        if major < cutoff_major:
+            return True
+        if major == cutoff_major and minor < cutoff_minor:
+            return True
+        if major == cutoff_major and minor == cutoff_minor and patch < cutoff_patch:
+            return True
+        return False
+    except Exception:
+        return False
+
+
+def _warn_legacy_canonicalizer_dispatch(spec_version: str | None) -> None:
+    """Emit at dispatch, not inside the chain loop — short artifacts still announce."""
+    if not spec_version or _is_cbor_spec(spec_version) or not _is_legacy_spec(spec_version):
+        return
+    warnings.warn(
+        f"Verified via legacy canonicalization (spec_version={spec_version} <{JCS_INTRODUCED_VERSION})",
+        UserWarning,
+        stacklevel=3,
+    )
+
+
 def _verify_step_chain(steps: list[dict], spec_version: str | None = None) -> tuple[bool, list[str]]:
     """
     Verify the prev_hash cryptographic chain in a list of steps.
 
     Dispatch by manifest spec_version: legacy json sort_keys vs JCS (RFC 8785).
     CBOR for v1.x. No trial — one path per artifact. Cutoff is JCS introduction version.
-    Emits a visible warning when legacy path is used.
+    Emits a visible warning when legacy path is used, even if the chain loop does not run.
     """
-    if len(steps) < 2:
-        return True, []
-
-    # Determine canonicalization dispatch — use JCS cutoff from _version
-    from epi_core._version import JCS_INTRODUCED_TUPLE, JCS_INTRODUCED_VERSION
-
-    def _is_cbor_spec(sv: str | None) -> bool:
-        if not sv:
-            return False
-        try:
-            major = int(str(sv).lstrip("v").split(".")[0])
-            return major == 1
-        except Exception:
-            return False
-
-    def _is_legacy_spec(sv: str | None) -> bool:
-        if not sv:
-            return True
-        if _is_cbor_spec(sv):
-            return False
-        try:
-            parts = str(sv).lstrip("v").split(".")
-            major = int(parts[0]) if parts[0] else 0
-            minor = int(parts[1]) if len(parts) > 1 and parts[1] else 0
-            patch = int(parts[2]) if len(parts) > 2 and parts[2].split("-")[0].isdigit() else 0
-            cutoff_major, cutoff_minor, cutoff_patch = JCS_INTRODUCED_TUPLE
-            if major < cutoff_major:
-                return True
-            if major == cutoff_major and minor < cutoff_minor:
-                return True
-            if major == cutoff_major and minor == cutoff_minor and patch < cutoff_patch:
-                return True
-            return False
-        except Exception:
-            return False
-
     is_cbor = _is_cbor_spec(spec_version)
     is_legacy = _is_legacy_spec(spec_version)
+    _warn_legacy_canonicalizer_dispatch(spec_version)
+
+    if len(steps) < 2:
+        return True, []
 
     try:
         from epi_core.schemas import StepModel
@@ -140,7 +152,6 @@ def _verify_step_chain(steps: list[dict], spec_version: str | None = None) -> tu
 
         chain_breaks: list[str] = []
         step_models = [StepModel(**s) for s in steps]
-        legacy_used = False
         for i in range(1, len(step_models)):
             claimed_prev = step_models[i].prev_hash
             if claimed_prev is None or claimed_prev == "CHAIN_START":
@@ -172,18 +183,10 @@ def _verify_step_chain(steps: list[dict], spec_version: str | None = None) -> tu
                 _d.pop("source_type", None)
                 _d.pop("verification_class", None)
                 expected = _get_legacy_json_hash(_d)
-                legacy_used = True
             else:
                 expected = get_canonical_hash(step_models[i - 1], format="json")
             if claimed_prev != expected:
                 chain_breaks.append(f"step {i}: prev_hash mismatch")
-        if legacy_used and not chain_breaks:
-            import warnings
-
-            warnings.warn(
-                f"Verified via legacy canonicalization (spec_version={spec_version} <{JCS_INTRODUCED_VERSION})",
-                UserWarning,
-            )
         return len(chain_breaks) == 0, chain_breaks
     except (ValueError, TypeError):
         # Old artifacts (CBOR-hashed chains) or steps with unexpected field
@@ -551,6 +554,8 @@ def verify_command(
                 console.print("  [green][OK][/green] Valid mimetype")
                 console.print("  [green][OK][/green] Valid manifest schema")
 
+            _warn_legacy_canonicalizer_dispatch(getattr(manifest, "spec_version", None))
+
             # Version compatibility check
             supported_versions = [get_version()]
             if manifest.spec_version not in supported_versions:
@@ -602,6 +607,8 @@ def verify_command(
             import json
 
             steps = EPIContainer.read_steps(epi_file)
+            spec_ver = getattr(manifest, "spec_version", None) if manifest else None
+            chain_ok, chain_breaks = _verify_step_chain(steps, spec_version=spec_ver)
             if steps:
 
                     # 1. Index Sequence Audit (Monotonicity)
@@ -657,9 +664,7 @@ def verify_command(
                         actual_hash = _hashlib.sha256(EPIContainer.read_member_bytes(epi_file, "steps.jsonl")).hexdigest()
                         steps_hash_ok = actual_hash == claimed_hash
 
-                    # 5. prev_hash Chain Verification — dispatch by manifest version
-                    spec_ver = getattr(manifest, "spec_version", None) if manifest else None
-                    chain_ok, chain_breaks = _verify_step_chain(steps, spec_version=spec_ver)
+                    # 5. prev_hash chain: dispatched above even when steps is empty
 
                                         # 5.5 AUD-CO-05: Verification Class Classification
                     # Classify steps as recomputable (deterministic, verifiable by re-execution)

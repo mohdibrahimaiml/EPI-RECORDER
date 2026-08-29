@@ -78,6 +78,7 @@ If you prefer zero local setup, use the Colab notebook linked from [README.md](.
 | --- | --- |
 | `epi gateway serve` | Start the open-source AI capture gateway for low-friction developer adoption. |
 | `epi gateway export` | Export one shared gateway-backed case to a portable `.epi` case file. |
+| `epi export trace <file.epi>` | Emit a TRACE v0.2 log-import Trust Record bound to the `.epi` hash. Signing: `--key` → sealing key → `TRACE_PRIVATE_KEY_PEM` → ephemeral. Embedded `cnf.jwk` proves internal consistency, not a trusted issuer. `policy.bundle_hash` hashes `policy.json`, not Cedar (`enforcement_mode: declared`). `appraisal.status` is `none`. |
 | `epi connect open` | Start the local browser review workspace and connector bridge together. |
 | `epi connect serve` | Run only the local connector bridge for the browser Setup Wizard. |
 

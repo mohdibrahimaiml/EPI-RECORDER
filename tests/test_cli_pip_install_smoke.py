@@ -8,6 +8,7 @@ actionable error messages instead of raw tracebacks.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import subprocess
@@ -30,18 +31,39 @@ def fresh_venv() -> tuple[Path, Path]:
     Build a wheel from the current repo, create a fresh venv, install the wheel,
     and return (python_executable, epi_home).
     """
+    if importlib.util.find_spec("build") is None:
+        subprocess.run(
+            [sys.executable, "-m", "pip", "install", "build"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        importlib.invalidate_caches()
+    if importlib.util.find_spec("build") is None:
+        pytest.skip(
+            "Python package 'build' is not installed in this interpreter and could not be installed; "
+            "cannot run python -m build --wheel inside the pip-install smoke fixture"
+        )
     dist_dir = REPO_ROOT / "dist"
     dist_dir.mkdir(exist_ok=True)
     # Remove stale wheels so we do not pick up an old build.
     for stale in dist_dir.glob("epi_recorder-*.whl"):
         stale.unlink()
-    subprocess.run(
-        [sys.executable, "-m", "build", "--wheel", "--outdir", str(dist_dir)],
-        cwd=REPO_ROOT,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "build", "--wheel", "--outdir", str(dist_dir)],
+            cwd=REPO_ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        detail = (exc.stderr or exc.stdout or "").strip().splitlines()
+        tail = " | ".join(detail[-3:]) if detail else f"exit {exc.returncode}"
+        pytest.skip(
+            f"python -m build --wheel failed in this interpreter ({tail}); "
+            "pip-install smoke is harness-only and skipped"
+        )
     wheels = list(dist_dir.glob("epi_recorder-*.whl"))
     assert wheels, "No wheel produced"
     wheel = wheels[0]

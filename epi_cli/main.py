@@ -397,7 +397,11 @@ def export_trace(
     """
     import json
 
-    from epi_recorder.integrations.trace_exporter import epi_to_trace_record, _find_sealing_private_key
+    from epi_recorder.integrations.trace_exporter import (
+        epi_to_trace_record,
+        _find_sealing_private_key,
+        _load_trace_private_key_pem,
+    )
     from epi_core.container import EPIContainer
 
     out_path = Path(out) if out is not None else epi_file.with_suffix(".trace.json")
@@ -423,31 +427,46 @@ def export_trace(
             from agentrust_trace import sign_record, generate_key
             from epi_core.keys import KeyManager
 
-            # Try sealing identity key first (continuity with .epi)
+            # Key order: --key → .epi sealing key → TRACE_PRIVATE_KEY_PEM → ephemeral.
             manifest = EPIContainer.read_manifest(epi_file)
             sealing = None
+            source = None
             if not ephemeral:
                 if key_name:
                     try:
                         km = KeyManager()
                         priv = km.load_private_key(key_name)
                         sealing = (priv, key_name)
+                        source = f"--key {key_name}"
                     except Exception as exc:
                         console.print(f"[yellow][!] --key {key_name} not found: {exc} — falling back to sealing key match[/yellow]")
                 if sealing is None:
                     sealing = _find_sealing_private_key(manifest)
+                    if sealing is not None:
+                        source = f"sealing key {sealing[1]}"
+                if sealing is None:
+                    env_key = _load_trace_private_key_pem()
+                    if env_key is not None:
+                        sealing = (env_key, "TRACE_PRIVATE_KEY_PEM")
+                        source = "TRACE_PRIVATE_KEY_PEM"
 
             if sealing is not None:
                 priv, name = sealing
                 rec = sign_record(rec, priv)
-                console.print(f"[green][OK][/green] Signed with sealing identity key [cyan]{name}[/cyan] (continuity with .epi)")
+                console.print(
+                    f"[green][OK][/green] Signed with [cyan]{source or name}[/cyan] "
+                    f"(self-consistency + binding to this key; not an issuer attestation)"
+                )
             else:
                 if not ephemeral:
-                    console.print("[yellow][!] No sealing key found locally — using ephemeral key. For production, pass --key <name> or run on sealer machine.[/yellow]")
+                    console.print(
+                        "[yellow][!] No --key, sealing key, or TRACE_PRIVATE_KEY_PEM — "
+                        "using ephemeral key. Records cannot be re-verified after this process exits.[/yellow]"
+                    )
                 key = generate_key()
                 rec = sign_record(rec, key)
                 console.print("[dim]Signed with ephemeral Ed25519 key (demo only — not bound to sealer).[/dim]")
-                console.print("[dim]For continuity: epi export trace --key <sealing-key-name>[/dim]")
+                console.print("[dim]For continuity: epi export trace --key <sealing-key-name> or set TRACE_PRIVATE_KEY_PEM[/dim]")
         except ImportError:
             console.print("[red][X] agentrust-trace not installed — cannot sign. Use --no-sign[/red]")
             raise typer.Exit(1)

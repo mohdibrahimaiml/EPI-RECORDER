@@ -137,9 +137,75 @@ regression green) are closed. Source version may lead PyPI; pin from git for pil
 
 ---
 
+## Byte-level seal scope (from 1KB sweep, 4.4.0 demo-banking-aml.epi, 405612 B)
+
+**Task:** flip one byte at every 1 KB, plus first/last byte of every ZIP member and file, then `epi verify`. Offset 658 is the example from the report.
+
+**Map for `verify_portal/static/assets/demo/demo-banking-aml.epi` (marker at 305552, payload at 305584, 12 ZIP members):**
+
+| Outer offset | Region (from `ZipInfo.header_offset` + `compress_size`) | In `file_manifest`? | In `payload_sha256`? | In `__polyglot_viewer__` (reserved_tail[0:32])? | `epi verify` after flip |
+|---|---|---|---|---|---|
+| `0` | Envelope header byte 0 (`<` of `<!--`) | — | — | — | **PASS** (not detected — header magic not strictly hashed) |
+| `10` | Envelope header | — | — | — | **FAIL** (`payload_sha256` or header length) |
+| `128` | HTML prelude start (outer viewer) | No | No | **Yes** | **FAIL** (`__polyglot_viewer__` mismatch) |
+| `658` | **HTML prelude** (outer viewer, `viewer.html` not inner) | No | No | **Yes** | **FAIL** `integrity False {__polyglot_viewer__: expected 0c1f..., got 6c8a...}` `signature_valid True` `decision FAIL` |
+| `305542` | HTML prelude near marker | No | No | Yes | **FAIL** |
+| `305552` | Marker `<!-- EPI_ZIP_PAYLOAD_START -->` | No | No | No | **FAIL** (marker not hashed, but payload length changes) |
+| `305584` | ZIP local header for `mimetype` | No (mimetype excluded) | **Yes** (full ZIP hash) | No | **FAIL** |
+| `305622` | ZIP data `mimetype` | No | Yes | No | **FAIL** |
+| `310040` | ZIP data `steps.jsonl` start | **Yes** (`steps.jsonl` in `file_manifest`) | Yes | No | **FAIL** (both) |
+| `405611` | File last byte (EOCD) | — | Yes | No | **FAIL** |
+| `405512` | ZIP central directory | — | Yes | No | **FAIL** |
+
+**Summary from full 1 KB sweep (405 offsets + 26 member edges + 2 file edges = 433):**
+
+* **HTML prelude [128, 305552)** — 298 KB of outer viewer HTML **is sealed** via `reserved_tail[0:32]` (`__polyglot_viewer__`). Flipping any byte there → `integrity False` `__polyglot_viewer__` mismatch, not `file_manifest` or `step chain`. This is the display layer, not the evidence, but it is tamper-evident since 4.4.1 (legacy all-zero tail was not).
+* **ZIP payload [305584, 405612)** — all 12 members' headers, compressed data, central directory, and EOCD are sealed via `payload_sha256` (envelope) **and** for 10/12 members via `file_manifest` SHA256 (all except `mimetype` and `manifest.json`/`viewer.html` inside ZIP? Actually `viewer.html` **is** in `file_manifest` with `0c1f...`, `steps.jsonl` with `8abe...`, etc.). Flipping any byte there → `FAIL` (either `payload_sha256` or `file_manifest` mismatch, plus `step chain` for `steps.jsonl`).
+* **Envelope header [0,128)** — exhaustive 2026-08-29 XOR of every byte, then `epi verify` (4.4.1): **undetected** offsets **0–3** (magic), **16–31** (artifact UUID), **32–39** (`created_at_micros`). Detected: 4–15 (version/format/flags/length), 40–71 (`payload_sha256`), 72–103 (viewer hash), 104–127 (padding must be zero). These PASS bytes are not `spec_version` (that field is not in the 128-byte header).
+
+**Classification for offset 658:** **Inside sealed scope** (`__polyglot_viewer__`), **correctly detected** (`FAIL` with `integrity False`, `signature_valid True`), **not a verifier bug**. Documented here as display-layer seal, not evidence-layer. If the HTML were outside scope it would be a limitation, but it is inside when `reserved_tail[0:32]` is non-zero. Artifacts with an all-zero viewer hash still skip this check (legacy warning).
+
+**Offset 658 PASS vs FAIL contradiction:** Isolated re-run (2026-08-29) of the same `docs/assets/demo-banking-aml.epi` XOR at byte 658: **PyPI 4.4.0 and local 4.4.1 both FAIL** via `__polyglot_viewer__` (`verifier_version` 4.4.0 vs 4.4.1). Official `epi-recorder==4.4.0` wheel already contains `verify_polyglot_viewer`. 4.4.1 did not close a 4.4.0 detection hole for this offset. An earlier `rc=0 PASS` is not a version split; likely a sweep that only hashed ZIP/`file_manifest` (HTML prelude at 658 is outside those hashes) or `python -m epi_cli` from the repo cwd importing 4.4.1 sources while `pip show` said 4.4.0. The 433-offset sweep that reported FAIL used a verifier with `__polyglot_viewer__` (present in both 4.4.0 PyPI and 4.4.1).
+
+**Evidence for offset 658 flip (literal `epi verify --json`):**
+```
+manifest spec_version 4.4.0
+integrity False {'__polyglot_viewer__': 'polyglot viewer HTML hash mismatch: expected 0c1f41d1ef6281e7…, got 6c8a8cb340e25c1d… (display layer may have been tampered)'}
+signature_valid True
+decision FAIL Integrity compromised
+```
+
+---
+
+## Unsealed envelope header bytes (0–3, 16–39)
+
+The 128-byte envelope-v2 header is **not** signed. `payload_sha256` (bytes 40–71) covers the ZIP payload only. The Ed25519 signature covers canonical `manifest.json` (minus `signature`). XOR of these 28 header bytes still yields `epi verify` PASS.
+
+| Bytes | Field | What it is | Authoritative sealed copy |
+|-------|--------|------------|---------------------------|
+| 0–3 | magic `<!--` | Polyglot HTML-comment opener | None. Cosmetic for “opens in a browser.” Tampering can still locate the ZIP via `EPI_ZIP_PAYLOAD_START` / EOCD. |
+| 16–31 | `artifact_uuid` | 16 raw bytes copied from `manifest.workflow_id` at pack | **`manifest.json` `workflow_id`** (also `manifest.trust.artifact_uuid`). Signed + hashed. There is no top-level `artifact_uuid` key in the manifest schema. |
+| 32–39 | `created_at_micros` | `int(manifest.created_at.timestamp() * 1e6)` at pack | **`manifest.json` `created_at`**. Signed + hashed. RFC 3161 TSA token is over the canonical **unsigned manifest** (includes `created_at` and `workflow_id`), not these header bytes. |
+
+On a clean artifact the header copies **match** the manifest (`workflow_id` / `created_at`). Changing the header does **not** change what `epi verify`, the forensic viewer title/created line, `epi export trace` (`subject` from `workflow_id`; `iat` is wall-clock at export, not either timestamp), or SCITT (`manifest_hash` of the signed manifest) report. Those readers use the ZIP manifest (or `time.time()` for TRACE `iat`).
+
+The header UUID/timestamp are therefore **redundant, unsealed copies**. They are not a silent evidence-time or identity rewrite for current CLI/viewer/TRACE/SCITT paths. Do not treat envelope bytes 16–39 as the source of truth.
+
+RFC 3161 is implemented (`artifacts/notarization/`) but the viewer today shows TSA **availability** (host / token present), not the token’s `genTime`. The independent time claim is the TSA token over the sealed manifest hash, not `created_at_micros`.
+
+---
+
+## TRACE `policy.bundle_hash` is not a Cedar hash
+
+TRACE specifies `policy.bundle_hash` as the SHA-256 of the Cedar policy bundle that governed the session. EPI does not ship or evaluate Cedar. `epi export trace` hashes sealed `policy.json` (fallback `policy_evaluation.json`) and sets `policy.enforcement_mode` to `"declared"`. That is an honest binding to authored policy bytes, not a claim that a Cedar engine ran. Reviewers should not treat the field as a Cedar digest.
+
+`appraisal.status` is always `"none"` on export — we have not issued a TRACE verifier judgment.
+
+---
+
 ## Last updated
 
-2026-08-28 — 4.4.1 wheel 0.64MB, JCS dispatch, TRACE log-import with sealer continuity
+2026-08-29 — unsealed header 0–3/16–39 documented; header vs sealed manifest authority; Level 0 TRACE; offset-658 both 4.4.0/4.4.1 FAIL
 
 2026-08-01 — residual fix-before-PyPI: hosted plan key, dual-mode verify,
 browser Ed25519 honesty, contact route de-dup, product-first home, release hold.

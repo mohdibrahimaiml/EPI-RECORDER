@@ -297,6 +297,37 @@ class TestPrevHashChainVerification:
         assert ok is True
         assert breaks == []
 
+    def test_legacy_dispatch_warns_when_chain_loop_does_not_run(self):
+        """Short legacy artifacts must announce canonicalizer even with one step."""
+        import warnings
+
+        from epi_cli.verify import _verify_step_chain
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            ok, breaks = _verify_step_chain(
+                [{"index": 0, "kind": "test"}],
+                spec_version="4.4.0",
+            )
+        assert ok is True
+        assert breaks == []
+        assert any(
+            issubclass(w.category, UserWarning)
+            and "legacy canonicalization" in str(w.message)
+            and "4.4.0" in str(w.message)
+            for w in caught
+        )
+
+    def test_jcs_dispatch_does_not_warn_on_short_chain(self):
+        import warnings
+
+        from epi_cli.verify import _verify_step_chain
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            _verify_step_chain([{"index": 0, "kind": "test"}], spec_version="4.4.1")
+        assert not any("legacy canonicalization" in str(w.message) for w in caught)
+
     def test_genesis_step_skipped(self):
         """Steps with prev_hash='CHAIN_START' are skipped."""
         from epi_cli.verify import _verify_step_chain

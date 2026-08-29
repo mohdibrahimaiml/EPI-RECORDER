@@ -2,14 +2,14 @@
 
 All notable changes to EPI Recorder are documented here.
 
-## [4.4.1] - 2026-08-28
+## [4.4.1] - 2026-08-29
 
 ### Fixed — Wheel, Canonicalization & TRACE Interop (evidence-correctness)
 
 #### Changed
 
 - **Wheel size 11.0 MB → 0.64 MB** — removed `verify_portal` (19.5 MB demo assets, duplicate video) from `pyproject.toml` `packages.find` + `package-data`. Verified via `zipfile` inventory: `verify_portal 150 → 0` files. Hosted demos remain on `epilabs.org`, not in pip wheel.
-- **Canonical JSON now RFC 8785 (JCS)** — `epi_core/serialize.py` `_get_json_canonical_hash` and `epi_core/container.py` notarize payload now use `rfc8785.dumps` (added `rfc8785>=0.1.4` dep) to match `agentrust-trace 0.9.0` `sign.py:158`. Fixes float `1.0 → 1` divergence that broke cross-implementation verification. Falls back to `json.dumps(sort_keys)` if `rfc8785` unavailable.
+- **Canonical JSON now RFC 8785 (JCS)** — `epi_core/serialize.py` `_get_json_canonical_hash` and `epi_core/container.py` notarize payload now use `rfc8785.dumps` (hard dep `rfc8785>=0.1.4`) to match `agentrust-trace 0.9.0`. Fixes float `1.0 → 1` divergence. Missing `rfc8785` raises; it does not silently fall back. **Verifier dispatch is version-gated:** `manifest.spec_version` `<4.4.1` → legacy `json` sort_keys (warning at dispatch, including short artifacts with no chain), `>=4.4.1` → JCS, `1.x` → CBOR. New seals use different signature bytes than 4.4.0.
 - **Duplicate asset removed** — `verify_portal/static/assets/demo/epi-walkthrough.mp4` identical to parent (SHA256 `9dbbe7eb…` 897609 B) deduplicated.
 
 #### Added
