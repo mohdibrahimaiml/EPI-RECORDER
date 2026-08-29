@@ -4,13 +4,20 @@ All notable changes to EPI Recorder are documented here.
 
 ## [Unreleased]
 
-### Fixed — Legacy signature preimage
+### Tests
 
-- **`content_truncated` null no longer enters the signed bytes.** Pydantic filled the new field as `None` on load. `get_canonical_hash` already omitted it; the **legacy** Ed25519 path (`trust.verify_signature` for `spec_version` before 4.4.1) hashed `model_dump()` including `"content_truncated": null`, so every pre-4.4.2 seal failed `Invalid signature` while file hashes still matched. `omit_absent_optional_hash_fields` is now shared. Do not upload tagged 4.4.2 to PyPI.
+- Frozen goldens `tests/goldens/legacy-spec-4.3.0.epi` and `legacy-spec-4.4.0.epi` must keep `signature_valid` true. New `ManifestModel` optional fields that are absent from the 4.3.0 golden must be listed in `MANIFEST_OMIT_NONE_FROM_HASH`.
+- `scripts/preflight.py` fails if a pre-4.4.1 artifact does not verify `signature_valid`.
 
 ---
 
-## [4.4.2] - 2026-08-29
+## [4.4.2] - 2026-08-29 — withdrawn before PyPI
+
+**Withdrawn.** The GitHub Release and `v4.4.2` tag were deleted. That build hashed Pydantic's synthetic `content_truncated: null` on the legacy Ed25519 path (`spec_version` before 4.4.1), so every artifact sealed before 4.4.1 failed `Invalid signature` while file hashes still matched. It never reached PyPI. Use **4.4.1**, or a later replacement after it is tagged. Hotfix is on `main` (`af69f9d` and follow-ups).
+
+### Fixed — Legacy signature preimage
+
+- **`content_truncated` null no longer enters the signed bytes.** `omit_absent_optional_hash_fields` is shared by the JCS hash and the legacy JSON path. Keep `true`/`false` bound.
 
 ### Fixed — Sealed content completeness
 

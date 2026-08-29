@@ -89,6 +89,8 @@ installer/windows/Output/
 !examples/*.html
 # Allow deterministic test vectors
 !tests/test_vectors/*.epi
+# Frozen preimage goldens — never regenerate
+!tests/goldens/*.epi
 .epi/
 temp_epi_*/
 epi-recordings/

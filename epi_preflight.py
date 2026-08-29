@@ -20,6 +20,69 @@ FAILS: list[str] = []
 REPO = "mohdibrahimaiml/epi-recorder"
 
 
+def _repo_root() -> Path:
+    here = Path(__file__).resolve().parent
+    return here.parent if here.name == "scripts" else here
+
+
+def _spec_tuple(spec: str) -> tuple[int, int, int]:
+    parts: list[int] = []
+    for p in str(spec).lstrip("v").split("."):
+        try:
+            parts.append(int(p))
+        except ValueError:
+            break
+    while len(parts) < 3:
+        parts.append(0)
+    return (parts[0], parts[1], parts[2])
+
+
+def check_legacy_signature_preimage() -> None:
+    """Fail if a frozen pre-4.4.1 artifact does not verify signature_valid."""
+    head("4a. LEGACY SIGNATURE PREIMAGE (pre-4.4.1 golden must stay valid)")
+    golden = _repo_root() / "tests" / "goldens" / "legacy-spec-4.3.0.epi"
+    if not golden.is_file():
+        result(False, "pre-4.4.1 golden present", f"missing {golden}")
+        return
+    env = dict(os.environ, PYTHONIOENCODING="utf-8")
+    env["PYTHONPATH"] = ""
+    cwd = "C:\\" if os.name == "nt" else "/"
+    try:
+        r = subprocess.run(
+            [sys.executable, "-m", "epi_cli", "verify", str(golden), "--json"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=env,
+            cwd=cwd,
+            timeout=180,
+        )
+    except Exception as e:
+        result(False, "verify pre-4.4.1 golden", str(e))
+        return
+    text = (r.stdout or "") + (r.stderr or "")
+    i, j = text.find("{"), text.rfind("}")
+    if i < 0:
+        result(False, "verify pre-4.4.1 golden --json", text[-400:] or f"rc={r.returncode}")
+        return
+    rep = json.loads(text[i : j + 1])
+    facts = rep.get("facts") or rep
+    meta = rep.get("metadata") or {}
+    spec = str(meta.get("spec_version") or "")
+    sig = facts.get("signature_valid")
+    result(
+        _spec_tuple(spec) < (4, 4, 1),
+        "golden spec_version is before 4.4.1",
+        f"spec_version={spec}",
+    )
+    result(
+        sig is True,
+        "pre-4.4.1 signature_valid is True",
+        f"signature_valid={sig} decision={rep.get('decision')}",
+    )
+
+
 def result(ok, name, detail=""):
     tag = "PASS" if ok else "FAIL"
     if not ok:
@@ -177,12 +240,34 @@ def check_artifacts(paths):
             continue
         try:
             sub_env = dict(os.environ, PYTHONIOENCODING="utf-8")
-            r = subprocess.run([sys.executable, "-m", "epi_cli", "verify", str(p)],
-                               capture_output=True, text=True, encoding="utf-8", errors="replace", env=sub_env, timeout=180)
-            out = ((r.stdout or "") + (r.stderr or ""))
-            bad = "FAIL" in out.upper() or r.returncode != 0
-            result(not bad, f"verify {p.name}",
-                   out.strip().splitlines()[-1] if out.strip() else f"rc={r.returncode}")
+            sub_env["PYTHONPATH"] = ""
+            cwd = "C:\\" if os.name == "nt" else "/"
+            r = subprocess.run(
+                [sys.executable, "-m", "epi_cli", "verify", str(p), "--json"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                env=sub_env,
+                cwd=cwd,
+                timeout=180,
+            )
+            out = (r.stdout or "") + (r.stderr or "")
+            i, j = out.find("{"), out.rfind("}")
+            if i < 0:
+                result(False, f"verify {p.name}", out[-400:] or f"rc={r.returncode}")
+                continue
+            rep = json.loads(out[i : j + 1])
+            facts = rep.get("facts") or rep
+            dec = rep.get("decision") or {}
+            status = dec.get("status") if isinstance(dec, dict) else dec
+            sig = facts.get("signature_valid")
+            ok = sig is True and str(status).upper() != "FAIL"
+            result(
+                ok,
+                f"verify {p.name}",
+                f"signature_valid={sig} decision={status} (WARN identity is allowed)",
+            )
         except Exception as e:
             result(False, f"verify {p.name}", str(e))
 
@@ -287,10 +372,17 @@ def main():
 
     print("epi-recorder PRE-SUBMISSION PREFLIGHT")
     print(f"python: {sys.executable}")
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
 
     check_external(a.sha)
     check_install()
     check_canonicalization()
+    check_legacy_signature_preimage()
     check_artifacts(a.epi)
     check_trace(a.epi[0] if a.epi else None)
 

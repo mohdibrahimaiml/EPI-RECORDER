@@ -14,15 +14,23 @@ import cbor2
 from pydantic import BaseModel
 
 
+# Manifest fields added after existing artifacts were sealed. Pydantic fills
+# them as None; hashing that null changes the Ed25519 preimage. Keep true/false.
+# Any new Optional field that is absent from tests/goldens/legacy-spec-4.3.0.epi
+# must be listed here — test_legacy_preimage.py enforces it.
+MANIFEST_OMIT_NONE_FROM_HASH: frozenset[str] = frozenset({"content_truncated"})
+
+
 def omit_absent_optional_hash_fields(model_dict: dict[str, Any], class_name: str) -> None:
     """Drop fields that did not exist when older artifacts were signed.
 
-    Pydantic fills content_truncated=None on load. Including that null in the
-    signature preimage breaks Ed25519 for every seal that omitted the field
-    (legacy JSON and JCS). Keep false/true so new artifacts still assert it.
+    Shared by JCS (`get_canonical_hash`) and the legacy JSON signature path.
     """
-    if class_name == "ManifestModel" and model_dict.get("content_truncated") is None:
-        model_dict.pop("content_truncated", None)
+    if class_name != "ManifestModel":
+        return
+    for key in MANIFEST_OMIT_NONE_FROM_HASH:
+        if model_dict.get(key) is None:
+            model_dict.pop(key, None)
 
 
 def _cbor_default_encoder(encoder, value: Any) -> None:
