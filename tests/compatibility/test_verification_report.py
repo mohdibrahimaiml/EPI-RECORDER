@@ -53,6 +53,21 @@ FROZEN_FAILURE_KEYS = {
     "error_type",
 }
 
+FROZEN_FACTS_KEYS = {
+    "integrity_ok",
+    "signature_valid",
+    "sequence_ok",
+    "completeness_ok",
+    "chain_ok",
+    "has_signature",
+    "mismatches",
+    "transparency_ok",
+    "completeness_gaps",
+    "forensic_reason",
+    "content_truncated",
+    "content_complete_asserted",
+}
+
 
 def test_success_report_keys_are_frozen():
     manifest = ManifestModel()
@@ -94,22 +109,8 @@ def test_report_nested_facts_keys():
         trusted_registry=TrustRegistry(),
     )
     facts_keys = set(report["facts"].keys())
-    expected_facts = {
-        "integrity_ok",
-        "signature_valid",
-        "sequence_ok",
-        "completeness_ok",
-        "chain_ok",
-        "has_signature",
-        "mismatches",
-        "transparency_ok",
-        "completeness_gaps",
-        "forensic_reason",
-        "content_truncated",
-        "content_complete_asserted",
-    }
-    assert facts_keys == expected_facts, (
-        f"facts keys changed: {facts_keys ^ expected_facts}"
+    assert facts_keys == FROZEN_FACTS_KEYS, (
+        f"facts keys changed: {facts_keys ^ FROZEN_FACTS_KEYS}"
     )
 
 

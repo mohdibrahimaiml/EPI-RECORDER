@@ -33,6 +33,7 @@ FROZEN_MANIFEST_FIELDS = {
     "governance",
     "viewer_version",
     "policy",
+    "content_truncated",
 }
 
 

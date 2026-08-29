@@ -23,7 +23,7 @@ from epi_recorder.api import EpiRecorderSession
 
 # Import frozen compatibility contracts so this test breaks if they drift
 from tests.compatibility.test_manifest_schema import FROZEN_MANIFEST_FIELDS
-from tests.compatibility.test_verification_report import FROZEN_REPORT_KEYS
+from tests.compatibility.test_verification_report import FROZEN_FACTS_KEYS, FROZEN_REPORT_KEYS
 from tests.helpers.artifacts import (
     make_decision_epi,
     read_legacy_member_json,
@@ -290,18 +290,7 @@ class TestReportStructureStability:
         report = json.loads(result.stdout)
 
         assert set(report.keys()) == FROZEN_REPORT_KEYS
-        assert set(report["facts"].keys()) == {
-            "integrity_ok",
-            "signature_valid",
-            "sequence_ok",
-            "completeness_ok",
-            "chain_ok",
-            "has_signature",
-            "mismatches",
-            "transparency_ok",
-            "completeness_gaps",
-            "forensic_reason",
-        }
+        assert set(report["facts"].keys()) == FROZEN_FACTS_KEYS
         assert set(report["identity"].keys()) == {
             "status",
             "name",
