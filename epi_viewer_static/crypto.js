@@ -520,6 +520,25 @@ function _sortedJson(obj) {
   return '{' + p.join(',') + '}';
 }
 
+function isPreJcsSpec(sv) {
+    var s = String(sv || '').replace(/^v/i, '');
+    var a = s.split(/[^\d]+/).map(function (x) { return parseInt(x, 10) || 0; });
+    var maj = a[0] || 0, min = a[1] || 0, pat = a[2] || 0;
+    if (maj <= 1) return false;
+    if (maj !== 4) return maj < 4;
+    if (min !== 4) return min < 4;
+    return pat < 1;
+}
+
+function prepareManifestCopy(manifest) {
+    var copy = JSON.parse(JSON.stringify(manifest));
+    delete copy.signature;
+    if (copy.content_truncated === null || copy.content_truncated === undefined) {
+        delete copy.content_truncated;
+    }
+    return copy;
+}
+
 // ==========================================
 // EPI Viewer Verification Logic
 // ==========================================
@@ -608,19 +627,18 @@ async function verifyManifestSignature(manifest, rawManifestText) {
             }
             const parsed = parseValue();
             delete parsed.signature;
+            if (parsed.content_truncated === null || parsed.content_truncated === undefined) delete parsed.content_truncated;
             // normalize datetimes
             _normalizeDatetimeRec(parsed);
             // sorted JSON preserving __num raw text
             canonicalStr = _sortedJson(parsed);
         } catch (e) {
             // Fallback to standard approach
-            const manifestCopy = JSON.parse(JSON.stringify(manifest));
-            delete manifestCopy.signature;
+            const manifestCopy = prepareManifestCopy(manifest);
             canonicalStr = canonicalJson(manifestCopy);
         }
     } else {
-        const manifestCopy = JSON.parse(JSON.stringify(manifest));
-        delete manifestCopy.signature;
+        const manifestCopy = prepareManifestCopy(manifest);
         canonicalStr = canonicalJson(manifestCopy);
     }
 

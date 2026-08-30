@@ -34,6 +34,22 @@ def test_canonical_exists():
     assert CANONICAL.is_file(), f"canonical verifier missing: {CANONICAL}"
 
 
+def test_embedded_viewer_matches_canonical_logic():
+    """The pack-time embedded viewer (epi_viewer_static/crypto.js) must contain the same fix as the canonical site verifier.
+
+    This is the seventh copy that was missed: baked into every .epi at seal time via
+    epi_core/viewer_assets.py. If it diverges, double-click (file://) shows INVALID while
+    website/js shows valid — the product thesis break.
+    """
+    embedded = ROOT / "epi_viewer_static" / "crypto.js"
+    assert embedded.is_file(), f"embedded viewer missing: {embedded}"
+    canon_text = CANONICAL.read_text(encoding="utf-8", errors="ignore")
+    emb_text = embedded.read_text(encoding="utf-8", errors="ignore")
+    for marker in ("isPreJcsSpec", "prepareManifestCopy", "content_truncated"):
+        assert marker in canon_text, f"canonical missing {marker} — fix not deployed to site"
+        assert marker in emb_text, f"embedded crypto.js missing {marker} — patch epi_viewer_static/crypto.js from website/js/epi-verify-core.js"
+
+
 def test_no_divergent_copies():
     assert CANONICAL.is_file(), "canonical missing"
     canon_norm = _norm(CANONICAL.read_bytes())

@@ -201,6 +201,72 @@ def check_browser_verifier_js() -> None:
     )
 
 
+def check_embedded_viewer() -> None:
+    """Seal a fresh .epi and assert its embedded viewer.html contains current verifier logic.
+
+    A test that only checks files on disk misses the seventh copy — the template
+    baked into every artifact at seal time via epi_viewer_static/crypto.js.
+    """
+    head("4d. EMBEDDED VIEWER (pack-time viewer.html contains current verifier)")
+    try:
+        from epi_core.container import EPIContainer, EPI_ZIP_MARKER
+        from epi_core.schemas import ManifestModel
+    except Exception as e:
+        return skip("embedded viewer", str(e))
+    td = Path(tempfile.mkdtemp(prefix="preflight-embedded-"))
+    epi_path = td / "embedded-check.epi"
+    try:
+        # Minimal workspace: steps.jsonl + manifest
+        (td / "steps.jsonl").write_text('{"index":0,"kind":"session.start","content":{"workflow_name":"preflight-embedded"}}\n', encoding="utf-8")
+        manifest = ManifestModel()
+        # Use default packing (generates viewer.html via epi_viewer_static/crypto.js)
+        EPIContainer.pack(td, manifest, epi_path)
+        raw = epi_path.read_bytes()
+        idx = raw.find(EPI_ZIP_MARKER)
+        if idx == -1:
+            return result(False, "embedded viewer marker found", "EPI_ZIP_MARKER not in artifact")
+        # viewer is between header+comment and marker
+        marker_off = raw.find(b"<!-- EPI_ZIP_PAYLOAD_START -->")
+        # Extract viewer html bytes between header close and marker (best effort)
+        viewer_bytes = raw[128:marker_off] if marker_off != -1 else b""
+        # Also try extracting viewer.html from zip payload directly
+        try:
+            import zipfile, io
+            payload = raw[idx + len(EPI_ZIP_MARKER):] if idx != -1 else raw
+            # need to find actual zip start via EPIContainer logic; simpler: unpack and read file
+            unpack = Path(tempfile.mkdtemp(prefix="preflight-unpack-"))
+            EPIContainer.unpack(epi_path, unpack)
+            viewer_text = (unpack / "viewer.html").read_text(encoding="utf-8", errors="ignore")
+            shutil.rmtree(unpack, ignore_errors=True)
+        except Exception:
+            viewer_text = viewer_bytes.decode("utf-8", errors="ignore")
+        has_pre = "isPreJcsSpec" in viewer_text
+        has_prepare = "prepareManifestCopy" in viewer_text
+        has_trunc = "content_truncated" in viewer_text
+        ok = has_pre and has_prepare and has_trunc
+        result(ok, "embedded viewer.html contains isPreJcsSpec + prepareManifestCopy + content_truncated",
+               f"isPreJcsSpec={has_pre} prepareManifestCopy={has_prepare} content_truncated={has_trunc} viewer_len={len(viewer_text)}")
+        # Also verify the freshly sealed artifact verifies (so embedded viewer not stale)
+        try:
+            env2 = dict(os.environ, PYTHONIOENCODING="utf-8")
+            env2["PYTHONPATH"] = ""
+            cwd2 = "C:\\" if os.name == "nt" else "/"
+            r = subprocess.run([sys.executable, "-m", "epi_cli", "verify", str(epi_path), "--json"],
+                               capture_output=True, text=True, encoding="utf-8", errors="replace", env=env2, cwd=cwd2, timeout=60)
+            text = (r.stdout or "") + (r.stderr or "")
+            i, j = text.find("{"), text.rfind("}")
+            if i >= 0:
+                rep = json.loads(text[i:j+1])
+                sig = (rep.get("facts") or rep).get("signature_valid")
+                result(sig is True, "freshly sealed artifact verifies (signature_valid)", f"signature_valid={sig}")
+        except Exception as e:
+            skip("fresh seal verify", str(e))
+    except Exception as e:
+        result(False, "embedded viewer check", str(e))
+    finally:
+        shutil.rmtree(td, ignore_errors=True)
+
+
 def result(ok, name, detail=""):
     tag = "PASS" if ok else "FAIL"
     if not ok:
@@ -578,6 +644,7 @@ def main():
     check_live_sample_epi()
     check_live_verifier_js()
     check_browser_verifier_js()
+    check_embedded_viewer()
     check_artifacts(a.epi)
     check_trace(a.epi[0] if a.epi else None)
 
