@@ -238,3 +238,10 @@ epi_policy.json
 # Local contact form submissions (transient)
 contact_submissions/
 
+
+# Local attic / scratch builds (never committed)
+attic/
+# Large media not tracked
+*.mp4
+*.trace.json
+build-v4.4.1.trace.json

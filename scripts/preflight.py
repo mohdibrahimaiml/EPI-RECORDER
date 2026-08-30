@@ -137,6 +137,31 @@ def check_live_sample_epi() -> None:
     )
 
 
+def check_live_verifier_js() -> None:
+    """Live https://epilabs.org/js/epi-verify-core.js must match website/js/ (CRLF-normalized)."""
+    head("4c-live. LIVE VERIFIER JS (epilabs.org matches website/js/)")
+    try:
+        import requests
+    except ImportError:
+        return skip("live verifier JS", "pip install requests")
+    url = "https://epilabs.org/js/epi-verify-core.js"
+    canon = _repo_root() / "website" / "js" / "epi-verify-core.js"
+    if not canon.is_file():
+        return result(False, "canonical website/js/epi-verify-core.js present", f"missing {canon}")
+    try:
+        r = requests.get(url, timeout=30)
+    except Exception as e:
+        return result(False, "GET live verifier JS", str(e))
+    if r.status_code != 200:
+        return result(False, "GET live verifier JS is HTTP 200", f"HTTP {r.status_code}")
+    live_norm = r.content.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    canon_norm = canon.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    lh = hashlib.sha256(live_norm).hexdigest()
+    ch = hashlib.sha256(canon_norm).hexdigest()
+    result(lh == ch, "live verifier matches website/js/epi-verify-core.js (CRLF-normalized)",
+           f"live={lh[:12]} canon={ch[:12]} live_len={len(r.content)} canon_len={len(canon.read_bytes())}")
+
+
 def check_browser_verifier_js() -> None:
     """Known-good golden must verify under the website JS (Node)."""
     head("4c. BROWSER VERIFIER JS (Node, known-good golden)")
@@ -551,6 +576,7 @@ def main():
     check_canonicalization()
     check_legacy_signature_preimage()
     check_live_sample_epi()
+    check_live_verifier_js()
     check_browser_verifier_js()
     check_artifacts(a.epi)
     check_trace(a.epi[0] if a.epi else None)
