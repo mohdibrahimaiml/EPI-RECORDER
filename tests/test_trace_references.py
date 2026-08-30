@@ -70,6 +70,7 @@ def test_references_subschema_is_verbatim():
 
 def test_auto_on_090_omits_references_and_validates():
     """Real 0.9.0 schema, default auto -> no references, iter_errors empty."""
+    pytest.importorskip("agentrust_trace")
     from agentrust_trace import iter_errors
 
     # Ensure installed schema indeed does not support references (0.9.0)
@@ -84,6 +85,7 @@ def test_auto_on_090_omits_references_and_validates():
 
 def test_forced_on_against_090_fails_with_additionalproperties():
     """Forced on against 0.9.0 must fail validation with additionalProperties message, not skip."""
+    pytest.importorskip("agentrust_trace")
     from agentrust_trace import iter_errors
 
     rec = epi_to_trace_record(GOLDEN_EPI, transcript_uri="https://example.com/artifacts/spec-4.4.3.epi", references="on")
@@ -124,6 +126,7 @@ def _patch_schema(monkeypatch, patched):
 
 def test_monkeypatched_schema_auto_emits_and_validates(monkeypatch):
     """With SCHEMA patched to include references, auto emits, verifies, tamper fails, digest matches."""
+    pytest.importorskip("agentrust_trace")
     import agentrust_trace
 
     # Monkeypatch SCHEMA to include references property (deep copy)
@@ -168,6 +171,7 @@ def test_monkeypatched_schema_auto_emits_and_validates(monkeypatch):
 
 def test_forced_off_always_omits_even_with_patched_schema(monkeypatch):
     """references=off must omit even when schema supports it."""
+    pytest.importorskip("agentrust_trace")
     import agentrust_trace
 
     orig_schema = copy.deepcopy(agentrust_trace.SCHEMA)
@@ -183,6 +187,7 @@ def test_forced_off_always_omits_even_with_patched_schema(monkeypatch):
 
 def test_golden_regression(monkeypatch):
     """Frozen golden of emitted record for regression (monkeypatched)."""
+    pytest.importorskip("agentrust_trace")
     import agentrust_trace
 
     # Generate with patched schema so golden contains references
