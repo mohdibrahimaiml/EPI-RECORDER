@@ -5,7 +5,31 @@ Uses ONLY shipped TRACE v0.2 fields (tool_transcript, origin log-import,
 enforcement_mode declared, software-only). Validated via agentrust_trace.iter_errors
 before signing.
 
-Spec: trace-v0.2.json
+Spec: trace-v0.2.json, with optional `references` / `behavior-trace`
+forward-compat (trace-spec main, issue #241). Validated at runtime via
+agentrust_trace.SCHEMA inspection, not version strings.
+
+`references` sub-schema (from https://raw.githubusercontent.com/agentrust-io/trace-spec/main/schema/trace-claim.json):
+{
+  "type": "array",
+  "description": "Facts outside this record that it points at. Spec section 3.1.2. An entry is a pointer, not evidence: the signature attests that this record points there, not the truth of what it points at. The block is assurance-neutral and does not affect runtime.platform. Two further rules in 3.1.2 bind verifiers rather than records, so this schema cannot express them: a verifier MUST NOT reject a record because an entry cannot be resolved, and MUST NOT treat a resolved entry as attested evidence.",
+  "items": {
+    "type": "object",
+    "required": ["rel", "id", "resolver"],
+    "properties": {
+      "rel": {"type": "string", "minLength": 1, "description": "Relationship type. The registered values are a registry that grows, so this is not a closed set. authorized-intent: an authorization decided before execution, held in another system. approval-outcome: an attributable human approval attached to a step-up or defer decision. behavior-trace: a behavioural record of what the agent did, of which this record is the environment evidence."},
+      "id": {"type": "string", "minLength": 1, "description": "Identifier of the referenced fact within the resolver's system."},
+      "resolver": {"type": "string", "minLength": 1, "description": "Identifier of the party obliged to resolve id. A producer that cannot name one omits the entry. Which identifiers are self-asserted is not decidable from the record, so this constrains the field's presence and not its value."},
+      "retention": {"type": "string", "pattern": "^P(\\d+W|(\\d+Y(\\d+M)?(\\d+D)?|\\d+M(\\d+D)?|\\d+D)(T(\\d+H(\\d+M)?(\\d+S)?|\\d+M(\\d+S)?|\\d+S))?|T(\\d+H(\\d+M)?(\\d+S)?|\\d+M(\\d+S)?|\\d+S))$", "description": "Period for which resolver undertakes to keep id resolvable, as an ISO 8601 duration. An undertaking only: nothing in this specification enforces it."},
+      "digest": {"type": "string", "pattern": "^sha(256:[0-9a-f]{64}|384:[0-9a-f]{96})$", "description": "SHA-256 or SHA-384 digest of the referenced object, when the producer holds it at issue time."}
+    },
+    "additionalProperties": false
+  }
+}
+Required: rel, id, resolver. Allowed rel (open registry): authorized-intent, approval-outcome, behavior-trace.
+Two verifier obligations (from description, not schema-enforceable):
+  - verifier MUST NOT reject a record because an entry cannot be resolved
+  - verifier MUST NOT treat a resolved entry as attested evidence
 """
 from __future__ import annotations
 
@@ -41,6 +65,63 @@ def _count_steps(epi_path: Path) -> int:
             return 0
 
 
+def _schema_supports_references() -> bool:
+    """Return True iff the installed agentrust_trace.SCHEMA declares `references`.
+
+    Inspects the schema itself, never a version string, so the same code
+    works before and after the upstream release (trace-spec issue #241).
+    """
+    try:
+        import agentrust_trace
+
+        schema = getattr(agentrust_trace, "SCHEMA", None)
+        if not isinstance(schema, dict):
+            return False
+        props = schema.get("properties") or {}
+        return "references" in props
+    except Exception:
+        return False
+
+
+def _build_references_entry(
+    epi_path: Path,
+    transcript_uri: str,
+    epi_hash: str,
+    workflow_id: str,
+) -> dict | None:
+    """Build one behavior-trace references entry pointing at the .epi.
+
+    Field names verbatim from trace-spec main schema/trace-claim.json:
+      rel, id, resolver, digest (retention optional, omitted).
+
+    resolver is the party obliged to resolve `id` per §3.1.2.
+    A producer that cannot name one MUST omit the entry — never emit a
+    placeholder like https://example.com or epilabs.org for artifacts we
+    do not host.
+    """
+    try:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(transcript_uri)
+        if parsed.scheme not in ("https", "http") or not parsed.netloc:
+            return None
+        # Do not invent a resolver for placeholder artifact URLs we did not
+        # provide. If the transcript is not hosted, we cannot name the party
+        # obliged to resolve it, so we omit per spec.
+        resolver = f"{parsed.scheme}://{parsed.netloc}"
+    except Exception:
+        return None
+    ref_id = transcript_uri if transcript_uri else (workflow_id or epi_path.name)
+    if not ref_id or not str(ref_id).strip():
+        return None
+    return {
+        "rel": "behavior-trace",
+        "id": ref_id,
+        "resolver": resolver,
+        "digest": epi_hash,
+    }
+
+
 def epi_to_trace_record(
     epi_path: Path | str,
     transcript_uri: Optional[str] = None,
@@ -51,12 +132,19 @@ def epi_to_trace_record(
     data_class: str = "internal",
     extra_transparency: str = "https://epilabs.org/transparency/receipt",
     appraiser: str = "https://epilabs.org/verifier",
+    references: str = "auto",
 ) -> Dict[str, Any]:
     """
     Build an unsigned TRACE v0.2 Trust Record from a sealed .epi.
 
     The .epi file is the transcript; tool_transcript.hash commits to it.
     Caller must sign via agentrust_trace.sign_record before distribution.
+
+    references: auto | on | off
+      auto (default): emit `references` with one behavior-trace entry iff the
+        installed agentrust_trace.SCHEMA declares it (runtime detection).
+      on: force emission (test post-release path; will fail validation on 0.9.0).
+      off: force omission.
     """
     epi_path = Path(epi_path)
     if not epi_path.exists():
@@ -82,6 +170,7 @@ def epi_to_trace_record(
     epi_hash = _epi_file_hash(epi_path)
     call_count = _count_steps(epi_path)
     # Transcript URI: require explicit for production; default is a placeholder that warns
+    transcript_uri_provided = transcript_uri is not None
     if transcript_uri is None:
         # Use manifest governance URL if available, else placeholder (caller should pass real hosted URL)
         transcript_uri = f"https://epilabs.org/artifacts/{epi_path.name}"
@@ -161,6 +250,39 @@ def epi_to_trace_record(
             "jwk": {"kty": "OKP", "crv": "Ed25519", "x": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
         },
     }
+
+    # — references / behavior-trace (trace-spec §3.1.2, issue #241)
+    # tool_transcript is the integrity binding (hash of the transcript).
+    # references is the pointer that says "this record's environment evidence
+    # lives in that behavioural record" — assurance-neutral, not evidence.
+    # Both commit to the same .epi bytes (same sha256), but they assert
+    # different things: tool_transcript asserts the transcript digest,
+    # references asserts the existence and location of the behavior trace.
+    # Two verifier rules from 3.1.2 bind verifiers, not records:
+    #   a verifier MUST NOT reject a record because an entry cannot be resolved
+    #   a verifier MUST NOT treat a resolved entry as attested evidence
+    # Emitted only when the installed schema declares `references`; otherwise
+    # omitted silently so 0.9.0 validation stays green.
+    references_mode = str(references).lower().strip() if isinstance(references, str) else "auto"
+    if references_mode not in ("auto", "on", "off"):
+        references_mode = "auto"
+    supports_refs = _schema_supports_references()
+    should_emit = (references_mode == "on") or (references_mode == "auto" and supports_refs)
+    if references_mode == "off":
+        should_emit = False
+    # Per §3.1.2: if we cannot name the party obliged to resolve `id`, omit the
+    # entry entirely instead of emitting a placeholder. For auto-generated
+    # placeholder transcript_uris we cannot name a resolver, so omit.
+    if should_emit:
+        if not transcript_uri_provided and references_mode != "on":
+            # No explicit transcript_uri — cannot name resolver, omit per spec
+            should_emit = False
+        else:
+            entry = _build_references_entry(epi_path, transcript_uri, epi_hash, workflow_id)
+            if entry is None:
+                should_emit = False
+            else:
+                record["references"] = [entry]
     # Attach warnings for placeholder URLs so CLI can surface them
     record["_epi_warnings"] = []
     if "artifacts" in transcript_uri and "epilabs.org/artifacts" in transcript_uri:

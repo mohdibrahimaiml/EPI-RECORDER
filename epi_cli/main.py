@@ -384,6 +384,7 @@ def export_trace(
     sign: bool = typer.Option(True, "--sign/--no-sign", help="Sign the record (default: sign with sealing identity key)"),
     ephemeral: bool = typer.Option(False, "--ephemeral", help="Force ephemeral key (demo only — not verifiable as sealer)"),
     key_name: str | None = typer.Option(None, "--key", help="Local key name that sealed the .epi (default: auto-match sealing key)"),
+    references: str = typer.Option("auto", "--references", help="Emit behavior-trace references: auto (schema-detected), on (force), off (omit)"),
 ):
     """Export a sealed .epi artifact as a TRACE v0.2 Trust Record (log-import).
 
@@ -404,8 +405,11 @@ def export_trace(
     )
     from epi_core.container import EPIContainer
 
+    if references not in ("auto", "on", "off"):
+        console.print("[red][X] --references must be auto|on|off[/red]")
+        raise typer.Exit(1)
     out_path = Path(out) if out is not None else epi_file.with_suffix(".trace.json")
-    rec = epi_to_trace_record(epi_file, transcript_uri=transcript_uri)
+    rec = epi_to_trace_record(epi_file, transcript_uri=transcript_uri, references=references)
 
     # Surface placeholder warnings
     for w in rec.pop("_epi_warnings", []):

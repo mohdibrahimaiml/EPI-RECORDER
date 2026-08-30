@@ -353,7 +353,7 @@ def check_artifacts(paths):
     if not paths:
         return skip("artifact verify", "pass --epi <file> (repeatable)")
     for p in paths:
-        p = Path(p)
+        p = Path(p).resolve()
         if not p.exists():
             result(False, f"verify {p.name}", "file not found")
             continue
