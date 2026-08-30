@@ -231,9 +231,17 @@ async def paddle_webhook(request: Request):
     raw_body = await request.body()
     signature = request.headers.get("paddle-signature", "")
 
-    if PADDLE_WEBHOOK_SECRET:
-        if not signature or not verify_paddle_signature(raw_body, signature, PADDLE_WEBHOOK_SECRET):
-            raise HTTPException(status_code=401, detail="Invalid Paddle webhook signature")
+    if not PADDLE_WEBHOOK_SECRET:
+        import logging as _logging
+
+        _logging.getLogger("uvicorn.error").error(
+            "PADDLE_WEBHOOK_SECRET is not configured — rejecting webhook. "
+            "Set PADDLE_WEBHOOK_SECRET and PADDLE_ENV correctly; no unverified webhook will be processed."
+        )
+        raise HTTPException(status_code=500, detail="Webhook secret not configured")
+
+    if not signature or not verify_paddle_signature(raw_body, signature, PADDLE_WEBHOOK_SECRET):
+        raise HTTPException(status_code=401, detail="Invalid Paddle webhook signature")
 
     event = json.loads(raw_body)
     event_type = event.get("event_type", "")

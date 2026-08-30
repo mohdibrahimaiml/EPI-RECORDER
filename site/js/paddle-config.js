@@ -13,39 +13,27 @@ window.EPI_PADDLE_CONFIG = {
 
   tiers: [
     {
-      name: "Starter",
-      description: "Seal and verify agent runs for a small team.",
+      name: "Hosted",
+      description: "For teams shipping agents into regulated workflows. 10k hosted verifications, remote SCITT, 10 API keys.",
       features: [
-        "Up to 3 org members",
-        "100 sealed runs / month",
-        "Offline verify + embedded viewer",
+        "10,000 hosted verifications / month",
+        "Remote SCITT anchoring",
+        "10 API keys",
+        "Offline verify + embedded viewer (always free)",
         "Community support"
-      ],
-      featured: false,
-      priceId: { month: "pri_01m0y54ba4vpjaczkkn56hpc9m", year: "pri_01m0y54bn0pqwrvvyqhf1qq1ge" }
-    },
-    {
-      name: "Pro",
-      description: "For teams shipping agents into regulated workflows.",
-      features: [
-        "Unlimited org members",
-        "Unlimited sealed runs",
-        "Org keys + trust bundles",
-        "Policy rules + fault analyzer",
-        "Priority support"
       ],
       featured: true,
       priceId: { month: "pri_01m0y54canxd7z63ykf928qs04", year: "pri_01m0y54ckbm8vj32dsms9xfeev" }
     },
     {
-      name: "Advanced",
-      description: "Hosted custody, retention, and SCITT for enterprises.",
+      name: "Team",
+      description: "Hosted custody, retention, and SCITT at volume for enterprises.",
       features: [
-        "Everything in Pro",
-        "Hosted receipts + 7-year retention",
+        "50,000 hosted verifications / month",
         "Remote SCITT registration",
-        "Hosted verify at volume",
-        "SLA + procurement support"
+        "50 API keys",
+        "Hosted receipts + retention",
+        "Priority support"
       ],
       featured: false,
       priceId: { month: "pri_01m0y54d6t0q3ehgqmmepg45vj", year: "pri_01m0y54df4smpc7qq4p21j4v9s" }
