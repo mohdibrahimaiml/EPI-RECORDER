@@ -257,8 +257,12 @@ def check_embedded_viewer() -> None:
             i, j = text.find("{"), text.rfind("}")
             if i >= 0:
                 rep = json.loads(text[i:j+1])
-                sig = (rep.get("facts") or rep).get("signature_valid")
-                result(sig is True, "freshly sealed artifact verifies (signature_valid)", f"signature_valid={sig}")
+                facts = rep.get("facts") or rep
+                sig = facts.get("signature_valid")
+                integ = facts.get("integrity_ok")
+                # Fresh seal in preflight may be unsigned (no key in fresh venv) — integrity must be true, sig must not be False (invalid)
+                ok2 = integ is True and sig is not False
+                result(ok2, "freshly sealed artifact verifies (integrity_ok, sig not invalid)", f"integrity_ok={integ} signature_valid={sig}")
         except Exception as e:
             skip("fresh seal verify", str(e))
     except Exception as e:

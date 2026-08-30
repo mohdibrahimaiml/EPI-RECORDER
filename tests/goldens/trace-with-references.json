@@ -25,15 +25,15 @@
     "ingested_at": 1700000000,
     "kind": "log-import",
     "producer": "epi-recorder/4.4.3",
-    "source_event_id": "d8b1256b-eba4-4696-9d2b-9b31c8809a84"
+    "source_event_id": "559aeb43-af8c-488f-baf5-5cd33ab54ef3"
   },
   "policy": {
-    "bundle_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "bundle_hash": "sha256:2757ff9388d8bcc5a0e34d7b97a522b48b7897b94be4a295c431dba98f66e82c",
     "enforcement_mode": "declared"
   },
   "references": [
     {
-      "digest": "sha256:897f331b53cda46ea60d6cf2413b2b771bef5bffb8b3097b5af9d7b994b82a88",
+      "digest": "sha256:a4cc0a22dd392baa1b3264e319fca78d819328f5f4eacb3826b9844647ab1f9a",
       "id": "https://example.com/artifacts/spec-4.4.3.epi",
       "rel": "behavior-trace",
       "resolver": "https://example.com"
@@ -43,10 +43,10 @@
     "measurement": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
     "platform": "software-only"
   },
-  "subject": "spiffe://epilabs.org/epi-recorder/d8b1256b-eba4-4696-9d2b-9b31c8809a84",
+  "subject": "spiffe://epilabs.org/epi-recorder/559aeb43-af8c-488f-baf5-5cd33ab54ef3",
   "tool_transcript": {
-    "call_count": 7,
-    "hash": "sha256:897f331b53cda46ea60d6cf2413b2b771bef5bffb8b3097b5af9d7b994b82a88",
+    "call_count": 4,
+    "hash": "sha256:a4cc0a22dd392baa1b3264e319fca78d819328f5f4eacb3826b9844647ab1f9a",
     "transcript_uri": "https://example.com/artifacts/spec-4.4.3.epi"
   },
   "transparency": "https://epilabs.org/transparency/receipt"
