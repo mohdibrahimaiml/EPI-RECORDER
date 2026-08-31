@@ -30,6 +30,8 @@ def test_v2_manifest_uses_json_canonicalization():
     model_dict = manifest.model_dump()
     if model_dict.get("content_truncated") is None:
         model_dict.pop("content_truncated", None)
+    if model_dict.get("policy_load_status") is None:
+        model_dict.pop("policy_load_status", None)
     # normalize datetime/UUID
     model_dict["created_at"] = manifest.created_at.replace(microsecond=0, tzinfo=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     model_dict["workflow_id"] = str(manifest.workflow_id)
@@ -48,6 +50,8 @@ def test_v1_manifest_uses_cbor_canonicalization():
     model_dict = manifest.model_dump()
     if model_dict.get("content_truncated") is None:
         model_dict.pop("content_truncated", None)
+    if model_dict.get("policy_load_status") is None:
+        model_dict.pop("policy_load_status", None)
     model_dict["created_at"] = manifest.created_at.replace(microsecond=0, tzinfo=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     model_dict["workflow_id"] = str(manifest.workflow_id)
     json_bytes = json.dumps(model_dict, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
@@ -145,6 +149,8 @@ def test_non_ascii_uses_literal_utf8():
     model_dict = manifest.model_dump()
     if model_dict.get("content_truncated") is None:
         model_dict.pop("content_truncated", None)
+    if model_dict.get("policy_load_status") is None:
+        model_dict.pop("policy_load_status", None)
     model_dict["created_at"] = manifest.created_at.replace(microsecond=0, tzinfo=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     model_dict["workflow_id"] = str(manifest.workflow_id)
     # goal contains a non-ASCII character
