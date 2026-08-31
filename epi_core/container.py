@@ -748,21 +748,51 @@ class EPIContainer:
         if generate_analysis:
             try:
                 from epi_core.fault_analyzer import FaultAnalyzer
-                from epi_core.policy import load_policy
+                from epi_core.policy import PolicyLoadError, load_policy
+
+                # Determine policy load status for manifest
+                policy_load_status: str = "absent"
+                policy = None
 
                 # Prioritize policy inside the source_dir for artifact-local analysis
                 local_policy_path = source_dir / "policy.json"
                 if not local_policy_path.exists():
                     local_policy_path = source_dir / "epi_policy.json"
-                
+
                 if local_policy_path.exists():
                     try:
                         from epi_core.policy import EPIPolicy
+
                         policy = EPIPolicy.model_validate_json(local_policy_path.read_text(encoding="utf-8"))
-                    except Exception:
-                        policy = load_policy()
+                        policy_load_status = "loaded"
+                    except Exception as exc:
+                        # Respect strict mode — fail closed if EPI_ENFORCE=1 or --policy strict
+                        from epi_core.policy import _is_strict_policy_mode
+
+                        if _is_strict_policy_mode():
+                            try:
+                                manifest.policy_load_status = "failed"
+                            except Exception:
+                                pass
+                            raise PolicyLoadError(
+                                f"{local_policy_path} exists but is invalid; strict mode requires a valid policy: {exc}"
+                            ) from exc
+                        # Non-strict: workspace file invalid => failed, do not fallback to cwd
+                        policy = None
+                        policy_load_status = "failed"
                 else:
-                    policy = load_policy()
+                    try:
+                        policy = load_policy()
+                        policy_load_status = "loaded" if policy is not None else "absent"
+                    except PolicyLoadError:
+                        policy_load_status = "failed"
+                        raise
+
+                # Record status on manifest for verifier
+                try:
+                    manifest.policy_load_status = policy_load_status
+                except Exception:
+                    pass
 
                 steps_file = source_dir / "steps.jsonl"
                 if steps_file.exists():

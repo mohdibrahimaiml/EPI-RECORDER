@@ -10,6 +10,7 @@ recording always completes regardless of policy state.
 """
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -662,17 +663,42 @@ def build_policy_from_profile(
     }
 
 
-def load_policy(search_dir: Optional[Path] = None) -> Optional[EPIPolicy]:
+class PolicyLoadError(RuntimeError):
+    """Raised when a policy file exists but is invalid and strict mode is enabled."""
+
+
+def _is_strict_policy_mode(strict: bool | None = None) -> bool:
+    """Return True if policy loading should fail closed.
+
+    Strict is triggered by:
+      - explicit strict=True
+      - CLI --policy strict (caller passes strict=True)
+      - env EPI_ENFORCE=1 (fail-closed for CI/production)
+    """
+    if strict is True:
+        return True
+    if strict is False:
+        return False
+    # Auto-detect from env when not explicitly passed
+    val = os.environ.get("EPI_ENFORCE", "").strip().lower()
+    return val in ("1", "true", "yes", "on")
+
+
+def load_policy(search_dir: Optional[Path] = None, strict: bool | None = None) -> Optional[EPIPolicy]:
     """
     Look for epi_policy.json in search_dir and return a typed EPIPolicy.
 
     Args:
         search_dir: Directory to search. Defaults to cwd().
+        strict: If True, raise PolicyLoadError on malformed policy instead of
+            returning None. If None, auto-detects from EPI_ENFORCE env var.
+            When strict is False or not set, never raises — a broken policy
+            never breaks recording (heuristic_only fallback).
 
     Returns:
-        EPIPolicy if found and valid, None otherwise.
-        Never raises — a broken policy never breaks recording.
+        EPIPolicy if found and valid, None otherwise (or raises in strict mode).
     """
+    is_strict = _is_strict_policy_mode(strict)
     search_dir = search_dir or Path.cwd()
     policy_path = search_dir / "epi_policy.json"
 
@@ -682,7 +708,11 @@ def load_policy(search_dir: Optional[Path] = None) -> Optional[EPIPolicy]:
     try:
         data = json.loads(policy_path.read_text(encoding="utf-8"))
         return EPIPolicy(**data)
-    except Exception:
+    except Exception as exc:
+        if is_strict:
+            raise PolicyLoadError(
+                f"{policy_path} exists but is invalid; strict mode (--policy strict / EPI_ENFORCE=1) requires a valid policy: {exc}"
+            ) from exc
         # Malformed policy must not break recording, but the user should know
         # why policy-grounded analysis was skipped.
         print(

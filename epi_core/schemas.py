@@ -112,6 +112,17 @@ class ManifestModel(BaseModel):
             "true is a verify failure."
         ),
     )
+
+    policy_load_status: Optional[Literal["loaded", "failed", "absent"]] = Field(
+        default=None,
+        description=(
+            "Whether a policy file was present at seal time and whether it loaded. "
+            "loaded=policy found and valid, failed=policy file existed but was invalid, "
+            "absent=no policy file found. Lets a verifier tell if a run claiming "
+            "policy enforcement actually had one. Added after 4.4.3; absent on older "
+            "artifacts and omitted from the signature preimage when None."
+        ),
+    )
     
     # New metadata fields for decision tracking
     goal: Optional[str] = Field(

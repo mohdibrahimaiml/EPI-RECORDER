@@ -45,7 +45,7 @@ def test_embedded_viewer_matches_canonical_logic():
     assert embedded.is_file(), f"embedded viewer missing: {embedded}"
     canon_text = CANONICAL.read_text(encoding="utf-8", errors="ignore")
     emb_text = embedded.read_text(encoding="utf-8", errors="ignore")
-    for marker in ("isPreJcsSpec", "prepareManifestCopy", "content_truncated"):
+    for marker in ("isPreJcsSpec", "prepareManifestCopy", "content_truncated", "policy_load_status"):
         assert marker in canon_text, f"canonical missing {marker} — fix not deployed to site"
         assert marker in emb_text, f"embedded crypto.js missing {marker} — patch epi_viewer_static/crypto.js from website/js/epi-verify-core.js"
 

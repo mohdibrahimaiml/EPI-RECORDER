@@ -27,17 +27,35 @@ def _is_writable_dir(path: Path) -> bool:
 
 
 def _resolve_default_keys_dir() -> Path:
-    """Resolve a writable default keys directory with fallbacks."""
+    """Resolve a writable default keys directory with fallbacks.
+
+    The tmpdir fallback is now fail-closed: it will only be used if
+    EPI_ALLOW_TMP_KEYS=1 is set, or if the caller explicitly passes a
+    keys_dir. Otherwise a PermissionError is raised with a clear message,
+    because keys in tmpdir may be lost on reboot and make artifacts
+    permanently unverifiable.
+    """
     env_dir = os.environ.get("EPI_KEYS_DIR")
     candidates = [
         Path(env_dir) if env_dir else Path.home() / ".epi" / "keys",
         Path.cwd() / ".epi" / "keys",
-        Path(tempfile.gettempdir()) / "epi" / "keys",
     ]
-
+    # Check primary candidates first
     for candidate in candidates:
         if _is_writable_dir(candidate):
             return candidate
+
+    # Tmpdir is a last resort and must be explicitly opted in
+    tmp_candidate = Path(tempfile.gettempdir()) / "epi" / "keys"
+    allow_tmp = os.environ.get("EPI_ALLOW_TMP_KEYS", "").strip().lower() in ("1", "true", "yes", "on")
+    if allow_tmp and _is_writable_dir(tmp_candidate):
+        return tmp_candidate
+    if _is_writable_dir(tmp_candidate):
+        raise PermissionError(
+            f"Refusing to use tmpdir keys directory {tmp_candidate} without explicit opt-in. "
+            "This directory may be cleared on reboot and would make signed artifacts permanently unverifiable. "
+            "Set EPI_ALLOW_TMP_KEYS=1 to allow it, or provide --keys-dir / set EPI_KEYS_DIR / ensure ~/.epi/keys is writable."
+        )
 
     raise PermissionError(
         "Unable to create a writable keys directory. "

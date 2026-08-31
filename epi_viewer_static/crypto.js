@@ -536,6 +536,9 @@ function prepareManifestCopy(manifest) {
     if (copy.content_truncated === null || copy.content_truncated === undefined) {
         delete copy.content_truncated;
     }
+    if (copy.policy_load_status === null || copy.policy_load_status === undefined) {
+        delete copy.policy_load_status;
+    }
     return copy;
 }
 
@@ -628,6 +631,7 @@ async function verifyManifestSignature(manifest, rawManifestText) {
             const parsed = parseValue();
             delete parsed.signature;
             if (parsed.content_truncated === null || parsed.content_truncated === undefined) delete parsed.content_truncated;
+            if (parsed.policy_load_status === null || parsed.policy_load_status === undefined) delete parsed.policy_load_status;
             // normalize datetimes
             _normalizeDatetimeRec(parsed);
             // sorted JSON preserving __num raw text

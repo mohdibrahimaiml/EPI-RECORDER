@@ -232,6 +232,9 @@
     if (copy.content_truncated === null || copy.content_truncated === undefined) {
       delete copy.content_truncated;
     }
+    if (copy.policy_load_status === null || copy.policy_load_status === undefined) {
+      delete copy.policy_load_status;
+    }
     return copy;
   }
 
