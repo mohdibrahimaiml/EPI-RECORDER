@@ -2,6 +2,20 @@
 
 All notable changes to EPI Recorder are documented here.
 
+## [4.4.4] - 2026-08-31
+
+### Fixed — Fail-closed evidence
+
+- **Policy loading now fail-closed with `EPI_ENFORCE=1` / `--policy strict`.** `load_policy()` raises `PolicyLoadError` on malformed `epi_policy.json` when strict, instead of silently downgrading to `heuristic_only`. Manifest now records `policy_load_status` (`loaded`/`failed`/`absent`) so a verifier can tell if a run claiming policy enforcement actually had one. Added `policy_load_status` to `MANIFEST_OMIT_NONE_FROM_HASH` and mirrored in browser verifiers (`website/js`, `epi_viewer_static`).
+- **Key fallback no longer silently uses tmpdir.** `_resolve_default_keys_dir` now requires `EPI_ALLOW_TMP_KEYS=1` for `tmpdir/epi/keys`; otherwise raises `PermissionError` with clear message that tmpdir may be cleared on reboot and make artifacts permanently unverifiable.
+
+### Tests
+
+- Updated `FROZEN_MANIFEST_FIELDS` and canonical hash vectors for `policy_load_status`.
+- `tests/test_verifier_single_source.py` now also checks `policy_load_status` in embedded viewer.
+
+---
+
 ## [4.4.3] - 2026-08-29
 
 First PyPI release after the withdrawn 4.4.2 GitHub-only build. **Do not yank 4.4.1.**
