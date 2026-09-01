@@ -43,7 +43,7 @@ Full narrative (internal / investor): [COMPLETE-PRODUCT-GUIDE.md](./COMPLETE-PRO
 |-----|---------|
 | [USAGE_GUIDE.md](./USAGE_GUIDE.md) | Day-to-day install, record, verify |
 | [POLICY-AND-FAULT-ANALYZER.md](./POLICY-AND-FAULT-ANALYZER.md) | How users use policy + fault analysis |
-| [CLI.md](./CLI.md) | Command reference (v4.4.0) |
+| [CLI.md](./CLI.md) | Command reference (v4.4.4) |
 | [KNOWN_LIMITATIONS.md](./KNOWN_LIMITATIONS.md) | Honest product boundaries |
 | [POLICY.md](./POLICY.md) | Policy schema and authoring detail |
 | [ANNEX-IV.md](./ANNEX-IV.md) | Annex IV tooling |
