@@ -2,6 +2,19 @@
 
 All notable changes to EPI Recorder are documented here.
 
+## [4.4.5] - 2026-09-07
+
+### Fixed — TRACE integration unblocked
+
+- **Pydantic ceiling relaxed: `pydantic>=2.0.0,<3.0.0`.** The `<=2.12.3` cap (a defensive cap from March 2026 with no associated breakage) conflicted with `agentrust-trace==0.10.0`, which requires `pydantic>=2.13.5`, making the two packages uninstallable together. Verified safe before relaxing: full suite on pydantic 2.13.5 gives `1533 passed, 108 skipped` with only 8 pre-existing harness failures (asyncio-loop / Playwright-browser-environment issues that reproduce identically on the pinned 2.12.3 baseline; no traceback touches pydantic), and the signature-critical suites (`test_legacy_preimage`, `test_cross_verifier_parity`, `test_verifier_single_source`) are fully green.
+- **Emitter proven against 0.10.0.** `epi export trace` emits the optional `references` block (`rel: behavior-trace`, `digest` equal to the `.epi` sha256), `iter_errors` is empty, and `trace-tests verify --level 0` PASSES with TR-SIG green.
+
+### Notes
+
+- The `cryptography<44`, `typer<0.26`, and `rich<14` ceilings already exclude current PyPI latest releases (50.0.1, 0.27.2, 15.0.0 respectively) and are left untouched this release for separate handling.
+
+---
+
 ## [4.4.4] - 2026-08-31
 
 ### Fixed — Fail-closed evidence
