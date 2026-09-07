@@ -122,7 +122,7 @@ known ops hazard until sync runs.
 
 ## PyPI
 
-Current published line: **4.4.4**. **4.4.1** remains on PyPI (not yanked) and still truncates sealed strings at 2000 characters. **4.4.2** never reached PyPI.
+Current published line: **4.4.5**. **4.4.1** remains on PyPI (not yanked) and still truncates sealed strings at 2000 characters. **4.4.2** never reached PyPI.
 
 ---
 

@@ -1,7 +1,7 @@
 # EPI documentation
 
 **Start here** if you opened the `docs/` folder.  
-Product version in this repo: **4.4.4**. PyPI may lag — check with `pip index versions epi-recorder` or pin git (see [PILOT.md](./PILOT.md)).
+Product version in this repo: **4.4.5**. PyPI may lag — check with `pip index versions epi-recorder` or pin git (see [PILOT.md](./PILOT.md)).
 
 **License:** MIT (see root `LICENSE`).  
 **Not legal advice:** evidence files support audits; they do not certify regulatory compliance by themselves.
@@ -43,7 +43,7 @@ Full narrative (internal / investor): [COMPLETE-PRODUCT-GUIDE.md](./COMPLETE-PRO
 |-----|---------|
 | [USAGE_GUIDE.md](./USAGE_GUIDE.md) | Day-to-day install, record, verify |
 | [POLICY-AND-FAULT-ANALYZER.md](./POLICY-AND-FAULT-ANALYZER.md) | How users use policy + fault analysis |
-| [CLI.md](./CLI.md) | Command reference (v4.4.4) |
+| [CLI.md](./CLI.md) | Command reference (v4.4.5) |
 | [KNOWN_LIMITATIONS.md](./KNOWN_LIMITATIONS.md) | Honest product boundaries |
 | [POLICY.md](./POLICY.md) | Policy schema and authoring detail |
 | [ANNEX-IV.md](./ANNEX-IV.md) | Annex IV tooling |
