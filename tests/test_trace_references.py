@@ -68,13 +68,21 @@ def test_references_subschema_is_verbatim():
     assert "MUST NOT treat a resolved entry as attested evidence" in desc
 
 
-def test_auto_on_090_omits_references_and_validates():
-    """Real 0.9.0 schema, default auto -> no references, iter_errors empty."""
+def test_auto_on_090_omits_references_and_validates(monkeypatch):
+    """Old-schema behavior: default auto -> no references, iter_errors empty.
+
+    Simulates a 0.9.0-era schema (no `references` property) by stripping it
+    from a copy of the installed schema, so this holds on any installed
+    agentrust-trace version — including 0.10.0+, where the real schema
+    already declares references.
+    """
     pytest.importorskip("agentrust_trace")
     from agentrust_trace import iter_errors
 
-    # Ensure installed schema indeed does not support references (0.9.0)
-    assert _schema_supports_references() is False, "0.9.0 should not declare references"
+    # Simulate a 0.9.0-era schema for this test
+    _strip_references_schema(monkeypatch)
+    # Ensure simulated schema indeed does not support references (0.9.0)
+    assert _schema_supports_references() is False, "stripped schema should not declare references"
     rec = epi_to_trace_record(GOLDEN_EPI, transcript_uri="https://example.com/artifacts/spec-4.4.3.epi", references="auto")
     # Pop warnings before validation (same as CLI)
     rec.pop("_epi_warnings", None)
@@ -83,11 +91,16 @@ def test_auto_on_090_omits_references_and_validates():
     assert not errs, f"auto on 0.9.0 should validate: {errs[0].message if errs else ''}"
 
 
-def test_forced_on_against_090_fails_with_additionalproperties():
-    """Forced on against 0.9.0 must fail validation with additionalProperties message, not skip."""
+def test_forced_on_against_090_fails_with_additionalproperties(monkeypatch):
+    """Forced on against a 0.9.0-era schema must fail validation with additionalProperties message, not skip.
+
+    Simulates the 0.9.0 schema by stripping `references` (see above), so this
+    holds on any installed agentrust-trace version.
+    """
     pytest.importorskip("agentrust_trace")
     from agentrust_trace import iter_errors
 
+    _strip_references_schema(monkeypatch)
     rec = epi_to_trace_record(GOLDEN_EPI, transcript_uri="https://example.com/artifacts/spec-4.4.3.epi", references="on")
     rec.pop("_epi_warnings", None)
     assert "references" in rec, "forced on must emit references even on 0.9.0"
@@ -122,6 +135,21 @@ def _patch_schema(monkeypatch, patched):
     except Exception:
         pass
     monkeypatch.setattr(agentrust_trace.validate, "_schema", lambda: patched, raising=False)
+
+
+def _strip_references_schema(monkeypatch):
+    """Simulate a 0.9.0-era schema by removing the `references` property.
+
+    Lets the old-schema tests (auto-omits, forced-on-fails) run
+    deterministically on any installed agentrust-trace version, including
+    0.10.0+ where the real schema already declares references.
+    """
+    import agentrust_trace
+
+    stripped = copy.deepcopy(agentrust_trace.SCHEMA)
+    stripped["properties"] = dict(stripped.get("properties") or {})
+    stripped["properties"].pop("references", None)
+    _patch_schema(monkeypatch, stripped)
 
 
 def test_monkeypatched_schema_auto_emits_and_validates(monkeypatch):
