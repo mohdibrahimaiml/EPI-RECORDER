@@ -940,6 +940,9 @@ class EPIContainer:
                         1 for line in steps_content.splitlines() if line.strip()
                     )
             except Exception as _fa_err:
+                # Fail-closed policy errors must not be swallowed as analysis errors
+                if _fa_err.__class__.__name__ == "PolicyLoadError":
+                    raise
                 import sys as _sys
 
                 manifest.analysis_status = "error"
