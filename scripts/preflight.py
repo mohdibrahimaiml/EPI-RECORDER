@@ -6,7 +6,7 @@ RUN THIS IN A FRESH VENV WITH THE PUBLISHED WHEEL. NOT the editable install.
 
     python -m venv preflight && preflight/Scripts/activate   (Windows)
     python -m venv preflight && source preflight/bin/activate (Unix)
-    pip install epi-recorder==4.4.3 agentrust-trace agentrust-trace-tests rfc8785 requests
+    pip install epi-recorder==4.4.5 agentrust-trace agentrust-trace-tests rfc8785 requests
     python epi_preflight.py --epi <path-to-a-real-artifact.epi>
 
 Every check prints PASS / FAIL / SKIP with the evidence it used.
